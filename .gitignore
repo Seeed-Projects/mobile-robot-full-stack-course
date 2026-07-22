@@ -57,10 +57,6 @@ node_modules/
 *.mp4
 *.mov
 *.avi
-*.png
-*.jpg
-*.jpeg
-*.gif
 
 # Keep course assets when explicitly added
 !assets/images/
