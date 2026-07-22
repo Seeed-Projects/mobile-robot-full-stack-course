@@ -1,0 +1,12 @@
+* text=auto eol=lf
+
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.pdf binary
+*.onnx binary
+*.engine binary
+*.bag binary
+*.mcap binary
+

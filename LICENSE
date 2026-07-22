@@ -1,0 +1,26 @@
+# Licensing Notes
+
+No final license file is included yet because that choice should be deliberate.
+
+## Recommended Strategy
+
+For a course repository like this, a dual-license approach is often the cleanest:
+
+- Code: `Apache-2.0` or `MIT`
+- Course text, diagrams, slides, and images: `CC BY 4.0` or `CC BY-NC 4.0`
+
+## Why Split Licenses
+
+- Code usually benefits from permissive reuse.
+- Teaching materials often need separate attribution or commercial-use rules.
+- Hardware drawings and BOM documents may have their own supplier or redistribution constraints.
+
+## Before Publishing Publicly
+
+1. Decide whether commercial training reuse is allowed.
+2. Confirm you have redistribution rights for every image, dataset link, and vendor diagram.
+3. Add final license files at the repository root.
+4. Mention the license split clearly in `README.md`.
+
+This file is a publishing checklist, not legal advice.
+
