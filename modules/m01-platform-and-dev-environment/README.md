@@ -24,3 +24,8 @@ A reproducible Jetson-based development environment that can support later modul
 - `assets/`
 - `references/`
 
+## Tutorials
+
+- English tutorial (published): [`docs/en/m01-platform-and-dev-environment/`](../../docs/en/m01-platform-and-dev-environment/) — J501 hardware overview, JetPack 6.2 flashing, containerized development environment, ROS 2 Humble quick start.
+- Chinese tutorial (published): [`docs/zh-CN/m01-platform-and-dev-environment/`](../../docs/zh-CN/m01-platform-and-dev-environment/) — 同一内容的中文版本。
+
