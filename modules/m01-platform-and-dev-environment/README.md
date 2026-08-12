@@ -24,6 +24,10 @@ A reproducible Jetson-based development environment that can support later modul
 - `assets/`
 - `references/`
 
+## Code
+
+- [`code/ros2_ws/src/j501_robot/`](code/ros2_ws/src/j501_robot/) — ROS 2 Python package used by tutorial 1.4 (robot status publisher + Host PC command console). The same source is embedded as heredocs in the zh/en tutorials.
+
 ## Tutorials
 
 - English tutorial (published): [`docs/en/m01-platform-and-dev-environment/`](../../docs/en/m01-platform-and-dev-environment/) — J501 hardware overview, JetPack 6.2 flashing, containerized development environment, ROS 2 Humble quick start.
