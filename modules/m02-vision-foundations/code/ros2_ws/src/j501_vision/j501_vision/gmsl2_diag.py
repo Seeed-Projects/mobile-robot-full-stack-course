@@ -23,8 +23,10 @@ REGISTERS = {
 }
 
 # I2C 总线号和设备地址
+# 实机实测（J501 + Seeed GMSL 扩展板）：MAX96712 解串器 7-bit 地址为 0x29，
+# 两片分别位于 i2c-3（3-0029）与 i2c-7（7-0029）
 I2C_BUS = 7
-I2C_ADDR = 0x28
+I2C_ADDR = 0x29
 
 def read_register(bus, addr, reg):
     """通过 i2cget 读取 16-bit 寄存器值

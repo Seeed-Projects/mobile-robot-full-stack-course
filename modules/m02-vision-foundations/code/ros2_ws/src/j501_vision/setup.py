@@ -13,6 +13,7 @@ setup(
         ('share/' + package_name, ['package.xml']),
         ('share/' + package_name + '/launch', glob('launch/*.launch.py')),
         ('share/' + package_name + '/urdf', glob('urdf/*.xacro')),
+        ('share/' + package_name + '/config', glob('config/*.yaml')),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -24,6 +25,7 @@ setup(
     entry_points={
         'console_scripts': [
             'argus_camera_node = j501_vision.argus_camera_node:main',
+            'gmsl2_camera_node = j501_vision.gmsl2_camera_node:main',
             'bev_stitch_node = j501_vision.bev_stitch_node:main',
         ],
     },

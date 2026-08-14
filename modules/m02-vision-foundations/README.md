@@ -18,11 +18,11 @@ Multi-camera acquisition and calibration assets that later SLAM and AI modules c
 ## Code
 
 - [`code/ros2_ws/src/j501_vision/`](code/ros2_ws/src/j501_vision/) — ROS 2 Python package used by the M2 tutorials. The same source is embedded in the zh/en tutorials. Contents:
-  - 2.1: `argus_camera.py`, `argus_camera_node.py`, `gmsl2_diag.py`, `sync_eval.py`, `launch/argus_camera.launch.py`
-  - 2.2: `zed_uvc_capture.py`, `zed_sdk_validate.py`, `depth_filter.py`, `pointcloud_viz.py`, `plane_segment.py`, `depth_accuracy.py`
-  - 2.3: `mono_calibrate.py`, `stereo_calibrate.py`, `handeye_calibrate.py`, `fisheye_calibrate.py`, `yuyv2png.py`
+  - 2.1: `argus_camera.py`, `argus_camera_node.py`, `gmsl2_camera_node.py` (real-hardware tested), `gmsl2_diag.py`, `sync_eval.py`, `launch/argus_camera.launch.py`
+  - 2.2: `zed_uvc_capture.py`, `zed_sdk_validate.py`, `depth_filter.py`, `pointcloud_viz.py`, `plane_segment.py`, `depth_accuracy.py`, `launch/realsense.launch.py` (unverified, no hardware)
+  - 2.3: `mono_calibrate.py`, `stereo_calibrate.py`, `handeye_calibrate.py`, `fisheye_calibrate.py`, `yuyv2png.py`, `config/aprilgrid_6x6.yaml`, `config/camchain.yaml`
   - 2.4: `ipm_calculator.py`, `bev_stitcher.py`, `bev_stitch_node.py`, `bev_quality.py`, `launch/bev_stitch.launch.py`, `urdf/j501_robot.urdf.xacro`
-  - Known gaps (listed as deliverables in the tutorials but without full code blocks yet): `gmsl2_camera_node.py` (2.1), `launch/realsense.launch.py` (2.2), Kalibr config YAMLs (2.3).
+  - Known gaps: Kalibr/IMU calibration not run on hardware; calibration scripts untested on the J501 (see tutorial notes).
 
 ## Tutorials
 

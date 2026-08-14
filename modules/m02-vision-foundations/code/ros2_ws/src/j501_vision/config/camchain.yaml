@@ -1,0 +1,15 @@
+# camchain.yaml — Kalibr 相机链配置
+# 注意：intrinsics / distortion_coeffs / T_cam_imu 均为占位示例值，
+# 必须替换为单目标定（2.3.5）与相机-IMU 外参的实际结果后再使用
+cam0:
+  camera_model: pinhole
+  intrinsics: [640.123, 640.456, 639.567, 359.876]  # [fx, fy, cx, cy]
+  distortion_model: radtan
+  distortion_coeffs: [0.0123, -0.0456, 0.000789, -0.000456, 0.0234]
+  T_cam_imu:
+    - [1.0, 0.0, 0.0, 0.05]
+    - [0.0, 1.0, 0.0, -0.02]
+    - [0.0, 0.0, 1.0, 0.03]
+    - [0.0, 0.0, 0.0, 1.0]
+  timeshift_cam_imu: 0.0  # 相机与 IMU 时间偏移（秒）
+  rostopics: /camera/image_raw
