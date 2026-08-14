@@ -1,0 +1,56 @@
+<!-- robot.urdf.xacro — 相机坐标系定义 -->
+<robot name="j501_robot">
+
+  <!-- 基座坐标系 -->
+  <!-- 注意：URDF 规范中 <link> 不能包含 <origin> 子元素，
+       origin 只属于 joint / visual / collision；
+       base_link 作为 TF 树根节点，其位姿由外部（如 world 关节或里程计）确定 -->
+  <link name="base_link"/>
+
+  <!-- 前相机 -->
+  <link name="camera_front_link"/>
+  <joint name="camera_front_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_front_link"/>
+    <origin xyz="0.3 0 1.2" rpy="0 -0.785 0"/>
+    <!-- xyz: 前方 0.3m, 高度 1.2m -->
+    <!-- rpy: 俯仰 -45° -->
+  </joint>
+
+  <!-- 左相机 -->
+  <link name="camera_left_link"/>
+  <joint name="camera_left_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_left_link"/>
+    <origin xyz="0 0.3 1.0" rpy="0 -0.785 1.5708"/>
+    <!-- 偏航 90°（朝左） -->
+  </joint>
+
+  <!-- 右相机 -->
+  <link name="camera_right_link"/>
+  <joint name="camera_right_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_right_link"/>
+    <origin xyz="0 -0.3 1.0" rpy="0 -0.785 -1.5708"/>
+    <!-- 偏航 -90°（朝右） -->
+  </joint>
+
+  <!-- 后相机 -->
+  <link name="camera_rear_link"/>
+  <joint name="camera_rear_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="camera_rear_link"/>
+    <origin xyz="-0.3 0 1.2" rpy="0 -0.785 3.14159"/>
+    <!-- 偏航 180°（朝后） -->
+  </joint>
+
+  <!-- BEV 坐标系（地面平面） -->
+  <link name="bev_frame"/>
+  <joint name="bev_joint" type="fixed">
+    <parent link="base_link"/>
+    <child link="bev_frame"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+    <!-- BEV 坐标系与基座重合，Z 轴向上 -->
+  </joint>
+
+</robot>
