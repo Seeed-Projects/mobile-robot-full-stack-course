@@ -1,0 +1,6 @@
+# aprilgrid_6x6.yaml — Kalibr 标定板配置
+target_type: 'aprilgrid'   # 标定板类型
+tagCols: 6                  # AprilTag 列数
+tagRows: 6                  # AprilTag 行数
+tagSize: 0.025              # AprilTag 边长（米）
+tagSpacing: 0.3             # 标签间距比例（相对于 tagSize）

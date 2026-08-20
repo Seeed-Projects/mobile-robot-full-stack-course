@@ -7,7 +7,7 @@
 | 模块 | 目录 | 状态 |
 | --- | --- | --- |
 | M1 平台入门与开发环境 | [`m01-platform-and-dev-environment/`](./m01-platform-and-dev-environment/) | ✅ 中文教程已发布（1.1 ~ 1.4） |
-| M2 视觉系统基础 | `m02-vision-foundations/` | ⏳ 计划中 |
+| M2 视觉系统基础 | [`m02-vision-foundations/`](./m02-vision-foundations/) | ✅ 中文教程已发布（2.1 ~ 2.4） |
 | M3 雷达与传感器融合 | `m03-lidar-and-sensor-fusion/` | ⏳ 计划中 |
 | M4 AI 视觉与边缘加速 | `m04-ai-vision-and-edge-acceleration/` | ⏳ 计划中 |
 | M5 三维重建与 SLAM | `m05-3d-reconstruction-and-slam/` | ⏳ 计划中 |

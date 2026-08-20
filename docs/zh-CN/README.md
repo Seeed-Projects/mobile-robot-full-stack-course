@@ -13,4 +13,5 @@
 当前建议先以英文文档为主，中文文档逐步补充。目前已发布的中文模块内容：
 
 - [M1 平台入门与开发环境](./m01-platform-and-dev-environment/)
+- [M2 视觉系统基础](./m02-vision-foundations/)
 
