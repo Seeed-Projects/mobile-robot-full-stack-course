@@ -1,0 +1,34 @@
+version: "3.8"
+
+services:
+  jupyter:
+    image: ubuntu:22.04
+    container_name: j501-jupyter
+    runtime: nvidia
+    privileged: true
+    restart: unless-stopped
+    ports:
+      - "8888:8888"
+    volumes:
+      # CUDA runtime libraries
+      - /usr/local/cuda:/usr/local/cuda:ro
+      # System libraries (cuDNN, libopenblas, etc.)
+      - /usr/lib/aarch64-linux-gnu:/usr/lib/aarch64-linux-gnu:ro
+      # alternatives symlinks (libopenblas.so.0, etc.)
+      - /etc/alternatives:/etc/alternatives:ro
+      # User home directory (conda environment + PyTorch + working directory)
+      - /home/seeed:/home/seeed
+    environment:
+      - HOME=/home/seeed
+      - LD_LIBRARY_PATH=/usr/local/cuda/lib64:/usr/lib/aarch64-linux-gnu:/usr/lib/aarch64-linux-gnu/nvidia:/home/seeed/miniconda3/envs/py310/lib
+      - PYTHONPATH=/home/seeed/.local/lib/python3.10/site-packages
+      - PATH=/home/seeed/miniconda3/envs/py310/bin:/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin:/sbin:/bin
+    working_dir: /home/seeed
+    command: >
+      /home/seeed/miniconda3/envs/py310/bin/jupyter lab
+      --ip=0.0.0.0
+      --port=8888
+      --no-browser
+      --allow-root
+      --ServerApp.token=""
+      --ServerApp.password=""
