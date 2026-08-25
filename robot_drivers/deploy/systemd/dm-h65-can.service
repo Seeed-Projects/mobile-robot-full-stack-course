@@ -1,0 +1,18 @@
+[Unit]
+Description=Configure CAN0 for DM-H65 motors
+Wants=dm-h65-can-termination.service
+After=dm-h65-can-termination.service
+Before=dm-h65-webui.service
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStartPre=-/usr/sbin/ip link set can0 down
+ExecStart=/usr/sbin/ip link set can0 type can bitrate 1000000 berr-reporting on restart-ms 100
+ExecStart=/usr/sbin/ip link set can0 txqueuelen 1000
+ExecStart=/usr/sbin/ip link set can0 up
+ExecStop=/usr/sbin/ip link set can0 down
+
+[Install]
+WantedBy=multi-user.target
+

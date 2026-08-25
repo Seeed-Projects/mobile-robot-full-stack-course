@@ -120,6 +120,10 @@ Planned...
 
 You do not need to purchase all hardware at once. Early modules can be completed with only the J501 and a single camera. Navigation- and robotic-arm-related hardware can be added gradually later.
 
+### DM-H65 Chassis Python SDK
+
+The repository includes an installable [DM-H65 two-wheel chassis Python SDK](robot_drivers/README.md) with SocketCAN communication, differential-drive control, CLI diagnostics, Jetson services, and a remote debugging WebUI. This integration is Python-only; no C++ implementation is included.
+
 ---
 
 ## Repository Layout
@@ -130,6 +134,7 @@ mobile-robot-full-stack-course/
 ├── docs/                 # Course documentation
 ├── modules/              # Per-module course code
 ├── projects/             # Integrated projects
+├── robot_drivers/        # Mobile chassis Python drivers and WebUI
 ├── assets/               # Images and videos
 ├── README.md
 ├── README_CN.md

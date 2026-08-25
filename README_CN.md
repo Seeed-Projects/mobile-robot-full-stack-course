@@ -115,6 +115,10 @@ flowchart LR
 
 无需一次购买全部硬件。前期模块可以仅使用 J501 和单路相机，导航和机械臂相关硬件可在后续逐步增加。
 
+### DM-H65 底盘 Python SDK
+
+课程仓库已经集成可直接安装的 [DM-H65 两轮底盘 Python SDK](robot_drivers/README.md)，包含 SocketCAN 通信、左右轮差速控制、命令行诊断、Jetson 开机服务和远程调试 WebUI。该集成仅包含 Python 版本，不包含 C++ 实现。
+
 ---
 
 ## 仓库结构
@@ -125,6 +129,7 @@ mobile-robot-full-stack-course/
 ├── docs/                 # 课程文档
 ├── modules/              # 各课程模块代码
 ├── projects/             # 综合项目
+├── robot_drivers/        # 移动底盘 Python 驱动与 WebUI
 ├── assets/               # 图片和视频
 ├── README.md
 ├── README_CN.md

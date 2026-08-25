@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=68", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "dm-h65-sdk"
+version = "0.2.0"
+description = "Python SocketCAN SDK and WebUI for a two-wheel DM-H65 robot chassis"
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = ["python-can>=4.4,<5"]
+keywords = ["DM-H65", "SocketCAN", "Jetson", "robotics", "wheel-motor"]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Software Development :: Libraries :: Python Modules",
+]
+
+[project.optional-dependencies]
+dev = ["build>=1.2", "pytest>=8"]
+
+[project.scripts]
+dm-h65 = "dm_h65.cli:main"
+dm-h65-webui = "dm_h65.webui:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+dm_h65 = ["webui_static/*", "webui_static/assets/*"]
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests", "webui"]
+addopts = "-ra"

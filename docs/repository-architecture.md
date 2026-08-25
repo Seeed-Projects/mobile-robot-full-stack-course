@@ -30,6 +30,10 @@ Stores per-module code and shared technical assets. This includes module folders
 
 Stores integrated projects, demos, evaluation assets, and reusable templates.
 
+### `robot_drivers/`
+
+Stores installable Python hardware drivers shared by the course, including the DM-H65 SocketCAN SDK, chassis control examples, Jetson services, and debugging WebUI.
+
 ### `assets/`
 
 Stores shared images, diagrams, videos, and other media used by the repository.

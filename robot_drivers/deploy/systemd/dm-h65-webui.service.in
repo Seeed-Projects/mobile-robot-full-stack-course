@@ -1,0 +1,23 @@
+[Unit]
+Description=DM-H65 chassis WebUI control service
+Requires=dm-h65-can.service
+After=dm-h65-can.service network.target
+
+[Service]
+Type=simple
+User=@USER@
+Group=@GROUP@
+WorkingDirectory=@PROJECT_DIR@
+Environment=PYTHONUNBUFFERED=1
+ExecStart=@PROJECT_DIR@/.venv/bin/dm-h65-webui --host 0.0.0.0 --port 8765 --interface can0
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=5
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=read-only
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+

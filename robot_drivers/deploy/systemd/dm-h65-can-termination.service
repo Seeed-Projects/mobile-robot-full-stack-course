@@ -1,0 +1,14 @@
+[Unit]
+Description=DM-H65 CAN0 termination resistor on reComputer J501
+Before=dm-h65-can.service
+ConditionPathExists=/dev/gpiochip2
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/gpioset --mode=signal gpiochip2 9=0
+Restart=on-failure
+RestartSec=1
+
+[Install]
+WantedBy=multi-user.target
+
