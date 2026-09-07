@@ -81,12 +81,12 @@ flowchart LR
 
 | 模块 | 主题 | 主要内容 | 计划周期
 |---|---|---|---|
-| M1 | 平台入门与开发环境 | J501、JetPack、Docker、ROS 2 | 🚧 进行中 2026-07-24 |
-| M2 | 视觉系统基础 | CSI、GMSL2、RGB-D、标定、BEV | ⏳ 计划中 2026-08-07 |
-| M3 | 雷达与传感器融合 | LiDAR、IMU、GNSS、CAN-FD、PTP、EKF | ⏳ 计划中 2026-08-21 |
-| M4 | AI 视觉与边缘加速 | YOLO、跟踪、分割、6D 位姿、Isaac ROS | ⏳ 计划中 2026-09-04 |
-| M5 | 三维重建与 SLAM | ORB-SLAM3、Fast-LIO、R3LIVE、3DGS、语义地图 | ⏳ 计划中 2026-09-18 |
-| M6 | 定位导航与路径规划 | Nav2、规划、动态避障、多机协同 | ⏳ 计划中 2026-10-02|
+| M1 | 平台入门与开发环境 | J501、JetPack、Docker、ROS 2 | ✅ Completed |
+| M2 | 视觉系统基础 | CSI、GMSL2、RGB-D、标定、BEV | ✅ Completed |
+| M3 | 雷达与传感器融合 | LiDAR、IMU、GNSS、CAN-FD、PTP、EKF | 🚧ing 计划中 09-11 |
+| M4 | AI 视觉与边缘加速 | YOLO、跟踪、分割、6D 位姿、Isaac ROS | ⏳ 计划中 09-25 |
+| M5 | 三维重建与 SLAM | ORB-SLAM3、Fast-LIO、R3LIVE、3DGS、语义地图 | ⏳ 计划中 10-02 |
+| M6 | 定位导航与路径规划 | Nav2、规划、动态避障、多机协同 | ⏳ 计划中 |
 | M7 | VLN 语义导航 | 指令解析、拓扑地图、语义路标 | ⏳ 计划中 |
 | M8 | 云台与主动视觉 | 云台控制、目标跟踪、底盘协同 | ⏳ 计划中 |
 | M9 | 机械臂与操作 | MoveIt 2、Pinocchio、手眼标定、GraspNet | ⏳ 计划中 |

@@ -83,12 +83,12 @@ The course is planned as **11 modules, about 43 class hours** in total. Starting
 
 | Module | Theme | Main Content | Planned Window |
 |---|---|---|---|
-| M1 | Platform Introduction and Development Environment | J501, JetPack, Docker, ROS 2 | 🚧 In Progress 2026-07-24 |
-| M2 | Vision System Foundations | CSI, GMSL2, RGB-D, calibration, BEV | ⏳ Planned 2026-08-07 |
-| M3 | LiDAR and Sensor Fusion | LiDAR, IMU, GNSS, CAN-FD, PTP, EKF | ⏳ Planned 2026-08-21 |
-| M4 | AI Vision and Edge Acceleration | YOLO, tracking, segmentation, 6D pose, Isaac ROS | ⏳ Planned 2026-09-04 |
-| M5 | 3D Reconstruction and SLAM | ORB-SLAM3, Fast-LIO, R3LIVE, 3DGS, semantic maps | ⏳ Planned 2026-09-18 |
-| M6 | Localization, Navigation, and Path Planning | Nav2, planning, dynamic obstacle avoidance, multi-robot collaboration | ⏳ Planned 2026-10-02 |
+| M1 | Platform Introduction and Development Environment | J501, JetPack, Docker, ROS 2 | ✅ Completed |
+| M2 | Vision System Foundations | CSI, GMSL2, RGB-D, calibration, BEV | ✅ Completed |
+| M3 | LiDAR and Sensor Fusion | LiDAR, IMU, GNSS, CAN-FD, PTP, EKF | 🚧 ing  09-11 |
+| M4 | AI Vision and Edge Acceleration | YOLO, tracking, segmentation, 6D pose, Isaac ROS | ⏳ Planned 09-25 |
+| M5 | 3D Reconstruction and SLAM | ORB-SLAM3, Fast-LIO, R3LIVE, 3DGS, semantic maps | ⏳ Planned 10-02 |
+| M6 | Localization, Navigation, and Path Planning | Nav2, planning, dynamic obstacle avoidance, multi-robot collaboration | ⏳ Planned  |
 | M7 | VLN Semantic Navigation | instruction parsing, topological maps, semantic landmarks | ⏳ Planned |
 | M8 | PTZ and Active Vision | PTZ control, target tracking, chassis coordination | ⏳ Planned |
 | M9 | Robotic Arm and Manipulation | MoveIt 2, Pinocchio, hand-eye calibration, GraspNet | ⏳ Planned |
