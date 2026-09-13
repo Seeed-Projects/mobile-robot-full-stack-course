@@ -83,8 +83,8 @@ flowchart LR
 |---|---|---|---|
 | M1 | 平台入门与开发环境 | J501、JetPack、Docker、ROS 2 | ✅ Completed |
 | M2 | 视觉系统基础 | CSI、GMSL2、RGB-D、标定、BEV | ✅ Completed |
-| M3 | 雷达与传感器融合 | LiDAR、IMU、GNSS、CAN-FD、PTP、EKF | 🚧ing 计划中 09-11 |
-| M4 | AI 视觉与边缘加速 | YOLO、跟踪、分割、6D 位姿、Isaac ROS | ⏳ 计划中 09-25 |
+| M3 | [雷达与多传感器融合](docs/M03-LiDAR-and-Multi-Sensor-Fusion/README.md) | LiDAR、IMU、GNSS、CAN-FD、PTP、EKF | ✅ Completed |
+| M4 | AI 视觉与边缘加速 | YOLO、跟踪、分割、6D 位姿、Isaac ROS | 🚧 09-25 |
 | M5 | 三维重建与 SLAM | ORB-SLAM3、Fast-LIO、R3LIVE、3DGS、语义地图 | ⏳ 计划中 10-02 |
 | M6 | 定位导航与路径规划 | Nav2、规划、动态避障、多机协同 | ⏳ 计划中 |
 | M7 | VLN 语义导航 | 指令解析、拓扑地图、语义路标 | ⏳ 计划中 |
