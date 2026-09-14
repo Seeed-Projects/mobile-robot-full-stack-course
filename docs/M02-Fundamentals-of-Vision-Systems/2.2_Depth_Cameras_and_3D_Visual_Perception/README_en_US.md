@@ -1,153 +1,122 @@
 # 2.2 Depth Cameras and 3D Visual Perception
 
-#### Learning Objectives
+### Course Objectives
 
-After completing this section, you will be able to turn a depth camera into a reliable 3D perception input. You will compare depth-sensing technologies, start the official ROS 2 driver to obtain registered RGB-D data and colored point clouds, understand how depth pixels become 3D points through coordinate transforms, and validate the result in RViz2. Optional extensions include implementing your own synchronized point-cloud node, Open3D visualization, and depth filtering.
+After completing this section, you will be able to turn a depth camera into a 3D perception input: first judge which depth technology suits which scenario, then start the official ROS 2 driver to obtain aligned RGB-D and colored point clouds, understand how a depth pixel becomes a 3D point through coordinate transformation, and verify the results with RViz2. After finishing the required parts, you can additionally challenge yourself with a hand-written synchronized point-cloud node, Open3D visualization, and depth filtering.
 
-| Stage | Task | Verifiable result |
+| Stage | What you do | Verifiable result |
 | --- | --- | --- |
-| Integration | Start Gemini 2 with its official ROS 2 driver | RGB, depth, and CameraInfo topics are available |
-| Registration | Enable depth-to-color registration | Depth edges align with the color image |
-| Point cloud | Enable the official colored point cloud and inspect it in RViz2 | Coordinate frame, colors, and geometry are correct |
+| Connect | Start the Gemini 2 with the official ROS 2 driver | The RGB, depth, and CameraInfo topics appear |
+| Align | Enable depth-to-color registration | Depth edges line up with the color image |
+| Point Cloud | Enable the official colored point cloud and inspect it in RViz2 | The point-cloud coordinate frame, colors, and shape are correct |
 | Advanced | Understand back-projection, synchronization, and filtering | You can explain and modify your own point-cloud node |
 
-#### Hardware List
+### Hardware List
 
-| ![test.jpg](./images/E7XWb0DdxoJI3Nx9lpvcDjQqnvc.jpg)<br><br>Orbbec Gemini 2 | ![test.jpg](./images/OqhFb6jirov5EdxRaemcz4xInrh.jpg)<br><br>reComputer Robotics J5012 |
+| ![Orbbec Gemini 2](./images/X4rubDsSdogV0hxOxH0cUOpCnif.png) | ![reComputer Robotics J5012](./images/WDPJbqqEAo80bExmNa1cx4gXnyb.png) |
 | --- | --- |
+| [Orbbec Gemini 2](https://www.seeedstudio.com/Orbbec-Gemini-2-3D-Camera-p-6464.html) | [reComputer Robotics J5012](https://www.seeedstudio.com/reComputer-Robotics-J5012-with-GMSL-extension-board-p-6682.html) |
 
-- **Depth camera:** Orbbec Gemini 2 with USB 3, active-stereo infrared depth sensing, a built-in six-axis IMU, RGB-D hardware synchronization, and depth registration.
-- **Compute platform:** J501 development board, or an equivalent x86/ARM platform capable of running ROS 2 Humble or later.
-- **Cable:** USB 3.0 data cable between Gemini 2 and the compute platform.
+- Depth camera: Orbbec Gemini 2 (USB3 interface, active stereo IR depth technology, integrated 6-axis IMU, supports hardware RGB-D synchronization and depth alignment).
+- Compute platform: reComputer Robotics J5012 (NVIDIA Jetson AGX Orin; or an equivalent x86/ARM compute platform that meets the ROS 2 Humble-or-newer requirement).
+- Cable: USB3.0 data cable (for connecting the Gemini 2 to the compute platform).
 
-Official references include the Gemini 2 specifications and the OrbbecSDK_ROS2 Wrapper v2 documentation. Driver parameters and topic names may change between releases; during the exercise, treat the current official documentation and the output of `ros2 topic list -t` on your device as authoritative.
+Official documentation: [OrbbecSDK_ROS2 Wrapper v2 docs](https://orbbec.github.io/OrbbecSDK_ROS2/). Driver parameters and topics change between versions; during the hands-on work, rely on the on-machine `ros2 topic list -t` output and the current official documentation.
 
-#### Prerequisites
+### Prerequisites
 
-- ROS 2 fundamentals: nodes, topics, message types, and `ros2 launch`.
-- Linear algebra fundamentals: homogeneous coordinates and composition of rotation matrices and translation vectors.
+- ROS 2 basics: be familiar with nodes, topics, message types, and the `ros2 launch` startup method.
+- Linear algebra basics: homogeneous coordinates and the composition of rotation matrices with translation vectors.
 
 ---
 
-#### Theory
+### Theory Essentials
 
-##### 1. Comparing Depth-Sensing Technologies
+#### 1. Comparing Depth-Sensing Technologies
 
-Most consumer and industrial depth cameras use one of the following three approaches. Each involves tradeoffs among accuracy, range, resistance to lighting interference, cost, and power consumption.
+Today's mainstream consumer/industrial depth cameras mainly follow three technology routes, each with trade-offs in accuracy, ranging distance, immunity to light interference, cost, and power consumption.
 
-![image.png](./images/YD6qbV0X0o2phQxcYGCc5Nt0npg.png)
+![Comparison of three depth technologies](./images/JxILbxDM8oIEgBxeFgqcrAMYnDd.jpg)
 
-| Technology | Principle | Advantages | Limitations |
+| Technology route | Core principle | Advantages | Limitations |
 | --- | --- | --- | --- |
-| Structured Light | Projects a known coded infrared dot or stripe pattern, measures its deformation on object surfaces, and triangulates depth from disparity. | High short-range accuracy; works well on low-texture surfaces; relatively low power. | Vulnerable to strong ambient light; multiple devices may interfere; range is typically ≤ 3 m. |
-| Stereo Vision | Uses two infrared or visible-light cameras to measure binocular disparity. Stereo algorithms such as SGBM or BM generate a disparity map, which is converted to depth using the baseline and focal length. | Active IR texture improves low-texture matching; relatively long range; usually performs well indoors and in partially outdoor environments. | Difficult matching on textureless surfaces; computationally expensive; accuracy falls with distance. |
-| Time of Flight (ToF) | Emits modulated infrared light and directly estimates each pixel's distance from phase shift or round-trip travel time. | No stereo matching; insensitive to texture; high frame rates and compact modules are possible. | Susceptible to multipath interference; ordinary short-range accuracy; lower SNR in direct sunlight; invalid pixels can still occur. |
+| Structured Light | Projects a known encoded infrared speckle/stripe pattern and computes disparity from how the pattern deforms on object surfaces, then triangulates the depth. | High near-range accuracy; friendly to low-texture surfaces; lower power consumption. | Easily disturbed by strong light; pattern crosstalk when multiple devices run together; ranging distance typically ≤ 3 m. |
+| Stereo Vision | Uses left/right infrared or visible-light cameras to mimic human binocular disparity; a stereo-matching algorithm (SGBM, BM, etc.) computes the disparity map, and depth is derived from the baseline and focal length. | Active IR texture improves low-texture regions; wide ranging distance; usually performs well indoors and semi-outdoors. | Hard to match textureless regions; high computational complexity; accuracy degrades with distance. |
+| ToF (Time-of-Flight) | Emits modulated infrared light into the scene and computes each pixel's distance directly from the phase shift or flight time of the light pulse's round trip. | No stereo matching required; insensitive to texture; achieves high frame rates in a compact module. | Susceptible to multi-path interference (MPI); moderate near-range accuracy; SNR drops under direct sunlight. |
 
-> **Hardware used here:** Orbbec Gemini 2 uses active-stereo IR. Two infrared cameras triangulate depth from disparity, while projected IR texture assists matching on low-texture surfaces. The camera includes a six-axis IMU and supports RGB-D hardware synchronization and hardware D2C registration. Strong sunlight, reflective surfaces, occlusion, and long range can still reduce depth quality.
+> The hardware used in this section, the Orbbec Gemini 2, uses an Active Stereo IR scheme: two infrared cameras derive depth through disparity triangulation, and the active IR texture helps match low-texture surfaces. It integrates a 6-axis IMU and supports hardware RGB-D synchronization and hardware D2C alignment; however, strong sunlight, reflective surfaces, occlusion, and long distances still degrade depth quality.
 
-##### 2. Registering Depth and Color Images
+#### 2. Extrinsic Alignment of Depth and Color Images (Registration)
 
-A depth camera normally contains separate depth and RGB imaging units. Their optical centers do not coincide, so a fixed extrinsic transform—rotation (R) and translation (t)—exists between them. Directly overlaying depth and color images causes pixel misalignment; depth registration aligns the two streams.
+A depth camera typically contains two independent imaging units — a depth sensor (IR/ToF) and a color sensor (RGB) — whose optical centers do not coincide and which have a fixed extrinsic relationship (rotation `R` and translation `t`). Simply overlaying the depth and color images produces pixel misalignment, so depth alignment (Depth Registration / Alignment) is required.
 
-The goal is to map every depth pixel into the color-camera coordinate system so that each depth value corresponds to an RGB pixel.
+Alignment goal: map every pixel of the depth image into the color camera's coordinate frame so that depth values correspond one-to-one with RGB pixels, producing aligned RGB-D data.
 
-Core transformation:
+Core transformation pipeline:
 
-1. For each depth pixel \((u_d,v_d)\), use depth \(Z\) and depth intrinsics \(K_d\) to back-project a 3D point \(P_d=(X_d,Y_d,Z_d)\) in the depth-camera frame.
-1. Transform the point into the color-camera frame using the depth-to-color extrinsics: \(P_c=R_{d2c}P_d+t_{d2c}\).
-1. Project \(P_c\) onto the color image using color intrinsics \(K_c\), producing \((u_c,v_c)\).
-1. Write \(Z_c=P_c.z\) into \((u_c,v_c)\) in the registered depth image. Mark unfilled pixels invalid with 0 or NaN.
+1. For each pixel `(u_d, v_d)` in the depth image, combine the depth value `Z` with the depth camera intrinsics `K_d` to back-project a 3D point `P_d = (X_d, Y_d, Z_d)` in the depth camera frame.
+2. Transform the point into the color camera frame using the depth→color extrinsics `(R_{d2c}, t_{d2c})`: `P_c = R_{d2c} · P_d + t_{d2c}`.
+3. Project `P_c` onto the color image plane using the color camera intrinsics `K_c` to obtain the corresponding pixel coordinates `(u_c, v_c)`.
+4. Write the depth value `Z_c = P_c.z` into position `(u_c, v_c)` of the aligned depth image; unfilled pixels are marked invalid (0 or NaN).
 
-![Depth-to-color registration first back-projects into the depth-camera frame, transforms into the RGB-camera frame with the extrinsics, and finally projects onto RGB pixels.](./images/HMKzbKkdjoKwpqxuEbtcYsdqnVc.png)
+![Depth alignment D2C](./images/Uu6vbimB2oTW8AxixW1cKnnbnWd.jpg)
 
-*Depth-to-color registration first back-projects into the depth-camera frame, transforms into the RGB-camera frame with the extrinsics, and finally projects onto RGB pixels.*
+> Extrinsic calibration accuracy directly affects alignment quality. Factory calibration is usually sufficient; if you replace lenses or the mechanical structure deforms, recalibrate with Kalibr or the MATLAB Stereo Camera Calibrator.
 
-> Extrinsic-calibration accuracy directly affects registration quality. Factory calibration is normally sufficient. Recalibrate with Kalibr or MATLAB Stereo Camera Calibrator after replacing a lens or if the mechanical structure deforms.
+#### 3. Point-Cloud Generation: RGB-D → PointCloud2
 
-##### 3. Point-Cloud Generation: RGB-D to PointCloud2
+A point cloud is a set of discrete points in 3D space; each point contains at least 3D coordinates `(x, y, z)` and may carry additional attributes such as color, normals, and intensity. Converting RGB-D data into a point cloud is essentially per-pixel back-projection of the depth image.
 
-A point cloud is a collection of discrete 3D points. Every point contains at least \((x,y,z)\) and may also contain color, normals, intensity, or other attributes. Converting RGB-D data into a point cloud is a per-pixel back-projection of the depth image.
+Back-projection formula (pinhole model): for a pixel `(u, v)` in the aligned depth image with depth value `Z`, and camera intrinsics `K = [[f_x, 0, c_x], [0, f_y, c_y], [0, 0, 1]]`, the 3D coordinates are:
 
-For a registered depth pixel \((u,v)\) with depth \(Z\) and camera matrix \(K=[[f_x,0,c_x],[0,f_y,c_y],[0,0,1]]\):
+`X = (u - c_x) · Z / f_x`
+`Y = (v - c_y) · Z / f_y`
+`Z = Z` (the depth value, usually in meters)
 
-\[
-X=(u-c_x)Z/f_x
-\]
+![Back-projection produces a point cloud](./images/Npa9berNHonc9txRidOcFjaTnJe.jpg)
 
-\[
-Y=(v-c_y)Z/f_y
-\]
+Key points of the ROS 2 `PointCloud2` message structure:
 
-\[
-Z=Z
-\]
+- `header.frame_id`: the reference frame of the point cloud, typically the camera optical frame (e.g. `camera_color_optical_frame`).
+- `height` / `width`: the point cloud's layout. An organized point cloud preserves the image's 2D structure and `height` is the number of image rows; an unorganized point cloud has `height=1`.
+- `fields`: field descriptions; a common combination is `x, y, z` (FLOAT32) + `rgb` (FLOAT32, packed RGB bytes) or `r, g, b` (UINT8).
+- `point_step` / `row_step`: the byte stride of a single point and of a single row; `data` is the raw byte array.
 
-Depth is normally expressed in meters.
+Commonly used libraries:
 
-![Every valid registered depth pixel becomes a 3D point in the camera frame through the intrinsics and depth Z; all points together form the colored point cloud.](./images/UcrobxIayobtXBxpxwjcvX8inOd.png)
-
-*Every valid registered depth pixel becomes a 3D point in the camera frame through the intrinsics and depth (Z); all points together form the colored point cloud.*
-
-Important fields in a ROS 2 `PointCloud2` message:
-
-- `header.frame_id`: the point-cloud coordinate frame, normally an optical camera frame such as `camera_color_optical_frame`.
-- `height` and `width`: cloud organization. An organized cloud retains the image's 2D structure; an unorganized cloud has `height=1`.
-- `fields`: commonly `x,y,z` as `FLOAT32` plus packed `rgb` as `FLOAT32`, or separate `r,g,b` as `UINT8`.
-- `point_step` and `row_step`: byte strides for one point and one row; `data` stores the raw bytes.
-
-Common libraries:
-
-- **PCL:** the de facto C++ point-cloud library; `pcl_conversions` converts between `pcl::PointCloud<pcl::PointXYZRGB>` and ROS 2 messages.
-- **Open3D:** friendly Python/C++ APIs for rapid prototyping and visualization.
-- **depth_image_proc:** a ROS 2 package that converts depth images to point clouds through launch configuration without custom code.
+- PCL (Point Cloud Library): the most common C++ library for point-cloud processing; provides conversion between `pcl::PointCloud<pcl::PointXYZRGB>` and ROS 2 messages (`pcl_conversions`).
+- Open3D: covers both Python and C++, with a friendly API, suitable for rapid prototyping and visualization.
+- depth_image_proc (a ROS 2 package): converts depth images to point clouds through launch configuration, with no hand-written code.
 
 ---
 
-#### Exercises
+### Exercises
 
-> **Reference environment:** reComputer Mini J501 with Orbbec Gemini 2, running JetPack 6.2.1. Check your dependencies against this environment; configuration may differ on other systems.
+> The compute platform used in this lab is the reComputer Robotics J5012 (NVIDIA Jetson AGX Orin), the camera is the Orbbec Gemini 2, and the software system is JetPack 6.2.1. First check whether your environment matches — if versions differ, the installation and startup commands below may need to be adjusted accordingly.
 
-![Reference setup](./images/JjnybbyrzoBERbx54AXcBsoAnKd.jpeg)
+#### Task 1: Connect the Depth Camera and Publish a ROS 2 PointCloud2 Topic
 
-##### Task 1: Connect the Depth Camera and Publish a ROS 2 PointCloud2 Topic
+Goal: connect the depth camera hardware, start the official ROS 2 driver, obtain aligned RGB-D data, and publish it as a `sensor_msgs/PointCloud2` topic.
 
-**Goal:** connect the camera, start the official driver, obtain registered RGB-D data, and publish it as `sensor_msgs/PointCloud2`.
+Step A: Hardware Connection and Driver Installation
 
-**Step A: Hardware Connection and Driver Installation**
+Orbbec Gemini 2 (USB3)
 
-Connect the Orbbec Gemini 2 through USB 3.
+![Gemini 2 USB3 connection](./images/XQj0bCCHXotbQgxEjJgcHjcsnoc.png)
 
-![image.png](./images/SfXKbO7rMowr41xKmNkcimVYnGe.png)
-
-1. Connect Gemini 2 to a USB 3.0 port on the J501. USB 2.0 does not provide enough bandwidth for simultaneous depth and color streams.
-1. Install Orbbec SDK v2 for ARM64 and configure the udev rules:
-
-*Install Orbbec SDK v2*
-
-```bash
-wget https://github.com/orbbec/OrbbecSDK_v2/releases/download/v2.4.11/OrbbecSDK_v2.4.11_202508040936_058db73_linux_aarch64.zip && unzip OrbbecSDK_v2.4.11_202508040936_058db73_linux_aarch64.zip && cd OrbbecSDK_v2.4.11_202508040936_058db73_linux_aarch64/shared/ && sudo chmod +x ./install_udev_rules.sh && sudo ./install_udev_rules.sh && sudo udevadm control --reload-rules && sudo udevadm trigger && cd .. && ./build_examples.sh && ./setup.sh
-```
-
-![Orbbec SDK build result](./images/Y1RQbTmUVoXrolxMXHycd9Mlnqh.png)
-
-Build and install the Orbbec ROS 2 driver from source:
-
-1. Clone `OrbbecSDK_ROS2` and install its dependencies.
-1. Install its udev rules, build the workspace, and verify device detection.
-
-*Build and install the Orbbec ROS 2 driver*
+1. Use a USB3.0 cable to connect the Gemini 2 to a USB3.0 port on the J5012 (note the difference between USB2.0 and USB3.0 — USB2.0 bandwidth is insufficient to carry the depth and color streams simultaneously).
+2. Build and install the Orbbec ROS 2 driver from source (clone the repo, install dependencies, install udev rules, build, and verify device recognition):
 
 ```bash
 mkdir -p ~/ros2_ws/src && cd ~/ros2_ws/src && git clone https://github.com/orbbec/OrbbecSDK_ROS2.git && sudo apt install libgflags-dev nlohmann-json3-dev ros-$ROS_DISTRO-image-transport ros-${ROS_DISTRO}-image-transport-plugins ros-${ROS_DISTRO}-compressed-image-transport ros-$ROS_DISTRO-image-publisher ros-${ROS_DISTRO}-camera-info-manager ros-$ROS_DISTRO-diagnostic-updater ros-$ROS_DISTRO-diagnostic-msgs ros-$ROS_DISTRO-statistics-msgs ros-${ROS_DISTRO}-backward-ros libdw-dev && cd ~/ros2_ws/src/OrbbecSDK_ROS2/orbbec_camera/scripts && sudo bash install_udev_rules.sh && sudo udevadm control --reload-rules && sudo udevadm trigger && cd ~/ros2_ws/ && colcon build --packages-select orbbec_camera --cmake-args -DCMAKE_BUILD_TYPE=Release -DOpenCV_DIR=/usr/lib/cmake/opencv4 && source ./install/setup.bash && ls /dev/video*
 ```
 
-![Orbbec ROS 2 build result](./images/IZvubaxhBoSDmdx0TINcsPNwnfc.png)
+![Orbbec ROS2 build output](./images/B0O9bezNToWUmZxDsbIctK52ncR.png)
+![Video device list](./images/RuWrbanQdo4uh6xDqpRc9pGynpd.png)
 
-![Detected devices](./images/Z0vEbrE23ohPOVxd7LWcde1wnMc.png)
+Step B: Start the Camera Driver Node
 
-**Step B: Start the Camera Driver**
-
-Start Gemini 2 with depth registration and colored point-cloud output:
+Start the Gemini 2 camera node and enable depth alignment and colored point-cloud publishing:
 
 ```bash
 ros2 launch orbbec_camera gemini2.launch.py \
@@ -156,40 +125,44 @@ ros2 launch orbbec_camera gemini2.launch.py \
   enable_colored_point_cloud:=true
 ```
 
-Verify the topics:
+After startup, verify the topics with the following commands:
 
 ```bash
 ros2 topic list | grep camera
-# Check the color, depth, and point-cloud topics
+# 检查彩色图、深度图与点云话题
 ros2 topic hz /camera/depth_registered/points
 ros2 topic info /camera/depth_registered/points
 ros2 topic echo /camera/color/camera_info --once
 ```
 
-> With `depth_registration:=true`, the depth image is registered to the color-camera frame, and every point in `/camera/depth_registered/points` corresponds directly to an RGB pixel. With registration disabled, the cloud is expressed in the depth-camera frame and color requires an additional lookup mapping.
+> `depth_registration:=true` aligns the depth image to the color camera frame, so every point in the colored point cloud published on `/camera/depth_registered/points` corresponds directly to an RGB pixel. If alignment is disabled, the point cloud is expressed in the depth camera frame and color requires an additional lookup mapping.
 
-![Point-cloud topic output](./images/ZnNWbPAMzowF7dxSgttcDrHqntc.png)
+![Camera topic list](./images/Xhvgb0LbHoy1wOxdOVPcO1FenWe.png)
 
-**Step C (Advanced): Clone and Launch the Custom Point Cloud with RViz2**
+Step C (advanced): Write Your Own Point-Cloud Node
 
-The repository's `pointcloud_utils` package synchronizes RGB, D2C-registered depth, and color-camera intrinsics; publishes `/camera/points` in real time; and opens the included RViz2 layout. By default, the Orbbec Color and Orbbec Depth panels are expanded, and the node generates a complete colored cloud over a valid range of 0.2–8.0 m.
+What you will get: `pointcloud_utils` subscribes to the RGB image, the D2C-aligned depth image, and the color camera's `CameraInfo`, and publishes a colored point cloud on `/camera/points` in real time.
 
-> Complete Steps A and B first and confirm that the official `/camera/depth_registered/points` topic works. The custom node does not replace the camera driver; it converts registered RGB-D data into an editable `PointCloud2`. The included one-click script is the recommended way to start the camera, custom node, and RViz2 together.
+Why write it by hand instead of using `depth_image_proc`? `depth_image_proc` can convert a depth image to a point cloud with zero code, but this section deliberately hand-writes the node so you understand two key steps — back-projection and time synchronization — which are exactly the places you will modify later when tuning parameters, adding filters, or doing multi-frame fusion.
 
-**Step C1: Clone and Build**
+> Before starting, complete Steps A and B and confirm that the official `/camera/depth_registered/points` publishes normally. The hand-written node is not a replacement for the camera driver; it turns already-aligned RGB-D data into a PointCloud2 that you can modify.
+>
+> Note: the upstream repository currently provides only two nodes, `rgbd_to_pointcloud` and `open3d_viewer`. There is no launch file and no `start_orbbec_rviz.sh` one-click script. The camera node, the hand-written node, and RViz2 must be started manually in three separate terminals.
+
+Step C1: Clone the Code and Build
 
 ```bash
 mkdir -p ~/ros2_ws/src
-cd ~/ros2_ws/src
-git clone https://github.com/zibochen6/Mobile_Robot_Code.git pointcloud_utils
-cd pointcloud_utils
 
-# If you received the validated course package, you may copy it directly:
-# cp -r /path/to/validated/pointcloud_utils ~/ros2_ws/src/
+# 方式 A：拷贝本课程仓库随附的代码（已整理为 pointcloud_utils 单包，与上游 GitHub 同源）
+cp -r docs/M02-Fundamentals-of-Vision-Systems/code/2.2_depth_camera/pointcloud_utils ~/ros2_ws/src/
+
+# 方式 B：从上游 GitHub 克隆（规范源；仓库内还含其他包，只取 pointcloud_utils 子目录）
+# git clone https://github.com/zibochen6/Mobile_Robot_Code.git
+# cp -r Mobile_Robot_Code/pointcloud_utils ~/ros2_ws/src/
 
 sudo apt update
-sudo apt install -y ros-$ROS_DISTRO-cv-bridge ros-$ROS_DISTRO-vision-opencv \
-  ros-$ROS_DISTRO-sensor-msgs-py ros-$ROS_DISTRO-message-filters python3-numpy
+sudo apt install -y ros-$ROS_DISTRO-cv-bridge ros-$ROS_DISTRO-vision-opencv ros-$ROS_DISTRO-sensor-msgs-py ros-$ROS_DISTRO-message-filters python3-numpy
 
 cd ~/ros2_ws
 source /opt/ros/$ROS_DISTRO/setup.bash
@@ -197,36 +170,42 @@ colcon build --packages-select pointcloud_utils
 source install/setup.bash
 ```
 
-> If `~/ros2_ws/src/pointcloud_utils` already exists, do not clone it again. Run `git pull --ff-only` inside it, or replace it with the validated course version, then rebuild `pointcloud_utils`.
+If `~/ros2_ws/src/pointcloud_utils` already exists, delete the old directory first or overwrite it with the version bundled in this course, then run `colcon build --packages-select pointcloud_utils`.
 
-**Step C2: Start Orbbec, the Custom Cloud, and RViz2**
+Step C2: Run the Hand-Written Node and Verify
 
 ```bash
 cd ~/ros2_ws
 source /opt/ros/$ROS_DISTRO/setup.bash
 source install/setup.bash
 
-# Recommended one-click script
-~/ros2_ws/install/pointcloud_utils/share/pointcloud_utils/scripts/start_orbbec_rviz.sh
-
-# Equivalent launch command:
-# ros2 launch pointcloud_utils orbbec_rviz.launch.py
+ros2 run pointcloud_utils rgbd_to_pointcloud
 ```
 
-*Default parameters*
+`rgbd_to_pointcloud` parameters and their defaults:
 
 ```bash
-# Launch/node defaults:
-# pixel_stride:=1
-# min_depth_m:=0.2
-# max_depth_m:=8.0
-# sync_mode:=latest
+# registered_depth_topic := /camera/depth/image_raw   # D2C 对齐后的深度
+# color_topic            := /camera/color/image_raw
+# color_camera_info_topic:= /camera/color/camera_info
+# output_topic           := /camera/points
+# pixel_stride           := 2      # 采样步长，1 表示全分辨率
+# sync_slop_sec          := 0.03   # 深度/彩色近似同步窗口（秒）
+# depth_unit_m           := 0.001  # 16UC1 深度图每单位 = 1 mm
 
-# Reduce density if Jetson CPU load is too high:
-# ros2 run pointcloud_utils rgbd_to_pointcloud --ros-args -p pixel_stride:=2
+# 想要更密的点云，把 pixel_stride 降到 1：
+ros2 run pointcloud_utils rgbd_to_pointcloud --ros-args -p pixel_stride:=1
 ```
 
-*Acceptance checks*
+Manual RViz2 configuration (the repo provides no one-click launch and no built-in `.rviz` config):
+
+```bash
+ros2 run rviz2 rviz2
+# Fixed Frame 设为 camera_color_optical_frame；
+# Add → By topic → /camera/points → PointCloud2，Color Transformer 选 RGB8。
+```
+
+Acceptance output:
 
 ```bash
 ros2 topic hz /camera/points --window 30
@@ -234,17 +213,13 @@ ros2 topic echo /camera/points --once --field header.frame_id
 ros2 topic echo /camera/points --once --field fields
 ```
 
-![RViz2 result](./images/Gk2UbmJ9do9jNtxT0xYcFatbnKb.png)
+![RViz colored point cloud](./images/VITxb9RmPotDxUxQKbqcbsx4npg.png)
 
-Success criteria: `/camera/points` publishes continuously; `header.frame_id` is `camera_color_optical_frame`; and the fields contain `x`, `y`, `z`, and `rgb`. RViz2 should open with:
+Success criteria: `/camera/points` continuously outputs at a steady rate; `header.frame_id` is `camera_color_optical_frame`; `fields` contains `x`, `y`, `z`, and `rgb`; and a colored point cloud covering the scene's depth range is visible in RViz2.
 
-- Orbbec Color and Orbbec Depth image panels expanded rather than collapsed into title bars.
-- The central PointCloud2 display subscribing to `/camera/points`, Fixed Frame set to `camera_color_optical_frame`, and Color Transformer set to RGB8.
-- Valid cloud coverage from nearby objects to approximately 8 m, rather than a small cluster immediately in front of the camera.
+#### Implementing It Yourself: Two Essential Pieces
 
-##### Implementing It Yourself: Two Essential Pieces
-
-1. RGB and depth frames must be paired. The node must not compute a cloud whenever either stream produces an arbitrary frame. Gemini 2's registered D2C streams use `sync_mode:=latest` by default to pair the most recent frames; use `strict_stamp` only after confirming stable timestamps.
+1. RGB and depth must come in pairs. The node does not treat "an image received" as one iteration. For the Gemini 2's D2C stream, the repo implementation uses `message_filters.ApproximateTimeSynchronizer` (slop=0.03 s) to approximately pair frames by timestamp; the callback shown below is a simplified version of the same idea.
 
 ```python
 self.depth_sub = self.create_subscription(
@@ -252,22 +227,23 @@ self.depth_sub = self.create_subscription(
 self.color_sub = self.create_subscription(
     Image, color_topic, self.color_callback, qos_profile_sensor_data)
 
-# Gemini 2 RGB/depth timestamps may have a fixed offset.
-# For D2C-registered streams, pair the latest frames by default.
-self.latest_depth = msg
-self.latest_color = msg
-self.maybe_publish()
+# Orbbec Gemini 2 的 RGB/Depth stamp 可能有固定偏移；
+# 对已 D2C 对齐的流，仓库默认用近似时间同步把最新帧配对。
+
+def depth_callback(self, msg):
+    self.latest_depth = msg
+    self.maybe_publish()
+
+def color_callback(self, msg):
+    self.latest_color = msg
+    self.maybe_publish()
 ```
 
-2. Back-project pixels with the intrinsics. For each valid depth \(Z\), color-camera intrinsics give \(X=(u-c_x)Z/f_x\) and \(Y=(v-c_y)Z/f_y\). The node first verifies that RGB, depth, and CameraInfo resolutions agree; otherwise it stops publishing to avoid generating a geometrically incorrect cloud.
+2. Back-project pixels into 3D points using the intrinsics. For each valid depth `Z`, the pixel coordinates `(u, v)` are converted through the color camera intrinsics to `X=(u-cx)×Z/fx`, `Y=(v-cy)×Z/fy`. The node first checks whether the RGB, depth, and CameraInfo resolutions match; if they do not, it stops publishing to avoid producing misplaced point clouds.
 
 ```python
 sampled_z = z[::stride, ::stride]
-valid = (
-    np.isfinite(sampled_z)
-    & (sampled_z >= min_depth)
-    & (sampled_z <= max_depth)
-)
+valid = np.isfinite(sampled_z) & (sampled_z > 0)
 v, u = np.mgrid[0:z.shape[0]:stride, 0:z.shape[1]:stride]
 
 points['x'] = (u[valid] - cx) * sampled_z[valid] / fx
@@ -276,49 +252,21 @@ points['z'] = sampled_z[valid]
 points['rgb'] = (r << 16) | (g << 8) | b
 ```
 
-The default tuning point is `pixel_stride:=1`, `min_depth_m:=0.2`, and `max_depth_m:=8.0`. Increase `pixel_stride` to 2 or 4 only if CPU load is excessive. If the cloud appears as a tiny cluster next to the camera, inspect the depth image's actual valid range before enabling hole filling.
+The node defaults to `pixel_stride=2` and publishes `/camera/points`. For a denser point cloud use `-p pixel_stride:=1`; if the CPU is under pressure, raise it to `4`. If the point cloud is just a small blob hugging the camera, first check the depth image's real valid range rather than rushing to enable hole filling.
 
-##### Gemini 2 / Jetson AGX Orin Validation Record
+#### Task 2: Visualize the Point-Cloud Stream in Open3D
 
-Validated on a Jetson AGX Orin Developer Kit with JetPack 6.2.1 and ROS 2 Humble; Gemini 2 USB ID `2bc5:0670`; OrbbecSDK_ROS2 commit `8e7cad2` (2026-08-07). Both the wrapper and `pointcloud_utils` built successfully from source.
+This step is advanced and optional. RViz2 is enough for the required validation in this section; you only need Open3D if you want to continue with downsampling, segmentation, or fusion in Python. Whether Open3D can be installed depends on the combination of Python, Ubuntu, and CPU architecture; failing to install it does not affect acceptance.
 
-**SDK boundary:** the source-built wrapper includes and uses OrbbecSDK 2.9.3 from its installation directory; no external SDK `LD_LIBRARY_PATH` is needed. The earlier SDK installation steps remain for existing environment setups, but do not source another SDK environment script in the same terminal. Run only the current wrapper's udev installation script.
+Implementation essentials:
 
-| Item | Measured result |
-| --- | --- |
-| D2C input | `/camera/depth/image_raw` and `/camera/color/image_raw` are both 1280×720; depth encoding is `16UC1`. |
-| Frames | Color CameraInfo, official colored cloud, and custom cloud all use `camera_color_optical_frame`. |
-| Official colored cloud | `/camera/depth_registered/points` runs at about 20–23 Hz; `rgb` is a packed `FLOAT32` field at offset 16. |
-| Custom cloud | `/camera/points` defaults to `pixel_stride:=1`, `min_depth_m:=0.2`, `max_depth_m:=8.0`, and `sync_mode:=latest`; fields are `x/y/z/FLOAT32` and `rgb/UINT32`, with `point_step=16`. |
-
-Why not rely on the topic name alone? On this device, the D2C-registered depth stream is still named `/camera/depth/image_raw`; no `depth_registered/image_raw` topic exists. The reproducible check is that depth and RGB resolutions match and that back-projection uses the color CameraInfo. If validation fails, the node stops publishing rather than generating an incorrect cloud.
-
-The following RViz2 layout was captured after using the one-click launcher. Color and Depth panels are expanded on the right, with the custom colored cloud in the center. A complete QMainWindow State is included so the image panels do not start as collapsed title bars. Fixed Frame is `camera_color_optical_frame`, and Color Transformer is RGB8.
-
-![RViz2 after one-click startup: Color and Depth panels are expanded, with the custom colored point cloud in the center](./images/Jvplb8awWoQH9GxmGaZckpvQnzf.jpg)
-
-*RViz2 after one-click startup: Color and Depth panels are expanded, with the custom colored point cloud in the center.*
-
-> If Color and Depth still appear as title bars, the included `rviz/pointcloud.rviz` already contains a complete QMainWindow State. Source the workspace again and start it with `start_orbbec_rviz.sh` or `ros2 launch pointcloud_utils orbbec_rviz.launch.py`; enabling the displays alone will not restore the layout.
-
-> For a quick test without building a package, source `/opt/ros/$ROS_DISTRO/setup.bash` and run `python3 rgbd_to_pointcloud.py`. Use the package's one-click script for formal acceptance so that the corrected `pointcloud.rviz` layout is loaded as well.
-
-##### Task 2: Visualize the Point-Cloud Stream in Open3D
-
-**Optional advanced task:** RViz2 is the required validation tool. Use Open3D only when you plan to continue with downsampling, segmentation, or fusion in Python. Availability depends on the combination of Python, Ubuntu, and CPU architecture; installation failure does not affect acceptance of this section.
-
-Implementation notes:
-
-- Store points and colors in `open3d.geometry.PointCloud`.
-- Parse a complete frame in the ROS 2 callback and update geometry in the visualization thread; never assume that `rgb` is stored at a fixed byte offset.
-- Isolate the ROS 2 callback and visualization thread with a lock or `copy.deepcopy`.
-
-*open3d_pointcloud_viewer.py*
+- Use `open3d.geometry.PointCloud` to store points and colors.
+- Parse a complete point-cloud frame in the ROS 2 callback and refresh the geometry on the visualization main thread; do not assume the rgb field sits at a fixed byte offset.
+- Thread safety: isolate the ROS 2 callback and the visualization main thread with a lock or `copy.deepcopy`.
 
 ```python
 import threading
 import numpy as np
-import open3d as o3d
 
 import rclpy
 from rclpy.node import Node
@@ -326,8 +274,10 @@ from rclpy.qos import qos_profile_sensor_data
 from sensor_msgs.msg import PointCloud2
 from sensor_msgs_py import point_cloud2
 
+
 class PointCloudViewer(Node):
     def __init__(self):
+        import open3d as o3d
         super().__init__('open3d_viewer')
         self.declare_parameter('pointcloud_topic', '/camera/depth_registered/points')
         topic = self.get_parameter('pointcloud_topic').value
@@ -343,10 +293,8 @@ class PointCloudViewer(Node):
     def pc_callback(self, msg):
         names = {field.name for field in msg.fields}
         if not {'x', 'y', 'z'} <= names:
-            self.get_logger().error('Point cloud is missing x/y/z fields', throttle_duration_sec=2.0)
+            self.get_logger().error('点云缺少 x/y/z 字段', throttle_duration_sec=2.0)
             return
-        # Humble returns a structured ndarray; the official utility honors
-        # fields, offsets, and point_step while parsing.
         data = point_cloud2.read_points(msg, skip_nans=True)
         if data.size == 0:
             return
@@ -381,6 +329,7 @@ class PointCloudViewer(Node):
             self.vis.update_renderer()
         self.vis.destroy_window()
 
+
 def main(args=None):
     rclpy.init(args=args)
     viewer = PointCloudViewer()
@@ -390,11 +339,14 @@ def main(args=None):
         viewer.destroy_node()
         rclpy.shutdown()
 
+
 if __name__ == '__main__':
     main()
 ```
 
-Save the file as `open3d_pointcloud_viewer.py`, either under the same package's `scripts/` directory or as a standalone script. For package use, add this entry point to `setup.py`:
+File placement and how to run:
+
+This code is the file `pointcloud_utils/pointcloud_utils/scripts/open3d_pointcloud_viewer.py` in the repo; its entry point is already registered in `setup.py`:
 
 ```python
 entry_points={
@@ -405,55 +357,71 @@ entry_points={
 },
 ```
 
-Install dependencies and run:
+Install Open3D and run (only if a usable wheel exists for the current platform):
 
 ```bash
-# Create an isolated environment first; system-site-packages reuses ROS 2 packages.
+# 隔离环境；--system-site-packages 让它复用 ROS 2 Python 包。
 sudo apt install -y python3-venv
 cd ~/ros2_ws
 python3 -m venv --system-site-packages .venv-open3d
 source .venv-open3d/bin/activate
 python -m pip install --only-binary=:all: open3d
 python -c "import open3d as o3d; print(o3d.__version__)"
-
-# Run only after the previous command succeeds. A desktop, display, or X11 forwarding is required.
-python ~/ros2_ws/src/pointcloud_utils/pointcloud_utils/scripts/open3d_pointcloud_viewer.py \
-  --ros-args -p pointcloud_topic:=/camera/depth_registered/points
 ```
 
-**Jetson validation result:** PyPI provides an Open3D 0.19.0 wheel for Linux x86_64, but not Linux ARM64; this device also encountered a TLS EOF while accessing PyPI. Do not make this command part of the required path or silently compile Open3D from source on Jetson. If installation fails, complete acceptance with the validated RViz2 configuration or a real-time PointCloud2 rendering.
+Measured on the Jetson: PyPI's Open3D 0.19.0 only ships Linux x86_64 wheels, with no ARM64 wheel; requesting PyPI from this machine also raised a TLS EOF. So do not treat it as a required main path, and do not stubbornly build from source on the Jetson. If it cannot be installed, use RViz2 or the real-time rendered image already validated in this section for acceptance.
 
-Confirm that a point-cloud topic is active:
+Before running, confirm the point-cloud topic is publishing:
 
 ```bash
 ros2 topic list | grep points
 
-# Official colored cloud: /camera/depth_registered/points
-# Custom node output: /camera/points
-# Open3D subscribes to the official cloud by default; switch without editing code:
-python open3d_pointcloud_viewer.py --ros-args \
-  -p pointcloud_topic:=/camera/points
+# 官方彩色点云：/camera/depth_registered/points
+# 手写节点输出：/camera/points
 ```
 
-> Open3D requires a graphical display. On a headless J501, use `ssh -X user@DEVICE_IP`, attach a monitor, or start VNC before running the script.
+Run the registered `open3d_viewer` (requires a graphical desktop, display, or X11 forwarding):
 
-> For a quick quality check, use RViz2 as described in Task 1. Open3D is useful when overlaying processing results such as downsampling, plane segmentation, or clustering in the same window.
+```bash
+cd ~/ros2_ws
+source /opt/ros/$ROS_DISTRO/setup.bash
+source install/setup.bash
+source .venv-open3d/bin/activate
 
-##### Task 3: Depth Filtering and Hole Filling
+# 默认订阅官方点云：
+ros2 run pointcloud_utils open3d_viewer
 
-> Choose filters according to the downstream task. Obstacle avoidance and visualization may favor continuity and smoothness; measurement, grasping, and mapping must retain the original depth and valid-pixel mask. Every filled hole is an estimate, not a measurement.
+# 切换到手写节点输出：
+ros2 run pointcloud_utils open3d_viewer --ros-args -p pointcloud_topic:=/camera/points
+```
 
-**Goal:** understand noise and holes in raw depth images, implement bilateral and temporal filters, and produce smoother and more complete depth maps.
+You can also run the script directly (bypassing `ros2 run`):
 
-Common problems:
+```bash
+source .venv-open3d/bin/activate
+python ~/ros2_ws/src/pointcloud_utils/pointcloud_utils/scripts/open3d_pointcloud_viewer.py \
+  --ros-args -p pointcloud_topic:=/camera/depth_registered/points
+```
 
-- **Noise:** random depth variation, especially in low-texture or distant regions.
-- **Holes:** pixels with depth 0 or NaN, caused by IR absorption, specular reflection, range limits, failed stereo matching, or occlusion.
-- **Flying pixels:** isolated erroneous depths near discontinuous object boundaries.
+> The Open3D visualization window needs a graphical interface. On headless devices such as the J5012, first use `ssh -X user@<device-IP>` (X11 forwarding), or attach a display / VNC, before starting the script; otherwise you will see display-related errors.
 
-**Method 1: Bilateral filtering—edge-preserving spatial denoising**
+> To quickly verify point-cloud quality, use RViz2 directly (see Task 1). Open3D's advantage is overlaying point-cloud processing results (downsampling, plane segmentation, clustering) in a single window, which helps with algorithm debugging.
 
-A bilateral filter combines spatial proximity with value similarity, smoothing flat regions while preserving object edges.
+#### Task 3: Depth Filtering and Hole Filling
+
+> Decide the purpose before choosing a filter: obstacle avoidance and visualization can favor continuous, smooth output; measurement, grasping, and mapping should always keep the raw depth and the valid-pixel mask. Any hole filling is an estimate — never treat it as a true measurement.
+
+Goal: understand where noise and holes come from in a raw depth image, learn the principles and implementation of bilateral filtering and temporal filtering, and end up with a smoother, more complete depth image.
+
+Background: a raw depth image commonly has the following problems:
+
+- Noise: random jitter in depth values, especially noticeable in low-texture or far-distance regions.
+- Holes / Missing Data: pixels with depth 0 or NaN, caused by IR absorption (black objects), specular reflection, exceeding the ranging range, or stereo-matching failure (occluded regions).
+- Flying Pixels: isolated outliers produced by depth-value jumps at object edges.
+
+Method 1: Bilateral Filter — Spatial-Domain Denoising with Edge Preservation
+
+The bilateral filter considers two things at once: how close a pixel is in space (Gaussian spatial kernel) and how close its depth value is (Gaussian range kernel). The result is that noise in flat regions is smoothed away while object edges are preserved. Both Open3D and OpenCV provide ready-made implementations.
 
 ```python
 import cv2
@@ -461,25 +429,27 @@ import numpy as np
 
 def bilateral_filter_depth(depth_uint16, d=9, sigma_color=50, sigma_space=50):
     """
-    Apply a bilateral filter to a uint16 depth image.
-    Convert to float32 first; sigma values must match the depth unit and scale.
+    对 uint16 深度图执行双边滤波。
+    输入先转换为 float32；sigma 参数必须与深度单位和量级匹配。
     """
+    # 转换为 float32 以获得更稳定的滤波效果
     depth_f = depth_uint16.astype(np.float32)
+    # 仅对有效深度区域滤波，无效区域保持 0
     mask = depth_uint16 > 0
     filtered = cv2.bilateralFilter(depth_f, d, sigma_color, sigma_space)
     result = np.where(mask, filtered, 0).astype(np.uint16)
     return result
 
-# Example
+# 使用示例
 # depth_raw = cv2.imread('depth_raw.png', cv2.IMREAD_UNCHANGED)
 # depth_filtered = bilateral_filter_depth(depth_raw, d=9, sigma_color=80, sigma_space=80)
 ```
 
-The example restores invalid pixels to zero afterward, but the bilateral filter itself does not know that zero means invalid. It is suitable for local visualization smoothing when few holes are present. For depth maps with many holes, prefer the camera's spatial filter or an explicitly mask-aware algorithm, and retain the original depth.
+This example has a pitfall: it restores invalid pixels to 0 first, but the bilateral filter itself does not know that "0 means invalid". It is therefore only suitable for local visualization smoothing when there are no significant holes; once holes are numerous, prefer camera-side spatial filtering or an explicit mask-aware algorithm, and keep the raw depth alongside.
 
-**Method 2: Temporal filtering—suppressing frame-to-frame jitter**
+Method 2: Temporal Filter — Temporal Smoothing to Suppress Jitter
 
-Temporal filtering uses depth consistency across adjacent frames. An exponential moving average (EMA) or median filter at each pixel effectively suppresses jitter, particularly in static or slowly moving scenes.
+Temporal filtering relies on depth consistency between adjacent frames, applying exponential moving average (EMA) or median filtering to the same pixel across time to suppress inter-frame jitter. It works best for static or slowly moving scenes.
 
 ```python
 import numpy as np
@@ -487,9 +457,8 @@ import numpy as np
 class TemporalFilter:
     def __init__(self, alpha=0.3, max_diff=50):
         """
-        alpha: smoothing coefficient; lower is smoother but adds latency (0–1).
-        max_diff: per-frame depth-change threshold in mm. Larger changes are
-                  treated as motion and are not smoothed.
+        alpha: 平滑系数，越小越平滑但延迟越大（0~1）。
+        max_diff: 单帧深度变化阈值（mm），超过则认为是运动物体，不参与平滑。
         """
         self.alpha = alpha
         self.max_diff = max_diff
@@ -502,43 +471,45 @@ class TemporalFilter:
 
         current = depth_uint16.astype(np.float32)
         valid = depth_uint16 > 0
+        # 计算与历史值的差异
         diff = np.abs(current - self.accumulated)
+        # 仅对变化在阈值内的像素做 EMA（避免运动模糊）
         stable = valid & (diff < self.max_diff)
         self.accumulated[stable] = (
             self.alpha * current[stable] +
             (1 - self.alpha) * self.accumulated[stable]
         )
+        # 新出现的有效像素直接赋值
         new_valid = valid & ~stable
         self.accumulated[new_valid] = current[new_valid]
+        # 无效像素保持历史值（简单空洞填充）
         result = self.accumulated.copy()
-        result[~valid] = self.accumulated[~valid]
+        result[~valid] = self.accumulated[~valid]  # 保留历史填充
         return result.astype(np.uint16)
 
-# Example
+# 使用示例
 # temporal_filter = TemporalFilter(alpha=0.3, max_diff=50)
 # for frame in depth_stream:
 #     smoothed = temporal_filter.apply(frame)
 ```
 
-Temporal filtering adds latency, and filling invalid pixels from history may create ghosts. Use a shorter history window—or only the current valid mask—for moving objects, grasping, and fast obstacle avoidance.
+Temporal filtering introduces latency, and filling current invalid pixels with historical depth can leave "ghosting". For moving objects, grasping, or fast obstacle avoidance, either shorten the history window or simply use only the current frame's valid mask.
 
-**Method 3: Hole filling**
+Method 3: Hole Filling
 
-Strategies for invalid depth pixels include:
+For invalid pixels (0 / NaN) in the depth image, the following strategies can be used to fill them:
 
-- **Nearest-neighbor/inpainting:** use `cv2.inpaint()` on a normalized visualization image; do not treat its output as faithful depth measurements.
-- **Morphological closing:** dilation followed by erosion to fill small holes and smooth boundaries.
-- **Multi-frame accumulation:** fill current holes with valid values from previous frames, together with temporal filtering.
+- Nearest-neighbor interpolation (Inpainting): you can hand the normalized visualization image to cv2.inpaint() for display; do not treat its output directly as a faithful depth measurement.
+- Morphological Closing: dilate then erode to fill small holes and smooth edges.
+- Multi-frame accumulation: combined with temporal filtering, fill current holes using valid depth at that position from historical frames.
 
 ```python
 import cv2
 import numpy as np
 
 def fill_small_holes_for_visualization(depth_uint16, max_hole_area=9):
-    """Fill only tiny connected zero-depth regions.
-    Return both the filled visualization and original validity mask.
-    Never use the filled data for dimensional measurement, grasp poses,
-    or high-accuracy mapping.
+    """仅填补很小的 0 深度连通域，返回填充结果和原始有效掩码。
+    不要将 filled 用于尺寸测量、抓取位姿或高精度建图。
     """
     valid_mask = depth_uint16 > 0
     holes = (~valid_mask).astype(np.uint8)
@@ -555,22 +526,24 @@ def fill_small_holes_for_visualization(depth_uint16, max_hole_area=9):
 # depth_visual, original_valid_mask = fill_small_holes_for_visualization(depth_raw)
 ```
 
-> Hole filling introduces estimated values. Use it cautiously in accuracy-sensitive tasks such as 3D reconstruction and robot grasping. Retain both the original and filled depth images for different downstream modules.
+Hole filling introduces estimated values; use it cautiously in high-precision scenarios such as 3D reconstruction and robotic-arm grasping. Keep one copy of the raw depth image and one of the filled depth image, and feed them to different downstream modules.
 
 ---
 
-#### Deliverables
+### Deliverables
 
-1. **Official colored-cloud validation (required):** provide Gemini 2 launch parameters, the actual cloud topic, an RViz2 screenshot, and checks of the cloud `frame_id` and CameraInfo. For the advanced path, also include the `start_orbbec_rviz.sh` or `orbbec_rviz.launch.py` command and a screenshot showing expanded Color/Depth panels with cloud coverage of approximately 0.2–8.0 m.
-1. **RViz2 configuration:** a directly loadable `.rviz` file with Fixed Frame set to the cloud's actual `header.frame_id`; PointCloud2 subscribed to the correct topic with RGB8 Color Transformer; and Grid and TF axes enabled.
-1. **Depth-filtering report:** screenshots comparing raw depth, bilateral filtering, temporal filtering, and hole filling, including pseudo-colored depth and corresponding point clouds, plus a brief discussion of parameter effects.
+After completing this section's exercises, submit the following deliverables:
+
+1. Official colored point-cloud validation (required): submit the Gemini 2 launch parameters, the actual point-cloud topic name, an RViz2 screenshot, and the check results for the point-cloud frame_id and CameraInfo. For the advanced deliverable, also include the launch command `ros2 run pointcloud_utils rgbd_to_pointcloud` and an RViz2 screenshot of the hand-written point cloud `/camera/points`.
+2. RViz2 visualization config file: a `.rviz` config containing the Fixed Frame setting (use the actual value of the point cloud's header.frame_id), the PointCloud2 display plugin (subscribe to the point-cloud topic, Color Transformer set to RGB8), and the Grid and TF axis displays. Save it as a file loadable with `rviz2 -d config.rviz`.
+3. Depth-filtering experiment report: compare visualized results across four groups — raw depth, bilateral-filtered, temporal-filtered, and hole-filled (depth-image pseudo-color + corresponding point-cloud screenshots) — and briefly explain how each filter parameter affects the result.
 
 ---
 
-#### Questions and Extensions
+### Questions and Extensions
 
-1. Why does depth quality from structured-light and active-stereo cameras deteriorate in sunlight? Analyze projector power relative to ambient IR noise.
-1. Which TF transforms are required to change a cloud's `frame_id` from `camera_color_optical_frame` to `base_link`? Draw the TF tree.
-1. How do increasing `sigma_color` and `sigma_space` affect smoothing and edge preservation?
-1. Use PCL's VoxelGrid to downsample the cloud and compare point counts and visual quality.
-1. Explore NVIDIA Isaac ROS nvblox or Open3D TSDFVolume. How could single-frame RGB-D clouds be fused into a global 3D reconstruction?
+1. Why does depth quality degrade in sunlight for structured-light / active stereo vision cameras? Analyze from the perspectives of the IR projector's power and ambient IR noise.
+2. What TF transforms are needed to change a point cloud's `frame_id` from `camera_color_optical_frame` to `base_link`? Draw the TF tree.
+3. When `sigma_color` and `sigma_space` of the bilateral filter are each increased, how do they affect the smoothing and edge preservation of the depth image?
+4. Try downsampling the point cloud with PCL's `VoxelGrid` and compare the point count and visualization before and after.
+5. Further reading: learn about `nvblox` in NVIDIA Isaac ROS or Open3D's `TSDFVolume`, and think about how to fuse single-frame RGB-D point clouds into a global 3D reconstruction map.

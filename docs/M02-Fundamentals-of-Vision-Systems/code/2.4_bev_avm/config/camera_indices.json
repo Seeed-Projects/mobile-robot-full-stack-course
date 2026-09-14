@@ -1,0 +1,17 @@
+{
+  "updated_at": "2026-09-05T10:00:23",
+  "devices": {
+    "/dev/video0": {
+      "name": "front"
+    },
+    "/dev/video1": {
+      "name": "right"
+    },
+    "/dev/video2": {
+      "name": "back"
+    },
+    "/dev/video3": {
+      "name": "left"
+    }
+  }
+}
