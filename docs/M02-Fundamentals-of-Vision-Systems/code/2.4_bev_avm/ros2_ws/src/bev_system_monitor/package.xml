@@ -1,0 +1,18 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>bev_system_monitor</name>
+  <version>0.1.0</version>
+  <description>Pipeline health aggregation -> /bev/system_status</description>
+  <maintainer email="dev@jetson.local">bev-dev</maintainer>
+  <license>MIT</license>
+
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <depend>rclcpp</depend>
+  <depend>bev_interfaces</depend>
+  <depend>autoware_perception_msgs</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
+</package>

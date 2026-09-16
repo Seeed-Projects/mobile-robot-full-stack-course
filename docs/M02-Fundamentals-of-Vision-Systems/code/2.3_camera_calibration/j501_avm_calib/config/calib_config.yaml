@@ -1,0 +1,28 @@
+# J501 AVM 四路鱼眼标定配置真源（缺项取 DEFAULTS）。
+chessboard:
+  pattern_size: [8, 6]      # 内角点 cols x rows，须与实物一致
+  square_size_m: 0.025      # 格宽(米)，不符则内外参全错
+placements:                 # 外参摆位：near=板近边物理边缘到车体中心距离
+  front: {near_m: 0.56, lateral_m: 0.0, orient: long-lateral}
+  back:  {near_m: 0.56, lateral_m: 0.0, orient: long-lateral}
+  left:  {near_m: 0.35, lateral_m: 0.0, orient: long-lateral}
+  right: {near_m: 0.35, lateral_m: 0.0, orient: long-lateral}
+bev:
+  scale_px_per_meter: 100.0
+  canvas_size: [1000, 1000]
+  vehicle_center: [500.0, 500.0]
+  balance: 0.8
+  extrinsic_balance: 0.8
+capture:
+  width: 1920
+  height: 1536
+  fourcc: YUYV
+  backend: v4l2
+  gst_pipeline_template: ""
+  frame_rate_hz: 10.0
+  preview_scale: 0.4
+  cameras:
+    front: {device: 0}
+    back:  {device: 2}
+    left:  {device: 3}
+    right: {device: 1}

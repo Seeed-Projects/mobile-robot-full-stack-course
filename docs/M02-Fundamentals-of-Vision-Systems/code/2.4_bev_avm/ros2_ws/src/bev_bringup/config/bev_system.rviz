@@ -1,0 +1,87 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+  - Class: rviz_common/Views
+    Name: Views
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz_default_plugins/TF
+      Enabled: true
+      Name: TF
+      Frame Timeout: 1.0
+      Marker Scale: 0.3
+      Show Arrows: true
+      Show Axes: false
+      Show Names: false
+    - Class: rviz_default_plugins/MarkerArray
+      Enabled: true
+      Name: BEV Boxes
+      Topic:
+        Depth: 5
+        Reliability Policy: 2
+        Value: /bev/debug/markers
+      Namespaces:
+        bev_boxes: true
+        bev_labels: true
+    - Class: rviz_default_plugins/Image
+      Enabled: true
+      Name: Camera Front
+      Topic:
+        Depth: 5
+        Reliability Policy: 2
+        Value: /camera/front/image_raw/compressed
+    - Class: rviz_default_plugins/Image
+      Enabled: true
+      Name: Camera Front Left
+      Topic:
+        Depth: 5
+        Reliability Policy: 2
+        Value: /camera/front_left/image_raw/compressed
+    - Class: rviz_default_plugins/Image
+      Enabled: true
+      Name: Camera Front Right
+      Topic:
+        Depth: 5
+        Reliability Policy: 2
+        Value: /camera/front_right/image_raw/compressed
+    - Class: rviz_default_plugins/Image
+      Enabled: true
+      Name: Camera Back
+      Topic:
+        Depth: 5
+        Reliability Policy: 2
+        Value: /camera/back/image_raw/compressed
+    - Class: rviz_default_plugins/Image
+      Enabled: true
+      Name: Camera Back Left
+      Topic:
+        Depth: 5
+        Reliability Policy: 2
+        Value: /camera/back_left/image_raw/compressed
+    - Class: rviz_default_plugins/Image
+      Enabled: true
+      Name: Camera Back Right
+      Topic:
+        Depth: 5
+        Reliability Policy: 2
+        Value: /camera/back_right/image_raw/compressed
+  Global Options:
+    Background Color: 48; 48; 48
+    Fixed Frame: base_link
+    Frame Rate: 30
+  Views:
+    Current:
+      Class: rviz_default_plugins/Orbit
+      Distance: 40
+      Focal Point:
+        X: 15
+        Y: 0
+        Z: 0
+      Name: BEV Orbit
+      Pitch: 1.4
+      Target Frame: base_link
+      Yaw: 3.14
+Window Geometry:
+  Height: 900
+  Width: 1600

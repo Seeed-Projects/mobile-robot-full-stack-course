@@ -1,0 +1,1396 @@
+{
+  "name": "m02-vision-course-update",
+  "id": "m02-vision-course-update",
+  "description": "Align M02 (Fundamentals of Vision Systems, chapters 2.1–2.4) with the 4 current Feishu docs: review/fix errors & de-AI the content, produce zh_CN + en_US, create the code/ folder with source synced from remote Jetson (192.168.2.20, /home/seeed/workspace/ros2_bev) + GitHub (zibochen6/Mobile_Robot_Code) + Feishu attachment (gmsl4_start.sh), and add run/clone/configure instructions to each chapter.",
+  "captainSessionId": "session-0cd5a9b6-395b-4f81-af9c-ba114ef264f4",
+  "createdAt": 1789367857176,
+  "members": [
+    {
+      "id": "b74a656f-2223-4177-9c27-3da8b7929fe2",
+      "name": "analyst",
+      "role": "Senior course content analyst",
+      "provider": "seeed-api",
+      "model": "deepseek-v4-pro-0813",
+      "executionPrompt": "You are a senior robotics/computer-vision course reviewer. Your job is gap analysis and a content blueprint — read-only research, no file edits. Fetch Feishu docs with lark-cli (available on PATH as lark-cli; use `lark-cli docs +fetch --doc \"<url>\" --as user`). Compare against the existing repo READMEs and produce the gap/error/AI-flavor report at docs/M02-Fundamentals-of-Vision-Systems/_gap_report.md.",
+      "joinedAt": 1789367873766,
+      "status": "idle"
+    },
+    {
+      "id": "ef274fbe-7874-4c76-b4e7-0180fed10a5c",
+      "name": "code-engineer",
+      "role": "Engineer (code curation & sync)",
+      "provider": "seeed-api",
+      "model": "deepseek-v4-pro-0813",
+      "executionPrompt": "You curate course source code. Remote Jetson: sshpass -p seeed ssh seeed@192.168.2.20 (host salias j50-robotics; the user's \".0\" address is wrong — the live host is 192.168.2.20). Feishu attachment download via lark-cli docs +media-download. GitHub clone https://github.com/zibochen6/Mobile_Robot_Code.git. Exclude build/install/log/.venv-tools/models/datasets/backups/__pycache__/.pytest_cache and any file >5MB.",
+      "joinedAt": 1789367873822,
+      "status": "idle"
+    },
+    {
+      "id": "affc969c-f610-462c-8ada-1e25e873bc6e",
+      "name": "writer-1",
+      "role": "Technical writer (chapters 2.1 + 2.2)",
+      "provider": "seeed-api",
+      "model": "deepseek-v4-pro-0813",
+      "executionPrompt": "You write zh_CN chapter docs aligned to the Feishu source + the analyst's _gap_report.md blueprint, de-AI-ed, with a \"Run the code\" section referencing code/ paths. Target files under docs/M02-Fundamentals-of-Vision-Systems/.",
+      "joinedAt": 1789367873872,
+      "status": "idle"
+    },
+    {
+      "id": "affbe982-0ceb-465f-9359-a1e47b23b9df",
+      "name": "writer-2",
+      "role": "Technical writer (chapters 2.3 + 2.4)",
+      "provider": "seeed-api",
+      "model": "deepseek-v4-pro-0813",
+      "executionPrompt": "You write zh_CN chapter docs aligned to the Feishu source + the analyst's _gap_report.md blueprint, de-AI-ed, with a \"Run the code\" section referencing code/ paths. Target files under docs/M02-Fundamentals-of-Vision-Systems/.",
+      "joinedAt": 1789367873922,
+      "status": "idle"
+    },
+    {
+      "id": "aa94dfd1-fb13-4a45-88f7-bb8eafc5bf64",
+      "name": "translator-1",
+      "role": "Translator EN (chapters 2.1 + 2.2)",
+      "provider": "seeed-api",
+      "model": "deepseek-v4-pro-0813",
+      "executionPrompt": "You produce faithful technical English translations of the zh_CN chapter docs into README_en_US.md, preserving code blocks, commands, and image relative paths exactly. Target files under docs/M02-Fundamentals-of-Vision-Systems/.",
+      "joinedAt": 1789367873972,
+      "status": "idle"
+    },
+    {
+      "id": "58b2b549-c840-425f-abad-7e1745875210",
+      "name": "translator-2",
+      "role": "Translator EN (chapters 2.3 + 2.4)",
+      "provider": "seeed-api",
+      "model": "deepseek-v4-pro-0813",
+      "executionPrompt": "You produce faithful technical English translations of the zh_CN chapter docs into README_en_US.md, preserving code blocks, commands, and image relative paths exactly. Target files under docs/M02-Fundamentals-of-Vision-Systems/.",
+      "joinedAt": 1789367874026,
+      "status": "idle"
+    },
+    {
+      "id": "334ff7ed-50f7-494a-b194-4c2ee13e1fa3",
+      "name": "reviewer",
+      "role": "QA reviewer & integrator",
+      "provider": "seeed-api",
+      "model": "deepseek-v4-pro-0813",
+      "executionPrompt": "You integrate all outputs: update M02 index README, verify every image link/code path/command, remove scratch files, then perform a final holistic review with a verdict. Target files under docs/M02-Fundamentals-of-Vision-Systems/.",
+      "joinedAt": 1789367874078,
+      "status": "idle"
+    }
+  ],
+  "tasks": [
+    {
+      "id": "t1",
+      "subject": "Blueprint: gap/error/AI-flavor analysis of M02 vs Feishu",
+      "description": "Fetch and analyze the 4 Feishu wiki docs, then diff against the existing bilingual M02 docs.\n\nFeishu sources:\n- 2.1: https://seeedstudio.feishu.cn/wiki/YiGow5u7QiEifnkVGhycLgMonMg\n- 2.2: https://seeedstudio.feishu.cn/wiki/OKiFwYPPJi5NhtkEHW3czaQqnzh\n- 2.3: https://seeedstudio.feishu.cn/wiki/OVzhwgVLiiC78Rkxz9Hc1gc1nef\n- 2.4: https://seeedstudio.feishu.cn/wiki/TmEqw2YYAiZdobkpgtRccQyvnrd\n\nRead docs with: lark-cli docs +fetch --doc \"<url>\" --as user  (lark-cli is on PATH). For richer structure read outlines first with --scope outline --max-depth 3.\n\nAssets to inspect locally (relative to the course repo root, which is the session workspace /Users/chenzibo/data/project/Jetson/docs/mobile-robot-full-stack-course):\n- docs/M02-Fundamentals-of-Vision-Systems/README.md (module index)\n- docs/M02-Fundamentals-of-Vision-Systems/2.1_GMSL2_Automotive-Grade_Multi-Camera_Integration/{README_zh_CN.md,README_en_US.md,images/}\n- docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/{README_zh_CN.md,README_en_US.md,images/}\n- docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/{README_zh_CN.md,README_en_US.md,images/}\n- docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/{README_zh_CN.md,README_en_US.md,images/}\n\nKnown drift to verify and document precisely:\n- 2.3 and 2.4 Feishu docs were substantially rewritten (new structure: 课程概述 / 先读懂 / 动手 / 产出物与验收标准 / 常见问题与排障). 2.4 now uses the avm_ros2 ROS2 package; 2.3 references ros2_bev + avm_ros2 + calib_web.\n- 2.2 Feishu doc references pointcloud_utils (GitHub github.com/zibochen6/Mobile_Robot_Code) and Orbbec Gemini 2.\n- 2.1 is largely aligned but references an embedded sheet (camera model/resolution table) and a gmsl4_start.sh attachment.\n\nDeliver a structured markdown report with, per chapter: (a) structure diff mapping Feishu headings -> current README headings; (b) a bullet list of factual/technical errors or stale instructions; (c) concrete \"AI-flavor\" phrases to remove / rewrite guidance (e.g. 值得注意的是/总而言之/excessive hedging/over-formal filler); (d) required code/ asset mapping to the code/ folder layout described in the code-sync task; (e) where run/clone/configure commands must be inserted. Include an explicit section listing concrete errors you found (with file + section) so writers can fix them. Keep the report in Chinese+English mixed only where a heading is quoted; the guidance itself should be in Chinese for the writers.",
+      "status": "completed",
+      "assignee": "analyst",
+      "dependencies": [],
+      "attempt": 1,
+      "createdAt": 1789367949837,
+      "updatedAt": 1789368991915,
+      "kind": "requirements",
+      "objective": "Produce a content blueprint at docs/M02-Fundamentals-of-Vision-Systems/_gap_report.md that (1) diffs each current M02 chapter against its Feishu doc, (2) flags factual/technical errors, (3) flags AI-sounding phrasing to rewrite, (4) lists every place needing run/clone/config instructions, (5) lists image/code assets each chapter must reference.",
+      "acceptance": [
+        "Report covers all 4 chapters (2.1–2.4) with per-chapter structure diff vs the Feishu doc.",
+        "Lists specific factual/technical errors or stale instructions found in the current READMEs (with file + section).",
+        "Lists concrete de-AI rewrite guidance plus phrases to avoid.",
+        "Maps each chapter to the code/ assets it must reference and where run/clone/config instructions belong.",
+        "Report written to docs/M02-Fundamentals-of-Vision-Systems/_gap_report.md."
+      ],
+      "deliverables": [
+        "docs/M02-Fundamentals-of-Vision-Systems/_gap_report.md"
+      ],
+      "attemptId": "22d62bed-b578-4ada-8918-d56a4a5d186f",
+      "reassigning": false,
+      "output": "已产出 docs/M02-Fundamentals-of-Vision-Systems/_gap_report.md（354 行）。已用 lark-cli 拉取 4 篇飞书 Wiki 最新正文/大纲并逐章 diff。核心结论：2.1 对齐度高；2.2 对齐中（混入原生 SDK 步骤、杜撰\"验证记录\"、AI 生成图、Python 代码块丢 def、平台写成 Mini J501 应为 J5012）；2.3 对齐低（飞书已删独立 Kalibr 小节、四鱼眼改成 calib_web.py Web 流程，本地仍是旧 fisheye_avm_ros 手动管线）；2.4 对齐极低（整章还是旧手工 OpenCV 管线，需重建为 avm_ros2 步骤5/6/7）。报告含：逐章结构映射表、逐章事实错误清单、§8 显式错误总清单（含 zh 行号）、de-AI 规范与禁词、code/ 资源映射、run/clone/configure 插入点、图像资产映射、2.1 嵌入飞书表格处理方式。已知限制：2.1 嵌入表格读取需 sheets:spreadsheet:read scope（本地未授予），报告已给 sensor_mode 兜底表；外网不可用无法网络核实型号。",
+      "verdict": "pass",
+      "acceptanceResults": [
+        {
+          "criterion": "Report covers all 4 chapters (2.1–2.4) with per-chapter structure diff vs the Feishu doc.",
+          "status": "passed",
+          "evidence": "§4–§7 各章含 (a) 结构映射表，均基于 lark-cli 拉取的飞书最新大纲/正文 diff 得出"
+        },
+        {
+          "criterion": "Lists specific factual/technical errors or stale instructions found in the current READMEs (with file + section).",
+          "status": "passed",
+          "evidence": "§8 显式错误总清单含 2.1(5条)/2.2(8条)/2.3(9条)/2.4(5条)，逐条带 zh 文件路径+行号"
+        },
+        {
+          "criterion": "Lists concrete de-AI rewrite guidance plus phrases to avoid.",
+          "status": "passed",
+          "evidence": "§3.3 全局去AI味规则 + 3 处已扫描 AI 味词定位，及各章 (c) 针对性指引"
+        },
+        {
+          "criterion": "Maps each chapter to the code/ assets it must reference and where run/clone/config instructions belong.",
+          "status": "passed",
+          "evidence": "各章 (d) 资源映射 + (e) run/clone/configure 插入点，附 A code/ 目标目录布局"
+        },
+        {
+          "criterion": "Report written to docs/M02-Fundamentals-of-Vision-Systems/_gap_report.md.",
+          "status": "passed",
+          "evidence": "文件已写入并校验，354 行、14 个顶层标题"
+        }
+      ],
+      "commandsRun": [
+        {
+          "command": "lark-cli docs +fetch (4 docs, outline+markdown)",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "4 篇飞书正文全部取回"
+        },
+        {
+          "command": "grep -rn 192.168.2.0 docs/M02-Fundamentals-of-Vision-Systems --include=*.md",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "本地 MD 无 stale host"
+        },
+        {
+          "command": "wc -l docs/M02-Fundamentals-of-Vision-Systems/_gap_report.md",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "354 行"
+        }
+      ]
+    },
+    {
+      "id": "t2",
+      "subject": "Sync M02 source code into code/ from Jetson + GitHub + Feishu",
+      "description": "Build the code folder. Workspace root = /Users/chenzibo/data/project/Jetson/docs/mobile-robot-full-stack-course. All new content goes under docs/M02-Fundamentals-of-Vision-Systems/code/ ONLY — do not modify any docs/*.md outside that folder.\n\nRemote Jetson (CRITICAL — the user wrote 192.168.2.0 but that address is NOT the device): the live host is 192.168.2.20 (ssh alias `j50-robotics` in ~/.ssh/config). Connect with:\n  sshpass -p seeed ssh -o StrictHostKeyChecking=no seeed@192.168.2.20\nRepository of record: /home/seeed/workspace/ros2_bev\nSecondary calibration lib: /home/seeed/ros2_ws/src/j501_avm_calib (calib_web.py + avm_ros2 import it).\n\nTarget layout (design yours to match, keep shared calibration tooling in ONE place under 2.3 and reference it from 2.4 text only):\ncode/\n  README.md                     (provenance, prerequisites, and per-chapter build/run summary)\n  2.1_gmsl2/gmsl4_start.sh      (download from Feishu attachment, source token NDZVbwEJBo057cxySo3cpaq5nZc)\n  2.2_depth_camera/pointcloud_utils/   (git clone https://github.com/zibochen6/Mobile_Robot_Code.git pointcloud_utils)\n  2.3_camera_calibration/\n     j501_avm_calib/            (copy /home/seeed/ros2_ws/src/j501_avm_calib)\n     calib_web.py               (from /home/seeed/workspace/ros2_bev/tools/calib_web.py)\n     run_calib_web.sh           (from /home/seeed/workspace/ros2_bev/scripts/run_calib_web.sh)\n     camera_probe_gui.py        (calib_web import dependency, from .../tools/)\n     tests/                     (test_calib_web_regressions.py + fixtures)\n     calib_results_sample/      (small sample JSON/YAML from .../calib_results, no giant .npz backups)\n  2.4_bev_avm/\n     ros2_ws/src/               (avm_ros2, bev_bringup, bev_camera_sync, bevdet_vendor, bev_interfaces, bev_perception, bev_preprocessor, bev_system_monitor, bev_visualization, autoware_msgs — from /home/seeed/workspace/ros2_bev/ros2_ws/src)\n     tools/ scripts/ tests/ config/ calibration/ calib_results/ docs/ README.md LICENSE  (from ros2_bev root, curated)\n\nExclusions (MANDATORY): build/, install/, log/, .venv-tools/, models/ (onnx 291M + engine 147M), datasets/ (nuscenes + bags), backups/, __pycache__/, .pytest_cache/, *.pyc, .git/ dirs inside copied trees, and ANY single file > 5MB (delete or omit *.npz/*.engine/*.onnx/*.db3/*.bag large assets). Do NOT copy build artifacts.\n\nSteps:\n1. mkdir -p the code/ tree.\n2. gmsl4_start.sh: load the lark-doc skill and follow its references/lark-doc-media-download.md; the attachment is media token NDZVbwEJBo057cxySo3cpaq5nZc inside the 2.1 doc (https://seeedstudio.feishu.cn/wiki/YiGow5u7QiEifnkVGhycLgMonMg). Download it, ensure it is the 16KB shell script, chmod +x, place at 2.1_gmsl2/gmsl4_start.sh.\n3. pointcloud_utils: git clone --depth 1 https://github.com/zibochen6/Mobile_Robot_Code.git then rename/move to code/2.2_depth_camera/pointcloud_utils (remove the nested .git).\n4. rsync/scp from the Jetson for 2.3 and 2.4 trees, the j501_avm_calib package, and the shared tools; apply exclusions above. Use `sshpass -p seeed scp -r` or `ssh ... 'tar czf - <paths>' | tar xzf -` to avoid per-file prompts.\n5. Verify no ignored giant files remain and prune any stray build artifacts.\n6. Write code/README.md documenting: sources (Jetson host/path, GitHub repo, Feishu attachment token), what each chapter needs, prerequisite installs, and the exact build/run commands for: gmsl4 multi-camera start, pointcloud_utils (colcon build --packages-select pointcloud_utils + start_orbbec_rviz.sh), j501_avm_calib + calib_web.py (run_calib_web.sh, web at :8090), and avm_ros2 (colcon build --symlink-install + ros2 launch avm_ros2 avm_rviz.launch.py start_camera_driver:=true).\n\nNote: this course repo's .gitignore already ignores models/datasets/build/install/log/__pycache__ etc. Do not git add or commit — the captain/team handles that later.",
+      "status": "completed",
+      "assignee": "code-engineer",
+      "dependencies": [
+        "t1"
+      ],
+      "attempt": 1,
+      "createdAt": 1789367995279,
+      "updatedAt": 1789369742363,
+      "kind": "implementation",
+      "objective": "Create docs/M02-Fundamentals-of-Vision-Systems/code/ with curated, git-safe source for all 4 chapters, synced from the remote Jetson (192.168.2.20) and GitHub, plus the gmsl4_start.sh Feishu attachment, excluding build artifacts and large binaries, with a README documenting provenance and build/run steps.",
+      "inScope": [
+        "docs/M02-Fundamentals-of-Vision-Systems/code/"
+      ],
+      "acceptance": [
+        "code/ contains the 4 chapter subfolders + README.md with the layout described.",
+        "gmsl4_start.sh is the real shell script (not an error page) and is executable.",
+        "pointcloud_utils source from GitHub present under 2.2_depth_camera.",
+        "j501_avm_calib, calib_web.py, run_calib_web.sh and tests present under 2.3; avm_ros2 + bev stack present under 2.4.",
+        "No build/install/log/.venv-tools/models/datasets/backups/__pycache__/.pytest_cache trees and no file >5MB in code/.",
+        "code/README.md documents provenance and per-chapter build/run commands."
+      ],
+      "verify": [
+        "bash -c 'test -s docs/M02-Fundamentals-of-Vision-Systems/code/2.1_gmsl2/gmsl4_start.sh && echo gmsl ok'",
+        "bash -c 'test -d docs/M02-Fundamentals-of-Vision-Systems/code/2.2_depth_camera/pointcloud_utils && echo pcu ok'",
+        "bash -c 'test -f docs/M02-Fundamentals-of-Vision-Systems/code/2.3_camera_calibration/j501_avm_calib/package.xml && echo calib ok'",
+        "bash -c 'test -f docs/M02-Fundamentals-of-Vision-Systems/code/2.4_bev_avm/ros2_ws/src/avm_ros2/package.xml && echo avm ok'",
+        "bash -c 'find docs/M02-Fundamentals-of-Vision-Systems/code -type f -size +5M | grep -q . && echo BIG_FILES_PRESENT || echo no_big_files'"
+      ],
+      "deliverables": [
+        "docs/M02-Fundamentals-of-Vision-Systems/code/README.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/code/2.1_gmsl2/gmsl4_start.sh",
+        "docs/M02-Fundamentals-of-Vision-Systems/code/2.2_depth_camera/pointcloud_utils/",
+        "docs/M02-Fundamentals-of-Vision-Systems/code/2.3_camera_calibration/",
+        "docs/M02-Fundamentals-of-Vision-Systems/code/2.4_bev_avm/"
+      ],
+      "attemptId": "b757a74e-8158-4266-823b-582effdbf4f0",
+      "reassigning": false,
+      "output": "Built docs/M02-Fundamentals-of-Vision-Systems/code/ (206 files, 4.9 MB) with all 4 chapter subfolders + README.md.\n\n- 2.1_gmsl2/gmsl4_start.sh — Feishu attachment (token NDZVbwEJBo057cxySo3cpaq5nZc) downloaded via lark-cli docs +media-download; 16,422 bytes, content-type text/x-sh, `bash -n` clean, mode 755.\n- 2.2_depth_camera/pointcloud_utils/ — `git clone --depth 1 https://github.com/zibochen6/Mobile_Robot_Code.git`; kept only the pointcloud_utils ROS package (package.xml + module + scripts), removed nested .git and the stale fisheye_avm_ros/ tree.\n- 2.3_camera_calibration/ — j501_avm_calib/ (from /home/seeed/ros2_ws/src/j501_avm_calib), calib_web.py, camera_probe_gui.py, run_calib_web.sh (tools/scripts from ros2_bev), tests/ (test_calib_web_regressions.py + fixtures), calib_results_sample/ (5 small JSONs, no .npz/backups).\n- 2.4_bev_avm/ — ros2_ws/src/ (avm_ros2 + 9 bev/autoware packages incl. bevdet_vendor) plus curated tools/ scripts/ tests/ config/ calibration/ calib_results/ docs/ README.md LICENSE from ros2_bev root.\n\nExclusions applied: no build/install/log/.venv-tools/models/datasets/backups/__pycache__/.pytest_cache/.git trees; no *.pyc/*.npz/*.onnx/*.engine/*.db3/*.bag/*.bak; zero files >5MB (largest 1.8MB). code/README.md documents provenance (Jetson 192.168.2.20 paths, GitHub URL, Feishu token), prerequisites, and per-chapter build/run commands.\n\nIMPORTANT FINDING for writers/reviewer: the GitHub repo zibochen6/Mobile_Robot_Code ships only two pointcloud_utils nodes (rgbd_to_pointcloud, open3d_viewer). The 2.2 chapter/gap-report references `start_orbbec_rviz.sh` and `orbbec_rviz.launch.py`, which are NOT present in the repo or on the Jetson — flagged in code/README.md. Writers must either drop those run lines or note the launcher is missing from upstream.",
+      "changedPaths": [
+        "docs/M02-Fundamentals-of-Vision-Systems/code/README.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/code/2.1_gmsl2/gmsl4_start.sh",
+        "docs/M02-Fundamentals-of-Vision-Systems/code/2.2_depth_camera/pointcloud_utils/package.xml",
+        "docs/M02-Fundamentals-of-Vision-Systems/code/2.2_depth_camera/pointcloud_utils/setup.py",
+        "docs/M02-Fundamentals-of-Vision-Systems/code/2.2_depth_camera/pointcloud_utils/pointcloud_utils/scripts/rgbd_to_pointcloud.py",
+        "docs/M02-Fundamentals-of-Vision-Systems/code/2.2_depth_camera/pointcloud_utils/pointcloud_utils/scripts/open3d_pointcloud_viewer.py",
+        "docs/M02-Fundamentals-of-Vision-Systems/code/2.3_camera_calibration/j501_avm_calib/",
+        "docs/M02-Fundamentals-of-Vision-Systems/code/2.3_camera_calibration/calib_web.py",
+        "docs/M02-Fundamentals-of-Vision-Systems/code/2.3_camera_calibration/camera_probe_gui.py",
+        "docs/M02-Fundamentals-of-Vision-Systems/code/2.3_camera_calibration/run_calib_web.sh",
+        "docs/M02-Fundamentals-of-Vision-Systems/code/2.3_camera_calibration/tests/",
+        "docs/M02-Fundamentals-of-Vision-Systems/code/2.3_camera_calibration/calib_results_sample/",
+        "docs/M02-Fundamentals-of-Vision-Systems/code/2.4_bev_avm/ros2_ws/src/",
+        "docs/M02-Fundamentals-of-Vision-Systems/code/2.4_bev_avm/tools/",
+        "docs/M02-Fundamentals-of-Vision-Systems/code/2.4_bev_avm/scripts/",
+        "docs/M02-Fundamentals-of-Vision-Systems/code/2.4_bev_avm/tests/",
+        "docs/M02-Fundamentals-of-Vision-Systems/code/2.4_bev_avm/config/",
+        "docs/M02-Fundamentals-of-Vision-Systems/code/2.4_bev_avm/calibration/README.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/code/2.4_bev_avm/calib_results/README.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/code/2.4_bev_avm/docs/",
+        "docs/M02-Fundamentals-of-Vision-Systems/code/2.4_bev_avm/README.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/code/2.4_bev_avm/LICENSE"
+      ],
+      "acceptanceResults": [
+        {
+          "criterion": "code/ contains the 4 chapter subfolders + README.md with the layout described.",
+          "status": "passed",
+          "evidence": "4 subfolders (2.1_gmsl2, 2.2_depth_camera, 2.3_camera_calibration, 2.4_bev_avm) + README.md all present; 206 files / 4.9 MB total."
+        },
+        {
+          "criterion": "gmsl4_start.sh is the real shell script (not an error page) and is executable.",
+          "status": "passed",
+          "evidence": "16,422 bytes, lark-cli content_type text/x-sh, `bash -n` returns clean, mode 755 (rwxr-xr-x), shebang #!/usr/bin/env bash + usage() for preview/stream/verify/stop/status."
+        },
+        {
+          "criterion": "pointcloud_utils source from GitHub present under 2.2_depth_camera.",
+          "status": "passed",
+          "evidence": "code/2.2_depth_camera/pointcloud_utils/package.xml + pointcloud_utils/ module (rgbd_to_pointcloud.py, open3d_pointcloud_viewer.py) present; nested .git and fisheye_avm_ros/ removed."
+        },
+        {
+          "criterion": "j501_avm_calib, calib_web.py, run_calib_web.sh and tests present under 2.3; avm_ros2 + bev stack present under 2.4.",
+          "status": "passed",
+          "evidence": "2.3 has j501_avm_calib/package.xml, calib_web.py, camera_probe_gui.py, run_calib_web.sh, tests/test_calib_web_regressions.py + fixtures; 2.4 has ros2_ws/src/avm_ros2/package.xml + bev_bringup, bev_camera_sync, bev_interfaces, bev_perception, bev_preprocessor, bev_system_monitor, bev_visualization, bevdet_vendor, autoware_msgs."
+        },
+        {
+          "criterion": "No build/install/log/.venv-tools/models/datasets/backups/__pycache__/.pytest_cache trees and no file >5MB in code/.",
+          "status": "passed",
+          "evidence": "find for excluded dirs returns zero entries; find -type f -size +5M returns 0; largest file is 1.8MB (BEVDet-TensorRT.png)."
+        },
+        {
+          "criterion": "code/README.md documents provenance and per-chapter build/run commands.",
+          "status": "passed",
+          "evidence": "README.md has Provenance table (Jetson 192.168.2.20 paths, GitHub URL, Feishu token NDZVbwEJBo057cxySo3cpaq5nZc), prerequisites, and exact build/run blocks for gmsl4_start.sh, pointcloud_utils, j501_avm_calib+calib_web.py, avm_ros2."
+        }
+      ],
+      "commandsRun": [
+        {
+          "command": "bash -c 'test -s docs/M02-Fundamentals-of-Vision-Systems/code/2.1_gmsl2/gmsl4_start.sh && echo gmsl ok'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "gmsl ok"
+        },
+        {
+          "command": "bash -c 'test -d docs/M02-Fundamentals-of-Vision-Systems/code/2.2_depth_camera/pointcloud_utils && echo pcu ok'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "pcu ok"
+        },
+        {
+          "command": "bash -c 'test -f docs/M02-Fundamentals-of-Vision-Systems/code/2.3_camera_calibration/j501_avm_calib/package.xml && echo calib ok'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "calib ok"
+        },
+        {
+          "command": "bash -c 'test -f docs/M02-Fundamentals-of-Vision-Systems/code/2.4_bev_avm/ros2_ws/src/avm_ros2/package.xml && echo avm ok'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "avm ok"
+        },
+        {
+          "command": "bash -c 'find docs/M02-Fundamentals-of-Vision-Systems/code -type f -size +5M | grep -q . && echo BIG_FILES_PRESENT || echo no_big_files'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "no_big_files"
+        }
+      ]
+    },
+    {
+      "id": "t3",
+      "subject": "Rewrite 2.1 zh_CN: GMSL2 multi-camera",
+      "description": "Align chapter 2.1 with the current Feishu doc (https://seeedstudio.feishu.cn/wiki/YiGow5u7QiEifnkVGhycLgMonMg).\n\nFiles:\n- Target: docs/M02-Fundamentals-of-Vision-Systems/2.1_GMSL2_Automotive-Grade_Multi-Camera_Integration/README_zh_CN.md\n- Blueprint (must read first): docs/M02-Fundamentals-of-Vision-Systems/_gap_report.md\n- Code to reference: code/2.1_gmsl2/gmsl4_start.sh (local repo path docs/M02-Fundamentals-of-Vision-Systems/code/2.1_gmsl2/gmsl4_start.sh)\n- Existing images live in the chapter's images/ dir — reuse by relative path ./images/..., do NOT re-download unless _gap_report says an image is missing.\n\nContent requirements:\n1. Match the Feishu 2.1 structure 1:1: 什么是GMSL2 / GMSL VS CSI / 硬件清单 / 使用介绍(硬件连接·选择设备树·多相机同步·media-ctl 拓扑·占用检查·串行器/解串器格式·V4L2 格式与 sensor_mode·同步启动).\n2. The Feishu doc has an embedded Feishu sheet listing J501 GMSL camera models vs resolutions — render its content as a proper Markdown table (the analyst will have extracted it into _gap_report.md; if missing, fetch it yourself with lark-cli and render it). Do not leave a bare \"嵌入式飞书表格\" link.\n3. Fix every factual/technical error or stale instruction flagged in _gap_report.md for 2.1.\n4. De-AI: remove filler/hedging phrases (值得注意的是/总而言之/不难看出/需要注意的是 etc.), shorten over-long sentences, keep commands verbatim, use direct imperative style.\n5. Add a new \"运行代码 (Run the code)\" subsection under 同步启动 that explains: this script lives in repo path code/2.1_gmsl2/gmsl4_start.sh; how to copy it to the Jetson (scp to seeed@192.168.2.20), how to make it executable, and how to run `bash gmsl4_start.sh preview`; note the WIDTH/HEIGHT/FPS=1920/1536/30 edit for non-SG3S models. Reference the remote host as 192.168.2.20 (NOT 192.168.2.0).\n6. Keep the same top-level title format (# 2.1 ...) and bilingual repo convention (this is the zh_CN file).\n\nDo not translate to English here (that is a separate task). Keep code blocks exactly as in the Feishu source.",
+      "status": "completed",
+      "assignee": "writer-1",
+      "dependencies": [
+        "t1",
+        "t2"
+      ],
+      "attempt": 1,
+      "createdAt": 1789368049126,
+      "updatedAt": 1789370003903,
+      "kind": "implementation",
+      "objective": "Rewrite docs/M02-Fundamentals-of-Vision-Systems/2.1_GMSL2_Automotive-Grade_Multi-Camera_Integration/README_zh_CN.md to fully align with the Feishu 2.1 doc, fix issues from _gap_report.md, de-AI the prose, and add a run/clone/configure section for code/2.1_gmsl2/gmsl4_start.sh.",
+      "inScope": [
+        "docs/M02-Fundamentals-of-Vision-Systems/2.1_GMSL2_Automotive-Grade_Multi-Camera_Integration/"
+      ],
+      "acceptance": [
+        "Structure matches the Feishu 2.1 doc, with all sections present.",
+        "The embedded sheet content is rendered as a real Markdown table (no bare Feishu link).",
+        "Errors from _gap_report.md are fixed.",
+        "Prose is de-AI-ed (no filler/hedging clichés) and commands are verbatim.",
+        "A run/clone/configure subsection explains how to use code/2.1_gmsl2/gmsl4_start.sh on 192.168.2.20.",
+        "All image relative paths resolve; only README_zh_CN.md + chapter assets changed."
+      ],
+      "verify": [
+        "bash -c 'grep -q \"gmsl4_start.sh\" docs/M02-Fundamentals-of-Vision-Systems/2.1_GMSL2_Automotive-Grade_Multi-Camera_Integration/README_zh_CN.md && echo runcmd ok'",
+        "bash -c 'grep -q \"sensor_mode=2\" docs/M02-Fundamentals-of-Vision-Systems/2.1_GMSL2_Automotive-Grade_Multi-Camera_Integration/README_zh_CN.md && echo smode ok'",
+        "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.1_GMSL2_Automotive-Grade_Multi-Camera_Integration && for f in $(grep -oE \"images/[A-Za-z0-9._-]+\" README_zh_CN.md); do test -f \"$f\" || echo \"MISSING $f\"; done; echo imgcheck done'"
+      ],
+      "attemptId": "1f053689-287e-4ee4-957f-1ee8aad74f42",
+      "reassigning": false,
+      "output": "已重写 docs/M02-Fundamentals-of-Vision-Systems/2.1_GMSL2_Automotive-Grade_Multi-Camera_Integration/README_zh_CN.md。正文逐节对齐飞书 2.1：标题层级升为 ##/###/####/#####（与飞书 h2/h3/h4 一致）；修复 reCImputer→reComputer、GMSL拓展板→GMSL 扩展板；硬件清单图片改为规范 3 列 Markdown 表格；嵌入飞书表格占位换成真实 Markdown 型号/分辨率/sensor_mode 表（SG3S=1920×1536/sensor_mode 0、2MP=1920×1080/1、SG8S=3840×2160/2）；删除「简言之，」等 AI 味词；同步启动下新增「运行代码 (Run the code)」小节，给出 scp 到 seeed@192.168.2.20、chmod +x、bash gmsl4_start.sh preview，非 SG3S 型号改 WIDTH,HEIGHT,FPS，并注明无显示器用 verify。全部命令与飞书原文逐字保留，新增指向本机 code/2.1_gmsl2/gmsl4_start.sh。",
+      "changedPaths": [
+        "docs/M02-Fundamentals-of-Vision-Systems/2.1_GMSL2_Automotive-Grade_Multi-Camera_Integration/README_zh_CN.md"
+      ],
+      "acceptanceResults": [
+        {
+          "criterion": "Structure matches the Feishu 2.1 doc, with all sections present.",
+          "status": "passed",
+          "evidence": "grep 标题层级显示：什么是GMSL2？/GMSL VS CSI/硬件清单：/使用介绍(硬件连接·选择设备树·多相机同步(查看media-controller 拓扑·检查摄像头占用·设置串行器解串器格式·设置 V4L2 节点格式和传感器模式·同步启动))，均与飞书一致。"
+        },
+        {
+          "criterion": "The embedded sheet content is rendered as a real Markdown table (no bare Feishu link).",
+          "status": "passed",
+          "evidence": "占位链接已替换为 3 列表格（GMSL 相机型号 | 分辨率 | sensor_mode），SG3S=1920×1536、2MP=1920×1080、SG8S=3840×2160；grep feishu.cn/wiki 无任何残留。"
+        },
+        {
+          "criterion": "Errors from _gap_report.md are fixed.",
+          "status": "passed",
+          "evidence": "§8 的 2.1-1~2.1-5 全部处理：表格占位→Markdown 表、附录占位→run/clone 小节、硬件图表格修复为 3 列、reCImputer/拓展板错别字修复、标题层级升一级。"
+        },
+        {
+          "criterion": "Prose is de-AI-ed (no filler/hedging clichés) and commands are verbatim.",
+          "status": "passed",
+          "evidence": "grep 简言之|总而言之|综上所述|值得注意的是|需要注意的是|不难看出|换句话说|整体而言 返回 no cliches；命令块与飞书原文逐字一致。"
+        },
+        {
+          "criterion": "A run/clone/configure subsection explains how to use code/2.1_gmsl2/gmsl4_start.sh on 192.168.2.20.",
+          "status": "passed",
+          "evidence": "新增「##### 运行代码 (Run the code)」，含 scp 到 seeed@192.168.2.20、chmod +x、bash gmsl4_start.sh preview、WIDTH/HEIGHT/FPS 修改说明与无头 verify。"
+        },
+        {
+          "criterion": "All image relative paths resolve; only README_zh_CN.md + chapter assets changed.",
+          "status": "passed",
+          "evidence": "imgcheck done 无 MISSING；本次仅修改 README_zh_CN.md 一个文件。"
+        }
+      ],
+      "commandsRun": [
+        {
+          "command": "bash -c 'grep -q \"gmsl4_start.sh\" docs/M02-Fundamentals-of-Vision-Systems/2.1_GMSL2_Automotive-Grade_Multi-Camera_Integration/README_zh_CN.md && echo runcmd ok'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "runcmd ok"
+        },
+        {
+          "command": "bash -c 'grep -q \"sensor_mode=2\" docs/M02-Fundamentals-of-Vision-Systems/2.1_GMSL2_Automotive-Grade_Multi-Camera_Integration/README_zh_CN.md && echo smode ok'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "smode ok"
+        },
+        {
+          "command": "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.1_GMSL2_Automotive-Grade_Multi-Camera_Integration && for f in $(grep -oE \"images/[A-Za-z0-9._-]+\" README_zh_CN.md); do test -f \"$f\" || echo \"MISSING $f\"; done; echo imgcheck done'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "imgcheck done"
+        }
+      ]
+    },
+    {
+      "id": "t4",
+      "subject": "Rewrite 2.2 zh_CN: depth camera & 3D perception",
+      "description": "Align chapter 2.2 with the current Feishu doc (https://seeedstudio.feishu.cn/wiki/OKiFwYPPJi5NhtkEHW3czaQqnzh).\n\nFiles:\n- Target: docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/README_zh_CN.md\n- Blueprint (must read first): docs/M02-Fundamentals-of-Vision-Systems/_gap_report.md\n- Code to reference: code/2.2_depth_camera/pointcloud_utils (local repo path docs/M02-Fundamentals-of-Vision-Systems/code/2.2_depth_camera/pointcloud_utils)\n- Existing images in the chapter images/ dir — reuse them.\n\nContent requirements:\n1. Match the Feishu 2.2 structure: 课程目标 / 硬件清单 / 前置基础 / 理论要点 / 实践内容 / 产出物 / 思考题与拓展 (the doc uses h3-level headings; preserve its exact section organization — the analyst's _gap_report.md captures the precise outline).\n2. Preserve the substantive depth-sensing theory (depth tech comparison, RGB-depth registration/D2C, RGB-D → PointCloud2) and the 3 practice tasks (driver bring-up + /camera/points, Open3D visualization, depth filtering/hole-filling).\n3. The Feishu doc references the GitHub repo github.com/zibochen6/Mobile_Robot_Code (cloned as pointcloud_utils) and Orbbec Gemini 2. Rewrite the clone/run steps to point at BOTH the local copy (code/2.2_depth_camera/pointcloud_utils — copy into ~/ros2_ws/src) and the upstream URL as the canonical source; commands: sudo apt install ros-$ROS_DISTRO-cv-bridge ros-$ROS_DISTRO-vision-opencv ros-$ROS_DISTRO-sensor-msgs-py ros-$ROS_DISTRO-message-filters python3-numpy; colcon build --packages-select pointcloud_utils; source install/setup.bash; start_orbbec_rviz.sh; open3d viewer usage.\n4. Fix every error/stale step flagged in _gap_report.md (e.g. wrong topic names, version mismatches).\n5. De-AI the prose per _gap_report.md guidance.\n6. Do NOT translate to English here. Keep code blocks verbatim.",
+      "status": "completed",
+      "assignee": "writer-1",
+      "dependencies": [
+        "t1",
+        "t2"
+      ],
+      "attempt": 1,
+      "createdAt": 1789368049182,
+      "updatedAt": 1789370517211,
+      "kind": "implementation",
+      "objective": "Rewrite docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/README_zh_CN.md to align with the Feishu 2.2 doc, fix issues from _gap_report.md, de-AI the prose, and add run/clone/configure instructions for code/2.2_depth_camera/pointcloud_utils + the Orbbec Gemini 2 driver.",
+      "inScope": [
+        "docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/"
+      ],
+      "acceptance": [
+        "Structure matches the Feishu 2.2 doc (course objective/hardware/theory/practice/output/thinking sections).",
+        "Theory sections (depth comparison, registration, PointCloud2) preserved accurately.",
+        "Clone/build/run instructions reference both code/2.2_depth_camera/pointcloud_utils and the upstream repo.",
+        "Errors from _gap_report.md are fixed.",
+        "Prose is de-AI-ed."
+      ],
+      "verify": [
+        "bash -c 'grep -q \"pointcloud_utils\" docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/README_zh_CN.md && echo name ok'",
+        "bash -c 'grep -q \"colcon build --packages-select pointcloud_utils\" docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/README_zh_CN.md && echo build ok'",
+        "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception && for f in $(grep -oE \"images/[A-Za-z0-9._-]+\" README_zh_CN.md); do test -f \"$f\" || echo \"MISSING $f\"; done; echo imgcheck done'"
+      ],
+      "attemptId": "0ddd2585-1a22-4dce-be02-d0b14c18d869",
+      "reassigning": false,
+      "output": "已重写 2.2 zh_CN，对齐飞书并纠正 run 指令。关键修正：(1) 删除本地多出的『安装 Orbbec SDK v2』与『Gemini 2 验证记录』（含杜撰 commit 8e7cad2/USB ID 2bc5:0670）及两张孤儿图；(2) 修复『如何手写』丢失的 def depth_callback/def color_callback；(3) 平台改为 reComputer Robotics J5012（AGX Orin），官方资料补 OrbbecSDK_ROS2 v2 链接；(4) 标题层级升为 ###/####。run 指令按真实代码改写：上游仓库只有 rgbd_to_pointcloud + open3d_viewer 两个节点，无 launch/start_orbbec_rviz.sh，故删除一键启动写法，改为 ros2 run pointcloud_utils rgbd_to_pointcloud 直接跑节点，并给出真实参数表（pixel_stride=2、sync_slop_sec=0.03、depth_unit_m=0.001、output_topic=/camera/points 等）。注意：飞书与船长纠偏里写的 min_depth_m/max_depth_m/sync_mode 三个参数在真实节点中不存在，已按源码改为可实际生效的参数，未照抄失效 flag。clone 双源：本地 code/2.2_depth_camera/pointcloud_utils cp -r + 上游 git clone（只取 pointcloud_utils 子目录）。三条 verify 全绿，图链全部解析。",
+      "changedPaths": [
+        "docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/README_zh_CN.md"
+      ],
+      "acceptanceResults": [
+        {
+          "criterion": "Structure matches the Feishu 2.2 doc (course objective/hardware/theory/practice/output/thinking sections).",
+          "status": "passed",
+          "evidence": "标题层级为 #(章) → ###(课程目标/硬件清单/前置基础/理论要点/实践内容/产出物/思考题与拓展) → ####(理论 1/2/3、任务 1/如何手写/任务 2/任务 3)，与飞书 h1/h3/h4 一致。"
+        },
+        {
+          "criterion": "Theory sections (depth comparison, registration, PointCloud2) preserved accurately.",
+          "status": "passed",
+          "evidence": "三个理论小节完整保留：三种深度技术对比表、D2C 外参对齐四步变换、RGB-D→PointCloud2 反投影公式与消息结构。"
+        },
+        {
+          "criterion": "Clone/build/run instructions reference both code/2.2_depth_camera/pointcloud_utils and the upstream repo.",
+          "status": "passed",
+          "evidence": "步骤 C1 含方式 A（cp -r code/2.2_depth_camera/pointcloud_utils）与方式 B（git clone https://github.com/zibochen6/Mobile_Robot_Code.git）双源，并给 colcon build --packages-select pointcloud_utils。"
+        },
+        {
+          "criterion": "Errors from _gap_report.md are fixed.",
+          "status": "passed",
+          "evidence": "2.2-1~2.2-8 全部处理：平台改 J5012、官方资料补链、def 补齐、删原生 SDK v2 安装、删验证记录、删 AI 生成图、标题升一级。"
+        },
+        {
+          "criterion": "Prose is de-AI-ed.",
+          "status": "passed",
+          "evidence": "grep 值得注意的是|需要注意的是|总而言之|简言之|不难看出|换句话说|整体而言 无命中；图注缩为 ≤8 字。"
+        }
+      ],
+      "commandsRun": [
+        {
+          "command": "bash -c 'grep -q \"pointcloud_utils\" docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/README_zh_CN.md && echo name ok'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "name ok"
+        },
+        {
+          "command": "bash -c 'grep -q \"colcon build --packages-select pointcloud_utils\" docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/README_zh_CN.md && echo build ok'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "build ok"
+        },
+        {
+          "command": "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception && for f in $(grep -oE \"images/[A-Za-z0-9._-]+\" README_zh_CN.md); do test -f \"$f\" || echo \"MISSING $f\"; done; echo imgcheck done'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "imgcheck done"
+        }
+      ]
+    },
+    {
+      "id": "t5",
+      "subject": "Rewrite 2.3 zh_CN: camera calibration",
+      "description": "Align chapter 2.3 with the rewritten Feishu doc (https://seeedstudio.feishu.cn/wiki/OVzhwgVLiiC78Rkxz9Hc1gc1nef).\n\nThe Feishu 2.3 doc was heavily rewritten. Its new structure (read the exact outline with lark-cli docs +fetch --scope outline): 课程概述(先知道/学完后/硬件与软件清单/前置基础) → 先读懂(针孔相机模型与畸变 / 相机内参与像素坐标 / 镜头畸变 / 相机标定在求什么：内参·畸变参数·外参 / 手眼标定基础(M9 铺垫) / 双目标定与极线校正) → 动手标定(开始前确认4件事 / 环境准备与数据采集 / 双目标定 / 精度评估与重投影误差 / 导出 camera_info YAML / 进阶：四鱼眼标定(Web)与2.4衔接) → 产出物与验收标准 → 常见问题与排障.\n\nFiles:\n- Target: docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/README_zh_CN.md\n- Blueprint (must read first): docs/M02-Fundamentals-of-Vision-Systems/_gap_report.md\n- Code to reference: code/2.3_camera_calibration (local repo path docs/M02-Fundamentals-of-Vision-Systems/code/2.3_camera_calibration — contains j501_avm_calib, calib_web.py, run_calib_web.sh, camera_probe_gui.py, tests, calib_results_sample)\n- Cross-chapter: the Feishu 2.3 \"进阶：四鱼眼标定\" section works with the ros2_bev repo (remote /home/seeed/workspace/ros2_bev) and the avm_ros2 package; in the local course this maps to code/2.4_bev_avm/ros2_ws/src/avm_ros2 — reference it as relative repo path and keep the web-calibration workflow (calib_web.py served at http://<jetson-ip>:8090, steps /intrinsics then /extrinsics).\n\nContent requirements:\n1. Follow the Feishu 2.3 structure exactly (append the 产出物/验收标准 and 常见问题/排障 sections which the current file lacks).\n2. The current README has extra sections (Kalibr 进阶, raw 四鱼眼 ROS2 manual pipeline) — reconcile per _gap_report.md: keep only what the Feishu doc now keeps, move/merge Kalibr into 常见问题 or a brief mention, and replace the old manual四鱼眼 pipeline with the Feishu Web-calibration workflow.\n3. Add run/clone/configure subsections: how to use code/2.3_camera_calibration — build j501_avm_calib (colcon), run run_calib_web.sh / python3 calib_web.py, open the web UI, run /intrinsics then /extrinsics, and where camera_info/*.yaml + extrinsics.json are written (align with code/README.md).\n4. Fix errors flagged in _gap_report.md; correct any wrong device paths (use 192.168.2.20 not .0).\n5. De-AI the prose.\n6. Do NOT translate to English here.",
+      "status": "completed",
+      "assignee": "writer-2",
+      "dependencies": [
+        "t1",
+        "t2"
+      ],
+      "attempt": 1,
+      "createdAt": 1789368089565,
+      "updatedAt": 1789370489705,
+      "kind": "implementation",
+      "objective": "Rewrite docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/README_zh_CN.md to align with the rewritten Feishu 2.3 doc, fix issues from _gap_report.md, de-AI the prose, and add run/clone/configure instructions for code/2.3_camera_calibration (j501_avm_calib + calib_web).",
+      "inScope": [
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/"
+      ],
+      "acceptance": [
+        "Structure matches the rewritten Feishu 2.3 outline, including 产出物/验收标准 and 常见问题/排障.",
+        "Old manual four-fisheye pipeline replaced by the Feishu Web-calibration (/intrinsics → /extrinsics) workflow.",
+        "Run/clone/configure steps for code/2.3_camera_calibration (j501_avm_calib + calib_web) included and correct.",
+        "Kalibr content reconciled per _gap_report.md.",
+        "Errors fixed and prose de-AI-ed."
+      ],
+      "verify": [
+        "bash -c 'grep -q \"calib_web.py\" docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/README_zh_CN.md && echo calibweb ok'",
+        "bash -c 'grep -q \"camera_info\" docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/README_zh_CN.md && echo caminfo ok'",
+        "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration && for f in $(grep -oE \"images/[A-Za-z0-9._-]+\" README_zh_CN.md); do test -f \"$f\" || echo \"MISSING $f\"; done; echo imgcheck done'"
+      ],
+      "attemptId": "1fcf9555-6476-4811-92db-4c5e2b95b9ec",
+      "reassigning": false,
+      "output": "已重写 docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/README_zh_CN.md（655→629 行），对齐飞书 2.3 新版结构与代码。要点：1) 结构完全对齐飞书大纲（课程概述→先读懂→动手标定→产出物与验收标准→常见问题与排障），补「针孔成像」小节、交付清单第 4 项、验收标准进阶 bullet、常见问题进阶条；2) 删除旧 fisheye_avm_ros 手动四鱼眼管线与 Kalibr AprGrid 独立小节，替换为 calib_web.py Web 流程（/intrinsics → /extrinsics）；3) 新增「运行代码」小节（scp 布局 / colcon build / run_calib_web.sh / http://192.168.2.20:8090 / 产物落盘路径，对齐 code/README.md）；4) 修复 Ubuntu 20.04/22.04→22.04、补 8×6/25mm 标定板与 calib_web 工具说明、1.4 引用改相对链接、去 AI 味；5) 下载 5 张飞书新图入 images/（ILTUbTCa.gif 针孔成像 + 4 张 Web UI 截图）。三项 verify 全部通过。",
+      "changedPaths": [
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/README_zh_CN.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/ILTUbTCaJo627QxZcM9cIPZKnie.gif",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/Lc1sbKOiVonIhtxGzoMcOzglnFg.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/KoFMbMvwgokPQ7xyQpEctsgRnQf.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/ZpkCbeTqNowTyvxtqd1clvQvnog.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/Ry6mbg0uDoTOYPx2UyUcCKtSnyv.png"
+      ],
+      "acceptanceResults": [
+        {
+          "criterion": "Structure matches the rewritten Feishu 2.3 outline, including 产出物/验收标准 and 常见问题/排障.",
+          "status": "passed",
+          "evidence": "章节标题层级与飞书 2.3 正文/大纲一一对应：## 课程概述(### 先知道/学完后/硬件与软件清单/前置基础)、## 先读懂(### 针孔相机模型与畸变→#### 针孔成像、### 相机内参与像素坐标、### 镜头畸变、### 相机标定究竟在求什么→#### 内参/畸变/外参、### 手眼标定基础、### 双目标定与极线校正)、## 动手标定(### 开始前/环境准备/双目标定/精度评估/导出/进阶 Web 流程)、## 产出物与验收标准(### 交付清单 4 项/验收标准 5 条)、## 常见问题与排障(5 项含进阶)"
+        },
+        {
+          "criterion": "Old manual four-fisheye pipeline replaced by the Feishu Web-calibration (/intrinsics → /extrinsics) workflow.",
+          "status": "passed",
+          "evidence": "grep 确认 fisheye_avm_ros / avm_calibrate.launch.py / /avm/calibration 均已删除；进阶小节重写为 calib_web.py + 浏览器 http://<jetson-ip>:8090 + /intrinsics → /extrinsics（可选 /seam、/bev 只预览）4 步骤流程"
+        },
+        {
+          "criterion": "Run/clone/configure steps for code/2.3_camera_calibration (j501_avm_calib + calib_web) included and correct.",
+          "status": "passed",
+          "evidence": "新增 #### 运行代码（Run the code）：给出仓库文件→Jetson 落点表、scp 至 192.168.2.20 的部署命令、colcon build --packages-select j501_avm_calib --symlink-install、bash scripts/run_calib_web.sh、产物路径（calib_results/*.json + extrinsics.json + config/camera_info/*.yaml 镜像 install），与 code/README.md 和 config.py 实际行为一致"
+        },
+        {
+          "criterion": "Kalibr content reconciled per _gap_report.md.",
+          "status": "passed",
+          "evidence": "删除 standalone 进阶：Kalibr 小节（AprilGrid YAML + kalibr_calibrate_cameras + camchain 全部移除，grep 无残留）；保留飞书的一处双目标定结尾一句带过 + 常见问题中「Kalibr 运行报错或不收敛」一条"
+        },
+        {
+          "criterion": "Errors fixed and prose de-AI-ed.",
+          "status": "passed",
+          "evidence": "Ubuntu 20.04/22.04→Ubuntu 22.04；标定板补「进阶四鱼眼 8×6 内角点 25 mm」；标定工具补 calib_web.py(:8090)+禁用 :8787；1.4 引用改相对链接 ../../M01-.../1.4_Getting_Started_with_ROS2_Humble/README_zh_CN.md（文件存在）；删除『尺子/方向盘』『需要注意的是』等 AI 味词；图注缩短至 ≤8 字；移除孤儿图引用（DK6Sbh18 Kalibr、ZSmlbU0、ZZ7FbJy）"
+        }
+      ],
+      "commandsRun": [
+        {
+          "command": "bash -c 'grep -q \"calib_web.py\" docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/README_zh_CN.md && echo calibweb ok'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "calibweb ok"
+        },
+        {
+          "command": "bash -c 'grep -q \"camera_info\" docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/README_zh_CN.md && echo caminfo ok'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "caminfo ok"
+        },
+        {
+          "command": "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration && for f in $(grep -oE \"images/[A-Za-z0-9._-]+\" README_zh_CN.md); do test -f \"$f\" || echo \"MISSING $f\"; done; echo imgcheck done'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "imgcheck done（22 处 images/ 引用全部存在，无 MISSING）"
+        }
+      ]
+    },
+    {
+      "id": "t6",
+      "subject": "Rewrite 2.4 zh_CN: multi-camera BEV stitching",
+      "description": "Align chapter 2.4 with the rewritten Feishu doc (https://seeedstudio.feishu.cn/wiki/TmEqw2YYAiZdobkpgtRccQyvnrd).\n\nThe Feishu 2.4 doc was rewritten. New structure (read the outline with lark-cli docs +fetch --scope outline): 先知道/学完后/硬件与软件清单/前置基础 → 先读懂(为什么需要BEV / 从标定结果到地图:单应矩阵H / 逆透视投影:BEV画布每个像素从哪取色 / 一次映射三道关卡 / 多路拼接与融合 / BEV与AVM / 平面假设的边界) → 动手(步骤5 构建AVM ROS 2 包 / 步骤6 启动实时BEV拼接 / 步骤7 验证与调优) → 产出物与验收标准 → 常见问题与排障(BEV完全不出图/接缝错位/重叠区明暗跳变/设备占用).\n\nFiles:\n- Target: docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/README_zh_CN.md\n- Blueprint (must read first): docs/M02-Fundamentals-of-Vision-Systems/_gap_report.md\n- Code to reference: code/2.4_bev_avm (local repo path docs/M02-Fundamentals-of-Vision-Systems/code/2.4_bev_avm — contains ros2_ws/src/avm_ros2 and bev stack). Calibration tooling shared with 2.3 lives under code/2.3_camera_calibration — reference it relatively, do not duplicate.\n\nContent requirements:\n1. Follow the Feishu 2.4 structure exactly, incl. the theory sections (homography H, IPM pixel provenance, three passes of a mapping, seam blending, BEV vs AVM, planar-assumption limits) and the 产出物/验收标准 + 常见问题/排障 sections.\n2. Replace the current manual OpenCV/Python STEP 1–7 that hardcodes scripts with the Feishu avm_ros2 workflow: 步骤5 build avm_ros2 (colcon build --packages-select avm_ros2 --symlink-install), 步骤6 launch (ros2 launch avm_ros2 avm_rviz.launch.py start_camera_driver:=true), 步骤7 verify topics (/avm/bev/metric/image, /avm/bev/surround/image, /avm/bev/valid_mask, /avm/bev/status) and RViz2. Keep the older manual pipeline only if _gap_report.md says the Feishu doc still wants it (it does not — the Feishu doc is avm_ros2-based).\n3. Add run/clone/configure subsection: how to obtain and build code/2.4_bev_avm/ros2_ws/src/avm_ros2 (copy to ~/ros2_ws or ros2_bev workspace per code/README.md), install deps, source setup.bash, and launch. Correct any device paths (192.168.2.20).\n4. Fix errors flagged in _gap_report.md; de-AI the prose; keep code blocks verbatim from Feishu.\n5. Do NOT translate to English here.",
+      "status": "completed",
+      "assignee": "writer-2",
+      "dependencies": [
+        "t1",
+        "t2"
+      ],
+      "attempt": 1,
+      "createdAt": 1789368089621,
+      "updatedAt": 1789370857045,
+      "kind": "implementation",
+      "objective": "Rewrite docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/README_zh_CN.md to align with the rewritten Feishu 2.4 doc, fix issues from _gap_report.md, de-AI the prose, and add run/clone/configure instructions for code/2.4_bev_avm (avm_ros2).",
+      "inScope": [
+        "docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/"
+      ],
+      "acceptance": [
+        "Structure matches the rewritten Feishu 2.4 outline (theory + avm_ros2 steps + outputs + troubleshooting).",
+        "Manual OpenCV pipeline replaced by the avm_ros2 build/launch/verify workflow.",
+        "Run/clone/configure steps for code/2.4_bev_avm correct, with cross-reference to code/2.3_camera_calibration for shared tooling.",
+        "Errors fixed and prose de-AI-ed.",
+        "Only README_zh_CN.md + chapter assets changed."
+      ],
+      "verify": [
+        "bash -c 'grep -q \"avm_ros2\" docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/README_zh_CN.md && echo avm ok'",
+        "bash -c 'grep -q \"avm_rviz.launch.py\" docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/README_zh_CN.md && echo launch ok'",
+        "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching && for f in $(grep -oE \"images/[A-Za-z0-9._-]+\" README_zh_CN.md); do test -f \"$f\" || echo \"MISSING $f\"; done; echo imgcheck done'"
+      ],
+      "attemptId": "b18473ef-b2ee-4001-a277-e0eb73470783",
+      "reassigning": false,
+      "output": "已整章重写 docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/README_zh_CN.md（173→289 行），从旧手工 OpenCV/Python STEP 1–7 重建为飞书 2.4 的 avm_ros2 流程 + 完整理论小节。要点：1) 结构对齐飞书大纲（课程概述→先读懂 7 个理论小节→动手步骤5/6/7→产出物与验收标准→常见问题 4 条）；2) 删除旧 findHomography/warpPerspective 手工管线，替换为 colcon build avm_ros2 / ros2 launch avm_rviz.launch.py start_camera_driver:=true / 话题验证；3) 新增「运行代码」小节（scp avm_ros2 到 192.168.2.20、source j501_avm_calib、build、launch、verify topics，并交叉引用 ../2.3）；4) 修复坐标系约定（沿用 2.3 的 base_link，不再写「X 向前/Y 向左」）、删除 3D 十字架/22°/10cm 过期硬件细节、旧包名 fisheye_avm_ros→avm_ros2、删除「可以理解为/可以把它理解为」；5) 下载 1 张飞书新增 RViz 图入 images/。三项 verify 全部通过。",
+      "changedPaths": [
+        "docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/README_zh_CN.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/images/XcDkb0TrxoTVGTx64agcUG4rnkg.png"
+      ],
+      "acceptanceResults": [
+        {
+          "criterion": "Structure matches the rewritten Feishu 2.4 outline (theory + avm_ros2 steps + outputs + troubleshooting).",
+          "status": "passed",
+          "evidence": "标题层级与飞书 2.4 大纲一一对应：## 课程概述(### 先知道/学完后/硬件与软件清单/前置基础)、## 先读懂(### 为什么需要BEV/从标定结果到地图单应矩阵H/逆透视投影/一次映射三道关卡/多路拼接与融合/BEV与AVM/平面假设的边界)、## 动手(### 步骤5构建AVM ROS2包/步骤6启动实时BEV拼接/步骤7验证与调优)、## 产出物与验收标准(### 交付清单/验收标准)、## 常见问题与排障(### BEV完全不出图/接缝错位/重叠区明暗跳变/启动报设备占用)"
+        },
+        {
+          "criterion": "Manual OpenCV pipeline replaced by the avm_ros2 build/launch/verify workflow.",
+          "status": "passed",
+          "evidence": "grep 确认旧 STEP 1–7、cv2.fisheye.calibrate/findHomography/warpPerspective 自写代码块、fisheye_avm_ros、十字架已删除；步骤 5/6/7 改为 colcon build --packages-select avm_ros2 --symlink-install、ros2 launch avm_ros2 avm_rviz.launch.py start_camera_driver:=true、话题/验收验证"
+        },
+        {
+          "criterion": "Run/clone/configure steps for code/2.4_bev_avm correct, with cross-reference to code/2.3_camera_calibration for shared tooling.",
+          "status": "passed",
+          "evidence": "新增 ### 运行代码：scp -r code/2.4_bev_avm/ros2_ws/src/avm_ros2 seeed@192.168.2.20:~/workspace/ros2_bev/ros2_ws/src/；configure 包含 cd ros2_bev/ros2_ws + source /opt/ros/humble + source ~/ros2_ws/install（j501_avm_calib）+ colcon build；run 先 pkill calib_web.py 再 launch；并交叉引用 [2.3](../2.3_Camera_Calibration/README_zh_CN.md) 与 code/2.3_camera_calibration/，与 code/README.md §2.4 和 avm_ros2/README.md 一致"
+        },
+        {
+          "criterion": "Errors fixed and prose de-AI-ed.",
+          "status": "passed",
+          "evidence": "删『可以理解为/可以把它理解为』；坐标系改用飞书本『沿用 2.3 车体系 base_link』且无『X 向前/Y 向左』；硬件清单删 3D 十字架/22°/10cm 改『固定支架间隔 90°（Hov 198）』；旧包名 fisheye_avm_ros→avm_ros2；图注缩短至 ≤8 字（六阶段流程/BEV 作用/BEV 与 AVM/实时 BEV）"
+        },
+        {
+          "criterion": "Only README_zh_CN.md + chapter assets changed.",
+          "status": "passed",
+          "evidence": "仅在 2.4_Multi-Camera_BEV_Stitching/ 范围内改动：重写 README_zh_CN.md，并新下载 1 张章节资产 images/XcDkb0TrxoTVGTx64agcUG4rnkg.png（RViz 实时 BEV 图，飞书新增本地缺失图）"
+        }
+      ],
+      "commandsRun": [
+        {
+          "command": "bash -c 'grep -q \"avm_ros2\" docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/README_zh_CN.md && echo avm ok'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "avm ok"
+        },
+        {
+          "command": "bash -c 'grep -q \"avm_rviz.launch.py\" docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/README_zh_CN.md && echo launch ok'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "launch ok"
+        },
+        {
+          "command": "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching && for f in $(grep -oE \"images/[A-Za-z0-9._-]+\" README_zh_CN.md); do test -f \"$f\" || echo \"MISSING $f\"; done; echo imgcheck done'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "imgcheck done（4 处 images/ 引用全部存在，无 MISSING）"
+        }
+      ]
+    },
+    {
+      "id": "t7",
+      "subject": "Translate 2.1 en_US from zh_CN",
+      "description": "Translate the freshly updated docs/M02-Fundamentals-of-Vision-Systems/2.1_GMSL2_Automotive-Grade_Multi-Camera_Integration/README_zh_CN.md into README_en_US.md in the same folder (replace file contents).\n\nRules:\n- Faithful technical English; do not paraphrase away precision (GMSL2 SerDes, CSI-2, I2C, PoC, media-ctl, v4l2-ctl, sensor_mode, FSYNC, MAX96712/MAX96717).\n- Keep ALL code blocks and shell commands verbatim (do not translate inside code fences). Keep image relative paths (./images/...) exactly as-is.\n- Keep the same heading hierarchy. Translate headings and body into English.\n- Preserve the \"Run the code\" subsection and the 192.168.2.20 host references.\n- Match the existing bilingual course style (concise, direct, no AI filler). Do not introduce new content.",
+      "status": "completed",
+      "assignee": "translator-1",
+      "dependencies": [
+        "t3"
+      ],
+      "attempt": 1,
+      "createdAt": 1789368126641,
+      "updatedAt": 1789370135422,
+      "kind": "implementation",
+      "objective": "Produce a faithful technical-English translation of the updated 2.1 zh_CN doc into README_en_US.md, preserving code blocks, commands, image relative paths, and the new run/clone/configure section.",
+      "inScope": [
+        "docs/M02-Fundamentals-of-Vision-Systems/2.1_GMSL2_Automotive-Grade_Multi-Camera_Integration/README_en_US.md"
+      ],
+      "acceptance": [
+        "README_en_US.md is a complete, technically accurate English translation of the zh_CN file.",
+        "All code blocks and commands are verbatim; image paths unchanged.",
+        "Heading hierarchy matches the zh_CN source.",
+        "No new content added; run/clone section preserved."
+      ],
+      "verify": [
+        "bash -c 'grep -q \"gmsl4_start.sh\" docs/M02-Fundamentals-of-Vision-Systems/2.1_GMSL2_Automotive-Grade_Multi-Camera_Integration/README_en_US.md && echo ok'",
+        "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.1_GMSL2_Automotive-Grade_Multi-Camera_Integration && for f in $(grep -oE \"images/[A-Za-z0-9._-]+\" README_en_US.md); do test -f \"$f\" || echo \"MISSING $f\"; done; echo imgcheck done'"
+      ],
+      "attemptId": "9d35e9c4-5920-4b65-9cc8-31000bd636e8",
+      "reassigning": false,
+      "output": "Translated README_zh_CN.md → README_en_US.md (same folder). Faithful technical-English translation preserving heading hierarchy (h1/h2×4/h3×3/h4×5/h5), all 10 code blocks verbatim (diff-verified identical), all 11 image relative paths unchanged and existing, the new \"Run the Code\" subsection (gmsl4_start.sh, scp/ssh, 192.168.2.20, preview/verify) preserved. No new content added.",
+      "changedPaths": [
+        "docs/M02-Fundamentals-of-Vision-Systems/2.1_GMSL2_Automotive-Grade_Multi-Camera_Integration/README_en_US.md"
+      ],
+      "acceptanceResults": [
+        {
+          "criterion": "README_en_US.md is a complete, technically accurate English translation of the zh_CN file.",
+          "status": "passed",
+          "evidence": "Full English translation produced from the 161-line zh_CN source; every paragraph, heading, list, table, and note translated faithfully (GMSL2 SerDes, CSI-2, I2C, PoC, media-ctl, v4l2-ctl, sensor_mode, FSYNC, MAX96712/MAX96717 terminology preserved)."
+        },
+        {
+          "criterion": "All code blocks and commands are verbatim; image paths unchanged.",
+          "status": "passed",
+          "evidence": "diff of fenced-code-block contents between README_zh_CN.md and README_en_US.md printed 'CODE BLOCKS IDENTICAL'; image-check loop reported no 'MISSING' files (imgcheck done) and all 11 relative image paths preserved exactly."
+        },
+        {
+          "criterion": "Heading hierarchy matches the zh_CN source.",
+          "status": "passed",
+          "evidence": "grep of headings shows identical level sequence in both files: 1×h1, 4×h2, 3×h3, 5×h4, 1×h5."
+        },
+        {
+          "criterion": "No new content added; run/clone section preserved.",
+          "status": "passed",
+          "evidence": "'Run the Code' subsection retained with gmsl4_start.sh, the scp/ssh commands, 192.168.2.20 host, preview/verify modes, and the model/sensor_mode table; no additional sections introduced."
+        }
+      ],
+      "commandsRun": [
+        {
+          "command": "bash -c 'grep -q \"gmsl4_start.sh\" docs/M02-Fundamentals-of-Vision-Systems/2.1_GMSL2_Automotive-Grade_Multi-Camera_Integration/README_en_US.md && echo ok'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "ok"
+        },
+        {
+          "command": "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.1_GMSL2_Automotive-Grade_Multi-Camera_Integration && for f in $(grep -oE \"images/[A-Za-z0-9._-]+\" README_en_US.md); do test -f \"$f\" || echo \"MISSING $f\"; done; echo imgcheck done'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "imgcheck done"
+        }
+      ]
+    },
+    {
+      "id": "t8",
+      "subject": "Translate 2.2 en_US from zh_CN",
+      "description": "Translate the freshly updated docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/README_zh_CN.md into README_en_US.md in the same folder (replace file contents).\n\nRules:\n- Faithful technical English; keep terms precise (depth registration/D2C, RGB-D, PointCloud2, Open3D, Orbbec Gemini 2, pointcloud_utils).\n- Keep ALL code blocks/commands verbatim; keep image paths ./images/... as-is.\n- Same heading hierarchy; translate headings + prose to English.\n- Preserve clone/run instructions referencing code/2.2_depth_camera/pointcloud_utils and the upstream GitHub repo.\n- Match bilingual course style, no AI filler, no new content.",
+      "status": "completed",
+      "assignee": "translator-1",
+      "dependencies": [
+        "t4"
+      ],
+      "attempt": 1,
+      "createdAt": 1789368126702,
+      "updatedAt": 1789370991168,
+      "kind": "implementation",
+      "objective": "Produce a faithful technical-English translation of the updated 2.2 zh_CN doc into README_en_US.md, preserving code blocks, commands, image relative paths, and run/clone/configure section.",
+      "inScope": [
+        "docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/README_en_US.md"
+      ],
+      "acceptance": [
+        "README_en_US.md is a complete, technically accurate English translation.",
+        "Code/commands verbatim; image paths unchanged; heading hierarchy preserved.",
+        "No new content added."
+      ],
+      "verify": [
+        "bash -c 'grep -q \"pointcloud_utils\" docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/README_en_US.md && echo ok'",
+        "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception && for f in $(grep -oE \"images/[A-Za-z0-9._-]+\" README_en_US.md); do test -f \"$f\" || echo \"MISSING $f\"; done; echo imgcheck done'"
+      ],
+      "attemptId": "8e277ea5-36c1-40a5-a939-2488015668cd",
+      "reassigning": false,
+      "output": "Translated README_zh_CN.md → README_en_US.md (same folder). Faithful technical English preserving 19 code blocks verbatim (diff-verified identical), all image relative paths unchanged and existing, heading hierarchy matching the source (1×h1 / 7×h3 / 7×h4), and the clone/run sections (pointcloud_utils, upstream GitHub, rgbd_to_pointcloud / open3d_viewer, missing-launcher note). No new content added.",
+      "changedPaths": [
+        "docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/README_en_US.md"
+      ],
+      "acceptanceResults": [
+        {
+          "criterion": "README_en_US.md is a complete, technically accurate English translation.",
+          "status": "passed",
+          "evidence": "Full 548-line zh_CN source translated to English: all headings, paragraphs, tables (objectives, hardware, depth-tech comparison, parameter tables), bullet lists, and notes rendered faithfully with precise terminology (depth registration/D2C, RGB-D, PointCloud2, Open3D, Orbbec Gemini 2, pointcloud_utils, ApproximateTimeSynchronizer, EMA, VoxelGrid)."
+        },
+        {
+          "criterion": "Code/commands verbatim; image paths unchanged; heading hierarchy preserved.",
+          "status": "passed",
+          "evidence": "diff of all fenced-code-block contents between zh_CN and en_US printed 'CODE BLOCKS IDENTICAL' (38 fence lines each, 19 blocks); image-check loop reported 'imgcheck done' (no MISSING); heading levels match source exactly (1×h1, 7×h3, 7×h4)."
+        },
+        {
+          "criterion": "No new content added.",
+          "status": "passed",
+          "evidence": "Translation is 1:1 with the zh_CN structure; the clone/run instructions (code/2.2_depth_camera/pointcloud_utils and upstream zibochen6/Mobile_Robot_Code), the rgbd_to_pointcloud/open3d_viewer run steps, and the missing-launcher note are all preserved with no added sections."
+        }
+      ],
+      "commandsRun": [
+        {
+          "command": "bash -c 'grep -q \"pointcloud_utils\" docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/README_en_US.md && echo ok'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "ok"
+        },
+        {
+          "command": "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception && for f in $(grep -oE \"images/[A-Za-z0-9._-]+\" README_en_US.md); do test -f \"$f\" || echo \"MISSING $f\"; done; echo imgcheck done'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "imgcheck done"
+        }
+      ]
+    },
+    {
+      "id": "t9",
+      "subject": "Translate 2.3 en_US from zh_CN",
+      "description": "Translate the freshly updated docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/README_zh_CN.md into README_en_US.md in the same folder (replace file contents).\n\nRules:\n- Faithful technical English; keep terms precise (pinhole model, distortion, intrinsics/extrinsics, stereo rectification, reprojection error, hand-eye calibration, Kalibr, fisheye, camera_info YAML, calib_web, /intrinsics, /extrinsics).\n- Keep ALL code blocks/commands verbatim; image paths ./images/... as-is.\n- Same heading hierarchy; translate headings + prose.\n- Preserve run/clone/configure steps for code/2.3_camera_calibration (j501_avm_calib + calib_web at :8090) and cross-reference to code/2.4_bev_avm.\n- Match bilingual course style, no AI filler, no new content.",
+      "status": "completed",
+      "assignee": "translator-2",
+      "dependencies": [
+        "t5"
+      ],
+      "attempt": 1,
+      "createdAt": 1789368126757,
+      "updatedAt": 1789371019419,
+      "kind": "implementation",
+      "objective": "Produce a faithful technical-English translation of the updated 2.3 zh_CN doc into README_en_US.md, preserving code blocks, commands, image relative paths, and run/clone/configure section.",
+      "inScope": [
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/README_en_US.md"
+      ],
+      "acceptance": [
+        "README_en_US.md is a complete, technically accurate English translation.",
+        "Code/commands verbatim; image paths unchanged; heading hierarchy preserved.",
+        "No new content added."
+      ],
+      "verify": [
+        "bash -c 'grep -q \"calib_web.py\" docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/README_en_US.md && echo ok'",
+        "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration && for f in $(grep -oE \"images/[A-Za-z0-9._-]+\" README_en_US.md); do test -f \"$f\" || echo \"MISSING $f\"; done; echo imgcheck done'"
+      ],
+      "attemptId": "fbbdfc4e-01c0-4bd5-b74b-569da4f97d04",
+      "reassigning": false,
+      "output": "Translated docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/README_zh_CN.md into README_en_US.md (full replacement; 629 lines, mirroring the 629-line zh_CN doc line-for-line). Faithful technical English covering pinhole model, intrinsics/extrinsics, distortion, hand–eye calibration, stereo rectification, the main-line ROS `camera_calibration` workflow, and the advanced four-fisheye `calib_web.py` (`/intrinsics`→`/extrinsics` at :8090) workflow with run/clone/configure steps for code/2.3_camera_calibration (j501_avm_calib + calib_web). Verified: all 23 image relative paths identical to zh_CN and every referenced images/* file exists; all 10 fenced code blocks verbatim-identical to source (including bash/yaml commands and inline Chinese comments, preserved by task rule). One intentional normalization: the internal cross-link to module 1.4 now targets README_en_US.md (the EN sibling exists), keeping the bilingual course self-consistent. No new content added.",
+      "changedPaths": [
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/README_en_US.md"
+      ],
+      "acceptanceResults": [
+        {
+          "criterion": "README_en_US.md is a complete, technically accurate English translation.",
+          "status": "passed",
+          "evidence": "Full 629-line EN document produced with same heading hierarchy and line count as the 629-line zh_CN source; prose translated faithfully with precise technical terms (pinhole model, Brown–Conrady, intrinsics/extrinsics, stereo rectification, hand–eye, equidistant/Kannala–Brandt, calib_web, /intrinsics, /extrinsics)."
+        },
+        {
+          "criterion": "Code/commands verbatim; image paths unchanged; heading hierarchy preserved.",
+          "status": "passed",
+          "evidence": "diff of fenced code-block contents between README_zh_CN.md and README_en_US.md is empty (CODE BLOCKS VERBATIM IDENTICAL); sorted image-path lists identical (IMAGES IDENTICAL); 20 ```` ``` ```` fences in both; heading levels preserved."
+        },
+        {
+          "criterion": "No new content added.",
+          "status": "passed",
+          "evidence": "No sections, steps, commands, or prose added beyond faithful translation; internal 1.4 link retargeted to the existing README_en_US.md sibling for bilingual self-consistency (path structure unchanged)."
+        }
+      ],
+      "commandsRun": [
+        {
+          "command": "bash -c 'grep -q \"calib_web.py\" docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/README_en_US.md && echo ok'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "printed ok"
+        },
+        {
+          "command": "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration && for f in $(grep -oE \"images/[A-Za-z0-9._-]+\" README_en_US.md); do test -f \"$f\" || echo \"MISSING $f\"; done; echo imgcheck done'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "printed imgcheck done (no MISSING lines)"
+        }
+      ]
+    },
+    {
+      "id": "t10",
+      "subject": "Translate 2.4 en_US from zh_CN",
+      "description": "Translate the freshly updated docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/README_zh_CN.md into README_en_US.md in the same folder (replace file contents).\n\nRules:\n- Faithful technical English; keep terms precise (homography H, inverse perspective mapping/IPM, BEV, AVM, seam blending, planar assumption, surround view, avm_ros2).\n- Keep ALL code blocks/commands verbatim; image paths ./images/... as-is.\n- Same heading hierarchy; translate headings + prose.\n- Preserve build/launch/verify steps for code/2.4_bev_avm (avm_ros2) and the /avm/bev/* topics.\n- Match bilingual course style, no AI filler, no new content.",
+      "status": "completed",
+      "assignee": "translator-2",
+      "dependencies": [
+        "t6"
+      ],
+      "attempt": 2,
+      "createdAt": 1789368126810,
+      "updatedAt": 1789371583296,
+      "kind": "implementation",
+      "objective": "Produce a faithful technical-English translation of the updated 2.4 zh_CN doc into README_en_US.md, preserving code blocks, commands, image relative paths, and run/clone/configure section.",
+      "inScope": [
+        "docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/README_en_US.md"
+      ],
+      "acceptance": [
+        "README_en_US.md is a complete, technically accurate English translation.",
+        "Code/commands verbatim; image paths unchanged; heading hierarchy preserved.",
+        "No new content added."
+      ],
+      "verify": [
+        "bash -c 'grep -q \"avm_ros2\" docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/README_en_US.md && echo ok'",
+        "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching && for f in $(grep -oE \"images/[A-Za-z0-9._-]+\" README_en_US.md); do test -f \"$f\" || echo \"MISSING $f\"; done; echo imgcheck done'"
+      ],
+      "attemptId": "99d4e17b-3770-4600-8db9-9eae8f535168",
+      "reassigning": false,
+      "output": "Translated docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/README_zh_CN.md into README_en_US.md (full replacement; 287 lines, matching the 287-line rewritten zh_CN doc). Faithful technical English covering: homography H / IPM reverse-mapping chain (5 steps + 3 gates), planar-assumption limits, multi-camera seam blending (hard owner → narrow transition → gain → graph-cut refinement), BEV vs AVM, and the avm_ros2 build/launch/verify workflow (Step 5/6/7) with run/clone/configure steps for code/2.4_bev_avm and all /avm/bev/* topics. Verified: 4 image references all exist and are identical to zh_CN; all fenced code blocks verbatim-identical to source (bash commands retained, inline Chinese comments preserved per the verbatim rule); heading hierarchy preserved; no new content. One intentional normalization for bilingual self-consistency: the internal cross-link to 2.3 now targets README_en_US.md (that EN sibling exists, produced in t9).",
+      "changedPaths": [
+        "docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/README_en_US.md"
+      ],
+      "acceptanceResults": [
+        {
+          "criterion": "README_en_US.md is a complete, technically accurate English translation.",
+          "status": "passed",
+          "evidence": "Full 287-line EN document produced with the same heading hierarchy and line count as the 287-line zh_CN source; prose translated faithfully with precise terms (homography H, IPM/inverse perspective mapping, planar assumption, seam blending, graph cut, surround/bowl view, avm_ros2, valid_mask, metric BEV)."
+        },
+        {
+          "criterion": "Code/commands verbatim; image paths unchanged; heading hierarchy preserved.",
+          "status": "passed",
+          "evidence": "diff of fenced code-block contents between README_zh_CN.md and README_en_US.md is empty (CODE BLOCKS VERBATIM IDENTICAL, incl. the two Chinese inline bash comments preserved); sorted image-path lists identical (IMAGES IDENTICAL, 4 images); heading levels preserved."
+        },
+        {
+          "criterion": "No new content added.",
+          "status": "passed",
+          "evidence": "No sections, steps, commands, or prose added beyond faithful translation; internal 2.3 cross-link retargeted to the existing README_en_US.md sibling for bilingual self-consistency (path structure unchanged)."
+        }
+      ],
+      "commandsRun": [
+        {
+          "command": "bash -c 'grep -q \"avm_ros2\" docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/README_en_US.md && echo ok'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "printed ok"
+        },
+        {
+          "command": "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching && for f in $(grep -oE \"images/[A-Za-z0-9._-]+\" README_en_US.md); do test -f \"$f\" || echo \"MISSING $f\"; done; echo imgcheck done'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "printed imgcheck done (no MISSING lines)"
+        }
+      ]
+    },
+    {
+      "id": "t11",
+      "subject": "Integrate M02: index README + consistency pass",
+      "description": "Final integration of the M02 module. Workspace root = /Users/chenzibo/data/project/Jetson/docs/mobile-robot-full-stack-course.\n\nDo:\n1. Update docs/M02-Fundamentals-of-Vision-Systems/README.md so both the English and 中文 lists point to the updated chapters and add a section/entry linking the new code/ folder (docs/M02-Fundamentals-of-Vision-Systems/code/README.md). Keep the existing bilingual format.\n2. Run consistency checks across all 8 chapter docs (README_zh_CN.md + README_en_US.md for 2.1–2.4):\n   - every `./images/...` or `images/...` reference resolves to an existing file;\n   - every code/ path mentioned in prose/fences resolves under docs/M02-Fundamentals-of-Vision-Systems/code/;\n   - no leftover \"嵌入式飞书表格（请在原文中查看）\" placeholders;\n   - no stale device address 192.168.2.0 (must be 192.168.2.20).\n   Fix any mismatches by editing the offending doc (image links, paths, addresses).\n3. Delete the scratch file docs/M02-Fundamentals-of-Vision-Systems/_gap_report.md (its purpose is served).\n4. Confirm no build artifacts / files >5MB pulled into code/ (re-run the code-sync verify checks).\n5. Do NOT git commit; just leave a clean working tree ready for the captain's final review.\n\nReport in your completion output: which files you changed, which checks passed/failed, and the exact commands you ran.",
+      "status": "completed",
+      "assignee": "reviewer",
+      "dependencies": [
+        "t2",
+        "t3",
+        "t4",
+        "t5",
+        "t6",
+        "t7",
+        "t8",
+        "t9",
+        "t10"
+      ],
+      "attempt": 1,
+      "createdAt": 1789368164281,
+      "updatedAt": 1789371804495,
+      "kind": "integration",
+      "objective": "Integrate all M02 outputs: update the M02 index README (links to updated chapters + new code/ folder), run a repo-wide consistency pass (broken image links, missing code/ paths referenced from docs, leftover scratch file), and fix any inconsistencies so the module is publish-ready.",
+      "inScope": [
+        "docs/M02-Fundamentals-of-Vision-Systems/README.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/_gap_report.md"
+      ],
+      "acceptance": [
+        "M02 index README links all updated chapters (zh + en) and the new code/ folder.",
+        "Every image reference across the 8 chapter docs resolves to an existing file.",
+        "Every code/ path referenced in docs resolves under code/.",
+        "_gap_report.md removed; no leftover Feishu-table placeholders; no stale 192.168.2.0 address.",
+        "code/ contains no build artifacts and no file >5MB."
+      ],
+      "verify": [
+        "bash -c 'test -f docs/M02-Fundamentals-of-Vision-Systems/code/README.md && echo code_readme ok'",
+        "bash -c '! test -e docs/M02-Fundamentals-of-Vision-Systems/_gap_report.md && echo scratch_removed'",
+        "bash -c 'grep -rln \"192.168.2.0\" docs/M02-Fundamentals-of-Vision-Systems --include=*.md | grep -v 192.168.2.20 || echo no_stale_host'"
+      ],
+      "attemptId": "69e5978e-02bb-47a6-87d5-4ba20d9c9415",
+      "reassigning": false,
+      "output": "M02 integration complete. Changed files: (1) docs/M02-Fundamentals-of-Vision-Systems/README.md — updated both EN and 中文 lists (titles aligned to the rewritten chapter h1s, incl. new 2.3 \"Camera Calibration: From Understanding Intrinsics/Extrinsics to Completing Stereo Calibration\" and 2.4 \"Surround-View Perception Basics\") and added a new bilingual 「代码 / Code」 section linking ./code/README.md. (2) docs/M02-Fundamentals-of-Vision-Systems/_gap_report.md — deleted (scratch).\n\nConsistency pass results — all green:\n- Image links: 106 references across the 8 chapter docs (zh+en) all resolve; no missing files; no orphan non-markdown image refs; no <img> tags.\n- code/ paths: every code/ path referenced in prose/fences (gmsl4_start.sh, pointcloud_utils, 2.3_camera_calibration tree, 2.4_bev_avm/ros2_ws/src/avm_ros2, code/2.3_camera_calibration cross-ref) verified present.\n- Placeholders: zero 「请在原文中查看」/飞书表格 placeholders in chapter docs (only in the now-deleted gap report).\n- Host: no bare 192.168.2.0 anywhere in surviving docs; only 192.168.2.20.\n- code/ hygiene: 206 files, 4.9 MB, no build/install/log/__pycache__/.pytest_cache/.git/.venv-tools, no *.pyc/*.npz/*.onnx/*.engine/*.db3/*.bag/*.bak, no file >5 MB (largest 1.8 MB PNG).\n- No git commit performed; working tree left with the 8 rewritten READMEs + updated index README as modifications and new images/ + code/ untracked, ready for the captain's final review.\n\nExact verification commands (all exit 0): the three contract commands (code_readme ok / scratch_removed / no_stale_host) plus the code/ hygiene find trio (all empty).",
+      "verdict": "pass",
+      "changedPaths": [
+        "docs/M02-Fundamentals-of-Vision-Systems/README.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/_gap_report.md"
+      ],
+      "acceptanceResults": [
+        {
+          "criterion": "M02 index README links all updated chapters (zh + en) and the new code/ folder.",
+          "status": "passed",
+          "evidence": "Rewrote docs/M02-Fundamentals-of-Vision-Systems/README.md: English list now has 4 links (titles aligned to actual section h1s, incl. new 2.3/2.4 titles), 中文 list has 4 links, plus a new bilingual '## 代码 / Code' section linking ./code/README.md. All 9 relative links resolve (verified)."
+        },
+        {
+          "criterion": "Every image reference across the 8 chapter docs resolves to an existing file.",
+          "status": "passed",
+          "evidence": "Extracted every markdown image target from 2.1–2.4 README_zh_CN.md + README_en_US.md (106 references total) and checked existence against each chapter's images/ dir: all 106 OK, zero missing. No <img> tags and no non-markdown images/ refs in the 8 docs (only the deleted _gap_report.md had prose refs)."
+        },
+        {
+          "criterion": "Every code/ path referenced in docs resolves under code/.",
+          "status": "passed",
+          "evidence": "Grepped code/ references in the 8 chapter docs and verified each with [ -e ]: code/2.1_gmsl2/gmsl4_start.sh, code/2.2_depth_camera/pointcloud_utils, code/2.3_camera_calibration/{,j501_avm_calib,calib_web.py,camera_probe_gui.py,run_calib_web.sh}, code/2.4_bev_avm/{,ros2_ws/src/avm_ros2} — all exist."
+        },
+        {
+          "criterion": "_gap_report.md removed; no leftover Feishu-table placeholders; no stale 192.168.2.0 address.",
+          "status": "passed",
+          "evidence": "rm -f _gap_report.md (exit 0, file gone). grep for 飞书表格/请在原文中查看/embedded Feishu table found matches only inside _gap_report.md (now deleted); chapter docs clean. grep for bare '192.168.2.0' across the module found it only in _gap_report.md (as the 'this was the error' note); all surviving docs use 192.168.2.20 only."
+        },
+        {
+          "criterion": "code/ contains no build artifacts and no file >5MB.",
+          "status": "passed",
+          "evidence": "find in code/ for build/install/log/__pycache__/.pytest_cache/.git/.venv-tools dirs and *.pyc/*.npz/*.onnx/*.engine/*.db3/*.bag/*.bak: zero results. find -size +5M: zero results. 206 files, 4.9M total, largest file 1,796,128 bytes (a doc PNG)."
+        }
+      ],
+      "commandsRun": [
+        {
+          "command": "bash -c 'test -f docs/M02-Fundamentals-of-Vision-Systems/code/README.md && echo code_readme ok'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "code_readme ok"
+        },
+        {
+          "command": "bash -c '! test -e docs/M02-Fundamentals-of-Vision-Systems/_gap_report.md && echo scratch_removed'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "scratch_removed"
+        },
+        {
+          "command": "bash -c 'grep -rln \"192.168.2.0\" docs/M02-Fundamentals-of-Vision-Systems --include=*.md | grep -v 192.168.2.20 || echo no_stale_host'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "no_stale_host"
+        },
+        {
+          "command": "cd docs/M02-Fundamentals-of-Vision-Systems/code && find . ( -name build -o -name install -o -name log -o -name __pycache__ -o -name .pytest_cache -o -name .git -o -name .venv-tools ) -print; find . -type f ( -name '*.pyc' -o -name '*.npz' -o -name '*.onnx' -o -name '*.engine' -o -name '*.db3' -o -name '*.bag' -o -name '*.bak' ) -print; find . -type f -size +5M -print",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "all three find commands returned empty output (no build dirs, no excluded extensions, no file >5MB)"
+        }
+      ]
+    },
+    {
+      "id": "t12",
+      "subject": "Final review of M02 module",
+      "description": "Perform the final quality review of the M02 module after integration. Workspace root = /Users/chenzibo/data/project/Jetson/docs/mobile-robot-full-stack-course. Focus on docs/M02-Fundamentals-of-Vision-Systems/.\n\nReview against these references (fetch fresh with lark-cli docs +fetch --doc \"<url>\" --as user):\n- 2.1 https://seeedstudio.feishu.cn/wiki/YiGow5u7QiEifnkVGhycLgMonMg\n- 2.2 https://seeedstudio.feishu.cn/wiki/OKiFwYPPJi5NhtkEHW3czaQqnzh\n- 2.3 https://seeedstudio.feishu.cn/wiki/OVzhwgVLiiC78Rkxz9Hc1gc1nef\n- 2.4 https://seeedstudio.feishu.cn/wiki/TmEqw2YYAiZdobkpgtRccQyvnrd\n\nCheck, for each of 2.1–2.4 (zh and en):\n1. Feishu alignment — structure and key facts match the current Feishu doc (no stale content from the old manuals, esp. 2.3/2.4).\n2. Factual/technical correctness — commands, device numbers, paths, ROS2 topics/package names are right and coherent between zh and en.\n3. De-AI quality — no filler/hedging clichés; concise, direct tone.\n4. Runnable instructions — clone/build/run subsections match code/README.md and the actual code/ layout (files referenced actually exist).\n5. Bilingual parity — zh and en are equivalent (en is a faithful translation, not additional content).\n\nAlso verify the M02 index README is correct. If anything is wrong, produce structured findings (id, severity, problem, requiredFix, file) and set verdict needs_revision/reject. Otherwise set verdict pass.",
+      "status": "completed",
+      "assignee": "reviewer",
+      "dependencies": [
+        "t11"
+      ],
+      "attempt": 1,
+      "createdAt": 1789368164339,
+      "updatedAt": 1789372148973,
+      "kind": "review",
+      "round": 1,
+      "objective": "Holistically review the final M02 module (8 bilingual chapter docs + code/ + index README) for correctness, Feishu alignment, de-AI quality, factual/technical accuracy, and runnable instructions; return verdict pass or structured findings.",
+      "acceptance": [
+        "All 4 chapters align with their current Feishu docs (structure + key facts).",
+        "No factual/technical errors in commands, paths, topics, or package names.",
+        "No AI-filler phrasing; prose is direct and concise.",
+        "Run/clone/configure instructions match code/README.md and referenced files exist.",
+        "zh/en parity holds; M02 index README correct."
+      ],
+      "reviewedTaskId": "t11",
+      "attemptId": "a4fc3b69-41eb-49b1-90e7-ca8e191a2bab",
+      "reassigning": false,
+      "output": "Final review of M02 passed — no findings.\n\nMethod: fetched the 4 Feishu docs fresh via `lark-cli docs +fetch --doc <url> --doc-format markdown --as user` (2.1 rev 669, 2.2 rev 457, 2.3 rev 856, 2.4 rev 173), read all 8 chapter READMEs (zh+en) in full, and cross-checked claims against the actual code/ sources.\n\nPer criterion:\n1. Feishu alignment — 2.1/2.2/2.3/2.4 all match current Feishu structure and key facts. 2.1 tables/commands verbatim; 2.2 keeps OrbbecSDK_ROS2 install/Gemini2 launch and correctly drops the nonexistent `start_orbbec_rviz.sh`/`orbbec_rviz.launch.py` + bad params (min_depth_m/max_depth_m/sync_mode) per the t2 captain finding, replacing them with the real node (`ros2 run pointcloud_utils rgbd_to_pointcloud`, params pixel_stride/sync_slop_sec/depth_unit_m all verified in `rgbd_to_pointcloud.py`); 2.3 matches the new calib_web.py four-fisheye flow; 2.4 rebuilt as avm_ros2 steps 5/6/7.\n2. Factual/technical correctness — verified against code: 2.2 param names/defaults exactly match `rgbd_to_pointcloud.py`; 2.3 `run_calib_web.sh` == `python3 tools/calib_web.py --port 8090`, `j501_avm_calib/config/camera_info/` exists, product paths match the script's env vars; 2.4 `avm_rviz.launch.py` has `start_camera_driver` arg + `camera_driver`/`avm_bev`/`avm_local_map`/`avm_status_overlay` nodes, `avm_bev` params (rate_hz 5.0, canvas_px 600, view_m 4.0, transition_m 0.04, require_all_cameras true, body 0.46×0.46, timeout 0.7s) and all `/avm/bev/*` topics + old `/avm/bev/image`/`coverage` aliases all present in source.\n3. De-AI quality — grep for 简言之/可以把它理解为/综上所述/总而言之/不难看出/显而易见 etc. (zh) and \"It is worth noting\"/\"In conclusion\"/etc. (en): zero matches.\n4. Runnable instructions — run/clone/configure in each chapter match code/README.md and every referenced `code/*` path exists; all 8 docs' image refs resolve to local files (no stray feishu.cn/file URLs).\n5. Bilingual parity — zh/en identical counts (headings, code fences, image refs) for all 4 chapters; spot-checked 2.1/2.4 en as faithful translations; bilingual cross-links correct (zh→zh sibling, en→en sibling: 1.4 and 2.3 refs).\n\nM02 index README — correct: 4 EN + 4 中文 links + new 代码/Code section to code/README.md, all resolving.",
+      "verdict": "pass"
+    },
+    {
+      "id": "t13",
+      "subject": "Fix: replace hardcoded 192.168.2.20 with <Jetson IP> + add IP declaration",
+      "description": "Course docs must NOT hardcode a specific test-machine IP. Replace fixed IPs with the placeholder <Jetson IP> and declare that readers must input their own Jetson's IP.\n\nFiles with fixed IP (7 total — edit ONLY these):\n1. docs/M02-Fundamentals-of-Vision-Systems/2.1_GMSL2_Automotive-Grade_Multi-Camera_Integration/README_zh_CN.md  (scp/ssh lines ~141–156)\n2. docs/M02-Fundamentals-of-Vision-Systems/2.1_GMSL2_Automotive-Grade_Multi-Camera_Integration/README_en_US.md  (~141–156)\n3. docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/README_zh_CN.md  (scp block ~547–552 + http line 575)\n4. docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/README_en_US.md  (same)\n5. docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/README_zh_CN.md  (scp line 224)\n6. docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/README_en_US.md  (line 224)\n7. docs/M02-Fundamentals-of-Vision-Systems/code/README.md  (provenance table line 38, Jetson access line 45, scp 77/101, http 145)\n\nReplacement rule (apply everywhere, code blocks and prose alike):\n- `192.168.2.20` → `<Jetson IP>`\n- any stray `192.168.2.0` → `<Jetson IP>`\n- `http://192.168.2.20:8090` → `http://<Jetson IP>:8090`\n- `seeed@192.168.2.20:` → `seeed@<Jetson IP>:`  (username seeed is fine to keep)\n\nAdd a declaration note (keep it visually light, use a > blockquote directly above or at the top of the \"运行代码 / Run the code\" section of the affected chapter, and once near the top of code/README.md after the Jetson-access line):\n- zh: > **说明**：下文命令中的 `<Jetson IP>` 请替换为你 Jetson 的实际 IP。可在 Jetson 终端运行 `hostname -I` 查询；请勿直接照抄固定地址。\n- en: > **Note**: replace `<Jetson IP>` with your Jetson's actual IP. Find it by running `hostname -I` on the Jetson; do not reuse a fixed address.\n\nConstraints:\n- Do not touch any other file (chapter 2.2 has no fixed IP; leave it unchanged).\n- Preserve code fences, backticks, and the surrounding indentation. Do not git commit.\n- After editing, run the three verify commands below and report each output plus the list of changed files.",
+      "status": "completed",
+      "assignee": "reviewer",
+      "dependencies": [
+        "t1"
+      ],
+      "attempt": 1,
+      "createdAt": 1789372877986,
+      "updatedAt": 1789373085799,
+      "kind": "implementation",
+      "objective": "Replace every hardcoded 192.168.2.20 (and any stray 192.168.2.0) in the M02 course docs with the placeholder <Jetson IP>, and add a declaration note in each affected chapter's run section and in code/README.md telling readers to substitute their own Jetson IP (found via hostname -I).",
+      "inScope": [
+        "docs/M02-Fundamentals-of-Vision-Systems/2.1_GMSL2_Automotive-Grade_Multi-Camera_Integration/README_zh_CN.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.1_GMSL2_Automotive-Grade_Multi-Camera_Integration/README_en_US.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/README_zh_CN.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/README_en_US.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/README_zh_CN.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/README_en_US.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/code/README.md"
+      ],
+      "acceptance": [
+        "No 192.168.2.x fixed IP remains anywhere under docs/M02-Fundamentals-of-Vision-Systems/**/*.md.",
+        "Every file that used a fixed IP now uses <Jetson IP> and carries a readable declaration note (hostname -I).",
+        "Commands remain valid (scp/ssh/http use <Jetson IP>); no broken code fences or lost backticks."
+      ],
+      "verify": [
+        "bash -c '! grep -rq \"192\\\\.168\\\\.2\\\\.\" docs/M02-Fundamentals-of-Vision-Systems --include=*.md && echo no_fixed_ip'",
+        "bash -c 'grep -rl \"<Jetson IP>\" docs/M02-Fundamentals-of-Vision-Systems --include=*.md | wc -l'",
+        "bash -c 'grep -rq \"hostname -I\" docs/M02-Fundamentals-of-Vision-Systems --include=*.md && echo declare_ok'"
+      ],
+      "attemptId": "1e1dbea5-e088-48ac-8fc4-22f1a4b3c29e",
+      "reassigning": false,
+      "output": "Replaced all hardcoded 192.168.2.20 with <Jetson IP> across the 7 in-scope files (2.1/2.3/2.4 README_zh_CN.md + README_en_US.md + code/README.md) and added a declaration note (zh: hostname -I 查询提示; en: hostname -I note) at the top of each affected Run-the-code section and near the Jetson-access line in code/README.md. No stray 192.168.2.0 was present. 2.2 left untouched (no fixed IP). Verify results: no_fixed_ip (exit 0), <Jetson IP> present in 7 files, declare_ok (hostname -I). Code fence counts unchanged/even (2.1=14, 2.3=20, 2.4=12, code/README=14). Not committed.",
+      "changedPaths": [
+        "docs/M02-Fundamentals-of-Vision-Systems/2.1_GMSL2_Automotive-Grade_Multi-Camera_Integration/README_zh_CN.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.1_GMSL2_Automotive-Grade_Multi-Camera_Integration/README_en_US.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/README_zh_CN.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/README_en_US.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/README_zh_CN.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/README_en_US.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/code/README.md"
+      ],
+      "acceptanceResults": [
+        {
+          "criterion": "No 192.168.2.x fixed IP remains anywhere under docs/M02-Fundamentals-of-Vision-Systems/**/*.md.",
+          "status": "passed",
+          "evidence": "grep -rn '192\\.168\\.2\\.' on the whole module returned no matches (only <Jetson IP> remains); verify command 1 printed no_fixed_ip (exit 0)."
+        },
+        {
+          "criterion": "Every file that used a fixed IP now uses <Jetson IP> and carries a readable declaration note (hostname -I).",
+          "status": "passed",
+          "evidence": "All 7 edited files (2.1/2.3/2.4 zh+en + code/README.md) now contain <Jetson IP>; verify command 2 returned 7. Each affected run-code section gained a zh/en blockquote note, and code/README.md gained an en note after the Jetson-access line; verify command 3 printed declare_ok (hostname -I present)."
+        },
+        {
+          "criterion": "Commands remain valid (scp/ssh/http use <Jetson IP>); no broken code fences or lost backticks.",
+          "status": "passed",
+          "evidence": "Spot-checked: scp/ssh now read seeed@<Jetson IP>:, http://<Jetson IP>:8090 preserved; code fence counts unchanged and even across all 7 files (2.1=14, 2.3=20, 2.4=12, code/README=14), so no fences lost."
+        }
+      ],
+      "commandsRun": [
+        {
+          "command": "bash -c '! grep -rq \"192\\.168\\.2\\.\" docs/M02-Fundamentals-of-Vision-Systems --include=*.md && echo no_fixed_ip'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "no_fixed_ip"
+        },
+        {
+          "command": "bash -c 'grep -rl \"<Jetson IP>\" docs/M02-Fundamentals-of-Vision-Systems --include=*.md | wc -l'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "7"
+        },
+        {
+          "command": "bash -c 'grep -rq \"hostname -I\" docs/M02-Fundamentals-of-Vision-Systems --include=*.md && echo declare_ok'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "declare_ok"
+        }
+      ]
+    },
+    {
+      "id": "t14",
+      "subject": "2.2: sync images to current Feishu doc",
+      "description": "Chapter 2.2's images are 100% stale: the current Feishu doc uses 10 different images, none of which are in the local images/ dir; 13 old images remain. Fix ONLY the images (do not change the text content or the `<Jetson IP>` placeholders).\n\nFeishu doc: https://seeedstudio.feishu.cn/wiki/OKiFwYPPJi5NhtkEHW3czaQqnzh\nChapter dir: docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/\n\nSteps:\n1. Fetch the doc: `lark-cli docs +fetch --doc \"https://seeedstudio.feishu.cn/wiki/OKiFwYPPJi5NhtkEHW3czaQqnzh\" --as user`. Every `<img>` has a `src=\"<token>\"` (this is the media file token) plus a `caption` and/or a long AI `alt=\"图片...\"`. Record each image's order + which section/step it appears under.\n2. Download the 10 current images into images/ (extension auto-completed; do NOT use the AI alt text as the caption):\n   X4rubDsSdogV0hxOxH0cUOpCnif, WDPJbqqEAo80bExmNa1cx4gXnyb, JxILbxDM8oIEgBxeFgqcrAMYnDd, Uu6vbimB2oTW8AxixW1cKnnbnWd, Npa9berNHonc9txRidOcFjaTnJe, XQj0bCCHXotbQgxEjJgcHjcsnoc, B0O9bezNToWUmZxDsbIctK52ncR, RuWrbanQdo4uh6xDqpRc9pGynpd, Xhvgb0LbHoy1wOxdOVPcO1FenWe, VITxb9RmPotDxUxQKbqcbsx4npg\n   Command per image: `lark-cli docs +media-download --token \"<TOKEN>\" --output images/<TOKEN>` (load the lark-doc skill and follow references/lark-doc-media-download.md if needed).\n3. Rewrite image references in BOTH README_zh_CN.md and README_en_US.md so they use these 10 new tokens, placed at the same logical positions as in the Feishu doc (each image right after the step/text it illustrates). Use the Feishu `caption` when present; otherwise write a short factual caption (≤ ~8 chars zh / short en). Never copy the AI `alt` text into captions.\n4. Delete the 13 stale image files (and remove any references to them from both READMEs):\n   E7XWb0DdxoJI3Nx9lpvcDjQqnvc, Gk2UbmJ9do9jNtxT0xYcFatbnKb, HMKzbKkdjoKwpqxuEbtcYsdqnVc, IZvubaxhBoSDmdx0TINcsPNwnfc, JjnybbyrzoBERbx54AXcBsoAnKd, Jvplb8awWoQH9GxmGaZckpvQnzf, OqhFb6jirov5EdxRaemcz4xInrh, SfXKbO7rMowr41xKmNkcimVYnGe, UcrobxIayobtXBxpxwjcvX8inOd, Y1RQbTmUVoXrolxMXHycd9Mlnqh, YD6qbV0X0o2phQxcYGCc5Nt0npg, Z0vEbrE23ohPOVxd7LWcde1wnMc, ZnNWbPAMzowF7dxSgttcDrHqntc\n   (confirm with grep first that neither README references a token before deleting its file.)\nDo not git commit.",
+      "status": "completed",
+      "assignee": "writer-1",
+      "dependencies": [
+        "t1"
+      ],
+      "attempt": 1,
+      "createdAt": 1789373640474,
+      "updatedAt": 1789373878812,
+      "kind": "implementation",
+      "objective": "Refresh 2.2 chapter images to the 10 current Feishu images (download the missing ones, place them correctly, update both README_zh_CN.md and README_en_US.md references, and delete the 13 stale local images).",
+      "inScope": [
+        "docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/README_zh_CN.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/README_en_US.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/images/"
+      ],
+      "acceptance": [
+        "The 10 current Feishu images are downloaded into images/ and referenced in both READMEs at the correct positions.",
+        "Captions are short/factual (AI alt text stripped).",
+        "The 13 stale image files are deleted and no longer referenced.",
+        "Both README image references all resolve; text and <Jetson IP> placeholders unchanged."
+      ],
+      "verify": [
+        "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/images && for t in X4rubDsSdogV0hxOxH0cUOpCnif WDPJbqqEAo80bExmNa1cx4gXnyb JxILbxDM8oIEgBxeFgqcrAMYnDd Uu6vbimB2oTW8AxixW1cKnnbnWd Npa9berNHonc9txRidOcFjaTnJe XQj0bCCHXotbQgxEjJgcHjcsnoc B0O9bezNToWUmZxDsbIctK52ncR RuWrbanQdo4uh6xDqpRc9pGynpd Xhvgb0LbHoy1wOxdOVPcO1FenWe VITxb9RmPotDxUxQKbqcbsx4npg; do ls $t.* >/dev/null 2>&1 || echo MISSING_$t; done; echo newcheck_done'",
+        "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception && for f in $(grep -hoE \"images/[A-Za-z0-9._-]+\" README_zh_CN.md README_en_US.md); do test -f \"$f\" || echo \"MISSING $f\"; done; echo imgcheck_done'",
+        "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception && ! grep -qE \"E7XWb0Ddxo|Gk2UbmJ9do|HMKzbKkdjo|IZvubaxhBo|Jjnybbyrzo|Jvplb8awWo|OqhFb6jiro|SfXKbO7rMo|UcrobxIayo|Y1RQbTmUVo|YD6qbV0X0o|Z0vEbrE23o|ZnNWbPAMzo\" README_zh_CN.md README_en_US.md && echo no_stale_ref'"
+      ],
+      "attemptId": "c1f7b76f-eef0-47c6-995a-2aa3a1c321f2",
+      "reassigning": false,
+      "output": "2.2 章图片已同步到当前飞书版本。下载了 10 张新图（lark-cli docs +media-download，扩展名自动补全：5 张 .png + 5 张 .jpg），在 README_zh_CN.md 与 README_en_US.md 两文件里按飞书对应位置替换 9 处旧 token 并新增 1 张（RuWrbanQdo…= ls /dev/video* 输出，放在编译结果图之后）。硬件清单两张图沿用飞书 caption（Orbbec Gemini 2 / reComputer Robotics J5012），其余图注为短事实描述（三种深度技术对比/深度对齐 D2C/反投影生成点云/Gemini 2 USB3 连接/Orbbec ROS2 编译结果/视频设备列表/相机话题列表/RViz 彩色点云），未使用 AI 长 alt。删除 13 张旧图（确认两 README 已无引用后 rm）。文字、代码块与 <Jetson IP> 占位未改动。三条 verify 全绿。",
+      "changedPaths": [
+        "docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/README_zh_CN.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/README_en_US.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/images/X4rubDsSdogV0hxOxH0cUOpCnif.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/images/WDPJbqqEAo80bExmNa1cx4gXnyb.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/images/JxILbxDM8oIEgBxeFgqcrAMYnDd.jpg",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/images/Uu6vbimB2oTW8AxixW1cKnnbnWd.jpg",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/images/Npa9berNHonc9txRidOcFjaTnJe.jpg",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/images/XQj0bCCHXotbQgxEjJgcHjcsnoc.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/images/B0O9bezNToWUmZxDsbIctK52ncR.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/images/RuWrbanQdo4uh6xDqpRc9pGynpd.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/images/Xhvgb0LbHoy1wOxdOVPcO1FenWe.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/images/VITxb9RmPotDxUxQKbqcbsx4npg.png"
+      ],
+      "acceptanceResults": [
+        {
+          "criterion": "The 10 current Feishu images are downloaded into images/ and referenced in both READMEs at the correct positions.",
+          "status": "passed",
+          "evidence": "images/ 现有且仅剩 10 个新 token 文件；两 README 各 10 处 ![...](./images/<新token>) 引用，按飞书顺序放置在硬件清单/理论1/2/3/任务1步骤A×3/步骤B/步骤C2。"
+        },
+        {
+          "criterion": "Captions are short/factual (AI alt text stripped).",
+          "status": "passed",
+          "evidence": "图注为短事实短语，最长约 8 字（如「三种深度技术对比」「Orbbec ROS2 编译结果」）；grep 无「图片展示了…/这张图片…」等 AI alt 长文案。"
+        },
+        {
+          "criterion": "The 13 stale image files are deleted and no longer referenced.",
+          "status": "passed",
+          "evidence": "13 个旧 token 对应的文件已 rm；grep 两 README 无任何旧 token；images/ 目录只剩 10 个新文件。"
+        },
+        {
+          "criterion": "Both README image references all resolve; text and <Jetson IP> placeholders unchanged.",
+          "status": "passed",
+          "evidence": "imgcheck_done 无 MISSING；本次仅替换图片 token、插入 1 张图片行，未改任何文字/代码块/占位。"
+        }
+      ],
+      "commandsRun": [
+        {
+          "command": "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.2_Depth_Cameras_and_3D_Visual_Perception/images && for t in X4rub...; do ls $t.* ...; done; echo newcheck_done'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "newcheck_done（无 MISSING）"
+        },
+        {
+          "command": "bash -c 'cd ... && for f in $(grep -hoE \"images/[A-Za-z0-9._-]+\" README_zh_CN.md README_en_US.md); do test -f \"$f\" || echo \"MISSING $f\"; done; echo imgcheck_done'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "imgcheck_done（无 MISSING）"
+        },
+        {
+          "command": "bash -c 'cd ... && ! grep -qE \"E7XWb0Ddxo|...|ZnNWbPAMzo\" README_zh_CN.md README_en_US.md && echo no_stale_ref'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "no_stale_ref"
+        }
+      ]
+    },
+    {
+      "id": "t15",
+      "subject": "2.3: sync images to current Feishu doc",
+      "description": "Chapter 2.3's images are partially stale: the current Feishu doc has 21 images; 13 of them are missing locally and 17 old local images remain (only 8 tokens already match: CjIybHUa9our1nxs7ZFcCTJjn5g, UOzBbirknoeGWyx3Zxcc6o3Dn7b, ZnfXb4jPvoZ78Xxkv9mcht1inRe, ILTUbTCaJo627QxZcM9cIPZKnie, Lc1sbKOiVonIhtxGzoMcOzglnFg, KoFMbMvwgokPQ7xyQpEctsgRnQf, ZpkCbeTqNowTyvxtqd1clvQvnog, Ry6mbg0uDoTOYPx2UyUcCKtSnyv). Fix ONLY images (no text changes, keep <Jetson IP>).\n\nFeishu doc: https://seeedstudio.feishu.cn/wiki/OVzhwgVLiiC78Rkxz9Hc1gc1nef\nChapter dir: docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/\n\nSteps:\n1. Fetch (lark-cli docs +fetch --doc \"<url>\" --as user) and record each <img> src token + order + section + caption (ignore AI alt text).\n2. Download the 13 MISSING images (command: `lark-cli docs +media-download --token \"<TOKEN>\" --output images/<TOKEN>`; load lark-doc skill + references/lark-doc-media-download.md):\n   Uxllb8S0joMT8cxfzCmcHLsinqf, OGRrbXTGvoZ03Px04vxc9tIXnDe, Zh6UbJquxo3EzExc4GscxxTXn4d, PG2ibERDtot1aBx2JPIcclBEnif, WcB3bPgN3oEttJxpKj8cdb8ZnRf, GdNgbONSfoNdZYxxPyfcgvdCnHg, EXzwbTRkMoVNR3xl8ubcoQKDndf, O2pFbJn65ouMDwxJyn6cTuUQnwg, VJetbzVdfoyMkWxA3qhcZDyHnGe, ZJvkbcxIMoI2ucxjUfGcL3N3nnb, ByPmbVDHRobNHfx0OhYQdmAnfH, OAzGbzkpBoSutixCSFxcYUkLntc, RZLZbnjCioHYDSximPFc20vPnih\n3. Rewrite image refs in BOTH README_zh_CN.md and README_en_US.md to match the Feishu doc's full 21-image order/placement (the 8 already-local tokens stay; add the 13 new ones at their correct positions). Short factual captions (≤8 chars zh / short en), never the AI alt text.\n4. Delete the 17 stale files after confirming no README references them:\n   CLO2bn7b0oWj7DxH3lYcqDbanAe, DK6Sbh18Vo4TuIxeSi8cQ5mQnQd, HtNGbmprMocEb4x6GiYcgCCGnnc, IxYkbwp8yo4GoxxBQTIcVkGPnog, MKtqbrzpsoccf7xcMM5cOX0onOg, PlkZbla1toR8cAx8jAjcBLfDnaf, QAKMbBXXHoX85nxOU7rcT5DWnQb, RhBdbjmWnogQv1xDV8FcpXdanAh, TQMXb1NhXomDItxO3lDcJEAPn0f, UA1MbwF2FoS0D8x04pAcKVJon9c, VB7ubnWghotkqXx3KCiclEpinPe, Vy1RbDqKDoEd87xClw5cbMJan4b, W3CXbFcLVoPNpTxGInRcAqmHnjf, XTzybe3AcoUuQ7xtRmdc7gWsnla, XdOJb1j5IonIHoxDaPCcZcFWnwf, ZSmlbU0GCofrGJxMxaLc9xoTngd, ZZ7FbJyC4ooUpCxmp6ZcY6Gpnfb\nDo not git commit.",
+      "status": "completed",
+      "assignee": "writer-2",
+      "dependencies": [
+        "t1"
+      ],
+      "attempt": 2,
+      "createdAt": 1789373640593,
+      "updatedAt": 1789374214236,
+      "kind": "implementation",
+      "objective": "Refresh 2.3 chapter images to the 21 current Feishu images (download the 13 missing ones, place all correctly, update both README references, and delete the 17 stale local images).",
+      "inScope": [
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/README_zh_CN.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/README_en_US.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/"
+      ],
+      "acceptance": [
+        "All 21 current Feishu images are present and referenced in order in both READMEs (8 kept + 13 downloaded).",
+        "Captions short/factual; AI alt stripped.",
+        "17 stale images deleted and unreferenced.",
+        "All image refs resolve; text and <Jetson IP> unchanged."
+      ],
+      "verify": [
+        "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images && for t in Uxllb8S0joMT8cxfzCmcHLsinqf OGRrbXTGvoZ03Px04vxc9tIXnDe Zh6UbJquxo3EzExc4GscxxTXn4d PG2ibERDtot1aBx2JPIcclBEnif WcB3bPgN3oEttJxpKj8cdb8ZnRf GdNgbONSfoNdZYxxPyfcgvdCnHg EXzwbTRkMoVNR3xl8ubcoQKDndf O2pFbJn65ouMDwxJyn6cTuUQnwg VJetbzVdfoyMkWxA3qhcZDyHnGe ZJvkbcxIMoI2ucxjUfGcL3N3nnb ByPmbVDHRobNHfx0OhYQdmAnfH OAzGbzkpBoSutixCSFxcYUkLntc RZLZbnjCioHYDSximPFc20vPnih; do ls $t.* >/dev/null 2>&1 || echo MISSING_$t; done; echo newcheck_done'",
+        "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration && for f in $(grep -hoE \"images/[A-Za-z0-9._-]+\" README_zh_CN.md README_en_US.md); do test -f \"$f\" || echo \"MISSING $f\"; done; echo imgcheck_done'",
+        "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration && ! grep -qE \"CLO2bn7b0o|DK6Sbh18Vo|HtNGbmprMo|IxYkbwp8yo|MKtqbrzpsoc|PlkZbla1to|QAKMbBXXHo|RhBdbjmWno|TQMXb1NhXo|UA1MbwF2Fo|VB7ubnWgho|Vy1RbDqKDo|W3CXbFcLVo|XTzybe3Aco|XdOJb1j5Io|ZSmlbU0GCof|ZZ7FbJyC4o\" README_zh_CN.md README_en_US.md && echo no_stale_ref'"
+      ],
+      "attemptId": "b313e311-ba02-476f-98a9-3ce3effa554c",
+      "reassigning": false,
+      "output": "已刷新 2.3 章图片到当前飞书 21 张：下载缺的 13 张、更新两个 README 的 21 处图片引用（保持飞书顺序）、删除 17 张旧图。images/ 现为 21 个文件，README_zh_CN 与 README_en_US 均按飞书顺序引用 21 张，imgcheck 通过、无 stale 引用。注意：任务与 verify 中 token `ByPmbVDHRobNHfx0OhYQdmAnfH` 有笔误（漏了 Y 与 Q 之间的 'c'），飞书实际 `<img src>` 是 `ByPmbVDHRobNHfx0OhYcQdmAnfH`，已按正确 token 下载并引用。",
+      "changedPaths": [
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/README_zh_CN.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/README_en_US.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/Uxllb8S0joMT8cxfzCmcHLsinqf.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/OGRrbXTGvoZ03Px04vxc9tIXnDe.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/Zh6UbJquxo3EzExc4GscxxTXn4d.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/PG2ibERDtot1aBx2JPIcclBEnif.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/WcB3bPgN3oEttJxpKj8cdb8ZnRf.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/GdNgbONSfoNdZYxxPyfcgvdCnHg.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/EXzwbTRkMoVNR3xl8ubcoQKDndf.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/O2pFbJn65ouMDwxJyn6cTuUQnwg.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/VJetbzVdfoyMkWxA3qhcZDyHnGe.jpg",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/ZJvkbcxIMoI2ucxjUfGcL3N3nnb.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/ByPmbVDHRobNHfx0OhYcQdmAnfH.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/OAzGbzkpBoSutixCSFxcYUkLntc.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/RZLZbnjCioHYDSximPFc20vPnih.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/CLO2bn7b0oWj7DxH3lYcqDbanAe.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/DK6Sbh18Vo4TuIxeSi8cQ5mQnQd.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/HtNGbmprMocEb4x6GiYcgCCGnnc.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/IxYkbwp8yo4GoxxBQTIcVkGPnog.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/MKtqbrzpsoccf7xcMM5cOX0onOg.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/PlkZbla1toR8cAx8jAjcBLfDnaf.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/QAKMbBXXHoX85nxOU7rcT5DWnQb.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/RhBdbjmWnogQv1xDV8FcpXdanAh.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/TQMXb1NhXomDItxO3lDcJEAPn0f.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/UA1MbwF2FoS0D8x04pAcKVJon9c.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/VB7ubnWghotkqXx3KCiclEpinPe.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/Vy1RbDqKDoEd87xClw5cbMJan4b.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/W3CXbFcLVoPNpTxGInRcAqmHnjf.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/XTzybe3AcoUuQ7xtRmdc7gWsnla.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/XdOJb1j5IonIHoxDaPCcZcFWnwf.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/ZSmlbU0GCofrGJxMxaLc9xoTngd.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/ZZ7FbJyC4ooUpCxmp6ZcY6Gpnfb.png"
+      ],
+      "acceptanceResults": [
+        {
+          "criterion": "All 21 current Feishu images are present and referenced in order in both READMEs (8 kept + 13 downloaded).",
+          "status": "passed",
+          "evidence": "images/ 现为 21 个文件恰好对应飞书 21 张；README_zh_CN 与 README_en_US 各 21 处 images/ 引用，顺序与飞书 <img src> 完全一致（ILTUbTCa→Uxllb8S0→OGRrbXTG→Zh6UbJqu→PG2ibERD→WcB3bPgN→GdNgbONS→EXzwbTRk→O2pFbJn→CjIybHUa→VJetbzV→ZJvkbcx→UOzBbirk→ZnfXb4jP→ByPmb…YcQ→OAzGbzkp→RZLZbnjC→Lc1sbKOi→KoFMbMvw→ZpkCbeTq→Ry6mbg0u）。保留 8 个、新增 13 个。"
+        },
+        {
+          "criterion": "Captions short/factual; AI alt stripped.",
+          "status": "passed",
+          "evidence": "图注均为简短事实描述（zh 如「针孔成像示意/针孔模型与外参/归一化成像平面/内参矩阵/径向畸变/切向畸变/成像流水线/两种手眼构型/极线校正/标定板大小对比/采集覆盖策略/极线校正前后/重投影误差/逐帧误差」等 ≤8 字；en 对应短图注），未使用飞书 AI alt 长文本。"
+        },
+        {
+          "criterion": "17 stale images deleted and unreferenced.",
+          "status": "passed",
+          "evidence": "rm 删除 17 个旧文件（CLO2bn7b0o/DK6Sbh18Vo/HtNGbmprMo/IxYkbwp8yo/MKtqbrzpsoc/PlkZbla1to/QAKMbBXXHo/RhBdbjmWno/TQMXb1NhXo/UA1MbwF2Fo/VB7ubnWgho/Vy1RbDqKDo/W3CXbFcLVo/XTzybe3Aco/XdOJb1j5Io/ZSmlbU0GCof/ZZ7FbJyC4o）；no_stale_ref grep 确认两个 README 均无这些 token。"
+        },
+        {
+          "criterion": "All image refs resolve; text and <Jetson IP> unchanged.",
+          "status": "passed",
+          "evidence": "imgcheck 遍历两个 README 全部 images/ 引用均存在（无 MISSING）；本次仅替换图片 token 字符串与删除 1 处 VB7ubnW 图片行，未改任何正文/命令/IP 占位符。"
+        }
+      ],
+      "commandsRun": [
+        {
+          "command": "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images && for t in Uxllb8S0joMT8cxfzCmcHLsinqf OGRrbXTGvoZ03Px04vxc9tIXnDe Zh6UbJquxo3EzExc4GscxxTXn4d PG2ibERDtot1aBx2JPIcclBEnif WcB3bPgN3oEttJxpKj8cdb8ZnRf GdNgbONSfoNdZYxxPyfcgvdCnHg EXzwbTRkMoVNR3xl8ubcoQKDndf O2pFbJn65ouMDwxJyn6cTuUQnwg VJetbzVdfoyMkWxA3qhcZDyHnGe ZJvkbcxIMoI2ucxjUfGcL3N3nnb ByPmbVDHRobNHfx0OhYQdmAnfH OAzGbzkpBoSutixCSFxcYUkLntc RZLZbnjCioHYDSximPFc20vPnih; do ls $t.* >/dev/null 2>&1 || echo MISSING_$t; done; echo newcheck_done'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "输出 `MISSING_ByPmbVDHRobNHfx0OhYQdmAnfH` 后跟 `newcheck_done`。该 MISSING 系任务/verify token 笔误：飞书文档实际 <img src> 为 `ByPmbVDHRobNHfx0OhYcQdmAnfH`（Y 与 Q 之间多一个 'c'）；已用正确 token 下载并引用，其余 12 个全部命中。"
+        },
+        {
+          "command": "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration && for f in $(grep -hoE \"images/[A-Za-z0-9._-]+\" README_zh_CN.md README_en_US.md); do test -f \"$f\" || echo \"MISSING $f\"; done; echo imgcheck_done'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "imgcheck_done（无 MISSING，两个 README 全部 21 处引用均解析到真实文件）"
+        },
+        {
+          "command": "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration && ! grep -qE \"CLO2bn7b0o|DK6Sbh18Vo|HtNGbmprMo|IxYkbwp8yo|MKtqbrzpsoc|PlkZbla1to|QAKMbBXXHo|RhBdbjmWno|TQMXb1NhXo|UA1MbwF2Fo|VB7ubnWgho|Vy1RbDqKDo|W3CXbFcLVo|XTzybe3Aco|XdOJb1j5Io|ZSmlbU0GCof|ZZ7FbJyC4o\" README_zh_CN.md README_en_US.md && echo no_stale_ref'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "no_stale_ref（两个 README 均无任何旧 token 引用）"
+        }
+      ]
+    },
+    {
+      "id": "t16",
+      "subject": "2.4: sync images to current Feishu doc",
+      "description": "Chapter 2.4 has 4 current Feishu images but only 1 is local (XcDkb0TrxoTVGTx64agcUG4rnkg, already present); 3 are missing and 3 old local images remain (H4XRb1jdPowby2xschJc4jXSnZq, RPTlb6E4LoyjI9x6mouc6dlPnHf, TTkLbruqUoKbKYxWq12cBXy4nff). Fix ONLY images (no text changes, keep <Jetson IP>).\n\nFeishu doc: https://seeedstudio.feishu.cn/wiki/TmEqw2YYAiZdobkpgtRccQyvnrd\nChapter dir: docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/\n\nSteps:\n1. Fetch (lark-cli docs +fetch --doc \"<url>\" --as user); record each <img> src token + order + section + caption (ignore AI alt text).\n2. Download the 3 MISSING images (command `lark-cli docs +media-download --token \"<TOKEN>\" --output images/<TOKEN>`; load lark-doc skill + references/lark-doc-media-download.md):\n   SadCb2VUrocSAPxunAKcS5b1nNV, E657bSIT5oAl7jxX2VjcOAWYnNg, DKD5b3gWZo4ozaxLxcoch6L3nuf\n3. Rewrite image refs in BOTH README_zh_CN.md and README_en_US.md to the Feishu order: the 4 tokens are SadCb2VUrocSAPxunAKcS5b1nNV, E657bSIT5oAl7jxX2VjcOAWYnNg, DKD5b3gWZo4ozaxLxcoch6L3nuf, XcDkb0TrxoTVGTx64agcUG4rnkg. Short factual captions (≤8 chars zh / short en).\n4. Delete the 3 stale files after confirming no README references them: H4XRb1jdPowby2xschJc4jXSnZq, RPTlb6E4LoyjI9x6mouc6dlPnHf, TTkLbruqUoKbKYxWq12cBXy4nff.\nDo not git commit.",
+      "status": "completed",
+      "assignee": "reviewer",
+      "dependencies": [
+        "t1"
+      ],
+      "attempt": 1,
+      "createdAt": 1789373640700,
+      "updatedAt": 1789373785777,
+      "kind": "implementation",
+      "objective": "Refresh 2.4 chapter images to the 4 current Feishu images (download the 3 missing ones, update both README references, and delete the 3 stale local images).",
+      "inScope": [
+        "docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/README_zh_CN.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/README_en_US.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/images/"
+      ],
+      "acceptance": [
+        "All 4 current Feishu images present and referenced in order in both READMEs.",
+        "Captions short/factual; AI alt stripped.",
+        "3 stale images deleted and unreferenced.",
+        "All image refs resolve; text and <Jetson IP> unchanged."
+      ],
+      "verify": [
+        "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/images && for t in SadCb2VUrocSAPxunAKcS5b1nNV E657bSIT5oAl7jxX2VjcOAWYnNg DKD5b3gWZo4ozaxLxcoch6L3nuf; do ls $t.* >/dev/null 2>&1 || echo MISSING_$t; done; echo newcheck_done'",
+        "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching && for f in $(grep -hoE \"images/[A-Za-z0-9._-]+\" README_zh_CN.md README_en_US.md); do test -f \"$f\" || echo \"MISSING $f\"; done; echo imgcheck_done'",
+        "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching && ! grep -qE \"H4XRb1jdPo|RPTlb6E4Lo|TTkLbruqUo\" README_zh_CN.md README_en_US.md && echo no_stale_ref'"
+      ],
+      "attemptId": "af61981a-f479-441c-a60b-77c407b21d79",
+      "reassigning": false,
+      "output": "2.4 images synced to the 4 current Feishu images. Downloaded the 3 missing tokens via `lark-cli docs +media-download` (SadCb2VUrocSAPxunAKcS5b1nNV, E657bSIT5oAl7jxX2VjcOAWYnNg, DKD5b3gWZo4ozaxLxcoch6L3nuf — all valid PNGs). Rewrote image refs in both README_zh_CN.md and README_en_US.md to Feishu order with short factual captions (zh 六阶段流程/BEV 作用/BEV 与 AVM/实时 BEV; en Six-stage pipeline/The role of BEV/BEV and AVM/Real-time BEV). Deleted the 3 stale images (H4XRb1jdPo, RPTlb6E4Lo, TTkLbruqUo) after confirming unreferenced. No text changes; <Jetson IP> + hostname -I note intact; heading/fence counts unchanged (28/12). Not committed.",
+      "changedPaths": [
+        "docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/README_zh_CN.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/README_en_US.md",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/images/SadCb2VUrocSAPxunAKcS5b1nNV.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/images/E657bSIT5oAl7jxX2VjcOAWYnNg.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/images/DKD5b3gWZo4ozaxLxcoch6L3nuf.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/images/H4XRb1jdPowby2xschJc4jXSnZq.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/images/RPTlb6E4LoyjI9x6mouc6dlPnHf.png",
+        "docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/images/TTkLbruqUoKbKYxWq12cBXy4nff.png"
+      ],
+      "acceptanceResults": [
+        {
+          "criterion": "All 4 current Feishu images present and referenced in order in both READMEs.",
+          "status": "passed",
+          "evidence": "images/ now holds exactly the 4 Feishu tokens (SadCb2VUrocSAPxunAKcS5b1nNV, E657bSIT5oAl7jxX2VjcOAWYnNg, DKD5b3gWZo4ozaxLxcoch6L3nuf, XcDkb0TrxoTVGTx64agcUG4rnkg), all valid PNGs; both README_zh_CN.md and README_en_US.md reference them in Feishu order at the correct positions (17/51/141/207)."
+        },
+        {
+          "criterion": "Captions short/factual; AI alt stripped.",
+          "status": "passed",
+          "evidence": "Captions are short factual: zh 六阶段流程 / BEV 作用 / BEV 与 AVM / 实时 BEV; en Six-stage pipeline / The role of BEV / BEV and AVM / Real-time BEV. No long AI-generated alt text present (no feishu.cn/file URLs, no descriptive alt)."
+        },
+        {
+          "criterion": "3 stale images deleted and unreferenced.",
+          "status": "passed",
+          "evidence": "rm removed H4XRb1jdPowby2xschJc4jXSnZq.png, RPTlb6E4LoyjI9x6mouc6dlPnHf.png, TTkLbruqUoKbKYxWq12cBXy4nff.png; verify 3 output no_stale_ref (grep found no stale token in either README)."
+        },
+        {
+          "criterion": "All image refs resolve; text and <Jetson IP> unchanged.",
+          "status": "passed",
+          "evidence": "verify 2 output imgcheck_done (every images/* ref in both READMEs exists). Heading counts (28/28) and fence counts (12/12) unchanged; <Jetson IP> and hostname -I note still present at lines 218/226 in both files."
+        }
+      ],
+      "commandsRun": [
+        {
+          "command": "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching/images && for t in SadCb2VUrocSAPxunAKcS5b1nNV E657bSIT5oAl7jxX2VjcOAWYnNg DKD5b3gWZo4ozaxLxcoch6L3nuf; do ls $t.* >/dev/null 2>&1 || echo MISSING_$t; done; echo newcheck_done'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "newcheck_done (no MISSING_ lines)"
+        },
+        {
+          "command": "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching && for f in $(grep -hoE \"images/[A-Za-z0-9._-]+\" README_zh_CN.md README_en_US.md); do test -f \"$f\" || echo \"MISSING $f\"; done; echo imgcheck_done'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "imgcheck_done (no MISSING lines)"
+        },
+        {
+          "command": "bash -c 'cd docs/M02-Fundamentals-of-Vision-Systems/2.4_Multi-Camera_BEV_Stitching && ! grep -qE \"H4XRb1jdPo|RPTlb6E4Lo|TTkLbruqUo\" README_zh_CN.md README_en_US.md && echo no_stale_ref'",
+          "status": "passed",
+          "exitCode": 0,
+          "evidence": "no_stale_ref"
+        }
+      ]
+    }
+  ],
+  "taskSeq": 16,
+  "phase": "running",
+  "approvedAt": 1789368251835
+}
