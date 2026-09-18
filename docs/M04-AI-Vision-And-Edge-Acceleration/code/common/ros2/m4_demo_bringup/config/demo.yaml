@@ -1,0 +1,47 @@
+m4_demo_bringup:
+  ros__parameters:
+    # Camera profile — Jetson GMSL camera via V4L2.
+    # The GMSL/BSP driver exposes cameras as /dev/videoN (V4L2).
+    # For M4.1/M4.2/M4.3 demos we use the front camera via V4L2.
+    camera:
+      # default_source: v4l2 (previously gmsl - no ROS GMSL driver needed)
+      # Bash wrapper can override this via CAMERA_SOURCE env var.
+      default_source: v4l2
+
+      # Output topic that all algorithm nodes subscribe to.
+      output_topic: "/perception/cameras/front/image"
+
+      # V4L2 device configuration (front camera)
+      v4l2:
+        device: /dev/video0
+        width: 1920
+        height: 1536
+        fps: 30
+        # source: csi matches the v4l2src mode in csi_camera_publisher.py
+        source: csi
+
+    # Default tolerance 0 → exact stamp matching.
+    # Audit must bless raising this to a non-zero value.
+    tolerance_ns: 0
+
+    # Detection visualizer (M4.1) — optional FPS banner wrapper.
+    detection_visualizer:
+      ros__parameters:
+        image_topic: "/perception/debug/detection_image"
+        out_topic: "/perception/demo/m4_1"
+        log_throttle_ms: 1000
+
+    # Segmentation visualizer (M4.3).
+    segmentation_visualizer:
+      ros__parameters:
+        image_topic: "/perception/cameras/front/image"
+        semantic_topic: "/perception/semantic_mask"
+        drivable_topic: "/perception/drivable_mask"
+        debug_image_topic: "/perception/demo/m4_3"
+        mask_cache_size: 10
+        tolerance_ns: 0
+        overlay_alpha: 0.45
+        drivable_color_bgr: "00FF00"
+        side_by_side: true
+        max_width: 960
+        log_throttle_ms: 1000

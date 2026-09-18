@@ -1,0 +1,15 @@
+name: "travel_router"
+source_cad: "gl_sft1200_opal.step"
+source_cad_script: "gl_sft1200_opal.step.py"
+source_cad_note: "GL.iNet GL-SFT1200 'Opal' portable travel router, authored with build123d 0.11.1 from product photographs plus the owner's measured envelope of 105 x 80 x 35 mm."
+mesh_file: "model.obj"
+units: "mm"
+scale_to_meters: 0.001
+scale_rationale: "The STEP header declares SI_UNIT(.MILLI.,.METRE.), and the measured bounding box reads 111.671 x 80.000 x 75.000 in those units, i.e. 11.2 x 8.0 x 7.5 cm -- physically right for a pocket router. The 0.001 factor is therefore derived from the file, not assumed."
+expected_size_m: [0.111671, 0.08, 0.075]
+expected_diameter_m: 0.145473
+object_frame: "travel_router"
+symmetry: "none"
+symmetry_rationale: "Verified, not assumed. The -Y face carries the port/bezel cut-outs and the +Y edge carries the antenna hinges and the vent grid, so the body is not invariant under a 180 degree rotation about Z. Left/right is a mirror, and a reflection is not a rotation, so it creates no 6D pose ambiguity. Declaring a symmetry that does not exist would let the tracker snap to a wrong pose, which is worse than declaring none."
+cad_pose_note: "The CAD models the antennas RAISED and splayed (the widest axis reaches 111.67 mm against a 105 mm body). The physical unit must be posed the same way during capture or the mesh will not register."
+source_cad_sha256: "8b47936a459e66cff58cd50b5f903ee8a1bce0d240b36a852a70c518e28f61a6"

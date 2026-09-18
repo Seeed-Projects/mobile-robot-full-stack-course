@@ -1,0 +1,302 @@
+# M04 · Code (AI Vision and Edge Acceleration)
+
+Curated, git-safe source code for M04 chapters 4.1–4.4 plus the shared infrastructure
+they build on. This folder is the **published copy** referenced by the M04 chapters.
+
+**Edit one way only.** The canonical, editable source is the course repository on the
+Jetson (`/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration/`).
+Changes flow **Jetson → this folder**, never the reverse — otherwise the two trees drift
+and the published copy silently becomes a second, wrong answer. See
+[Provenance](#provenance) for the exact revision this snapshot came from.
+
+All changes in this course project live under `docs/M04-AI-Vision-And-Edge-Acceleration/code/`.
+
+## Layout
+
+```text
+code/
+  README.md
+  4.1-yolo-object-detection/           # chapter 4.1
+    README.md
+    ros2/bev_detection/                # ROS 2 ament_cmake package (C++ / TensorRT)
+  4.2-multi-object-tracking/           # chapter 4.2
+    README.md
+    ros2/bev_tracking/                 # ROS 2 ament_python package (ByteTrack)
+  4.3-semantic-segmentation/           # chapter 4.3
+    README.md
+    ros2/bev_segmentation/             # ROS 2 ament_cmake package (C++ / TensorRT)
+  4.4-foundationpose/                  # chapter 4.4
+    README.md
+    ros2/bev_pose/                     # ROS 2 ament_python package (FoundationPose)
+  common/                              # shared infrastructure
+    README.md
+    ros2/bev_interfaces/               # FrameSet / SyncStats / SystemStatus messages
+    ros2/m4_demo_bringup/              # demo orchestrator + web preview
+  models/m4/                           # model metadata (binaries are gitignored)
+    detection/   labels/coco.names, README.md
+    segmentation/ labels/labels.json, README.md, LICENSE.md
+    pose/        object.yaml
+  scripts/
+    setup_workspace.sh                 # assembles ros2_ws/src from the chapter sources
+    m4/                                # demo runners, model export, verification, shared lib
+    regression/                        # regression gates
+```
+
+There is exactly **one editable copy** of each ROS 2 package. `scripts/setup_workspace.sh`
+symlinks them into a colcon workspace; nothing is duplicated.
+
+## Provenance
+
+| Chapter folder | Source | Detail |
+|---|---|---|
+| `4.1-yolo-object-detection/` | Jetson `<Jetson IP>` | `/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration/4.1-yolo-object-detection/` |
+| `4.2-multi-object-tracking/` | Jetson | same module root, `4.2-multi-object-tracking/` |
+| `4.3-semantic-segmentation/` | Jetson | same module root, `4.3-semantic-segmentation/` |
+| `4.4-foundationpose/` | Jetson | same module root, `4.4-foundationpose/` |
+| `common/` | Jetson | same module root, `common/` |
+| `models/m4/` | Jetson | same module root, `models/m4/` (tracked metadata only) |
+| `scripts/` | Jetson | same module root, `scripts/` |
+
+Captured from branch `main`, commit **`f6b8afb`**, on 2026-09-18. All 166 files in this
+folder are byte-identical to that revision.
+
+Jetson access: `ssh seeed@<Jetson IP>` (the working configuration used an SSH alias
+`j50-robotics`).
+
+> **Note**: replace `<Jetson IP>` with your Jetson's actual IP. Find it by running
+> `hostname -I` on the Jetson; do not reuse a fixed address.
+
+### Re-syncing
+
+The tracked file list *is* the manifest — anything not in it (engines, ONNX exports, the
+CAD, `output/`) is deliberately excluded, so driving the copy from `git ls-files` cannot
+leak an artifact:
+
+```bash
+# 1. ask the Jetson which files are tracked, minus the exclusions in the next section
+ssh seeed@<Jetson IP> \
+  'cd /home/seeed/mobile-robot-full-stack-course && \
+   git ls-files modules/m04-ai-vision-and-edge-acceleration' \
+  | sed 's|^modules/m04-ai-vision-and-edge-acceleration/||' \
+  | grep -vE '^(README\.md|CLEANUP_REPORT\.md|MIGRATION_REPORT\.md|ros2_ws/src/)' \
+  > /tmp/m4-manifest.txt
+
+# 2. copy exactly those files
+rsync -av --files-from=/tmp/m4-manifest.txt \
+  seeed@<Jetson IP>:/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration/ \
+  docs/M04-AI-Vision-And-Edge-Acceleration/code/
+```
+
+> On macOS the system `rsync` is `openrsync`, which does not implement `--files-from`.
+> Substituting `tar` works and is what produced this snapshot:
+> `ssh … 'tar -c -C <module dir> --files-from=-' < /tmp/m4-manifest.txt | tar -x -C code/`
+
+After syncing, re-check the result with `git status` — nothing in this folder should ever
+be large or generated.
+
+## Excluded from this copy
+
+`ros2_ws/src/` (the six package symlinks — recreated by `scripts/setup_workspace.sh`),
+`README.md` at the module root (its content is folded into this file),
+`CLEANUP_REPORT.md` and `MIGRATION_REPORT.md` (internal records of the working
+repository's own restructuring, not course material), `output/`, `ros2_ws/{build,install,log}`,
+`__pycache__/`, and every model binary — `*.engine`, `*.onnx`, `*.onnx.data`, `*.obj`,
+`*.step` — which the repository `.gitignore` already covers.
+
+The largest file in this folder is `common/ros2/m4_demo_bringup/web/static/app.js` at 29 KB.
+There are no binaries and no symlinks.
+
+## Prerequisites
+
+- NVIDIA Jetson (Seeed reComputer J501 / AGX Orin), JetPack 6.x, Ubuntu 22.04
+- ROS 2 Humble, `colcon`
+- CUDA 12.6 and TensorRT 10.3 (`trtexec` at `/usr/src/tensorrt/bin/trtexec`)
+- Python 3.10, `numpy`, OpenCV (`cv2`), `PyYAML`
+- A camera source. The demos use a GMSL front camera exposed as a V4L2 node
+  (`/dev/video0`); `CAMERA_SOURCE=test` substitutes a synthetic publisher.
+
+```bash
+sudo apt install -y ros-$ROS_DISTRO-cv-bridge ros-$ROS_DISTRO-vision-opencv \
+  ros-$ROS_DISTRO-sensor-msgs-py ros-$ROS_DISTRO-message-filters python3-numpy
+pip3 install --user supervision==0.27.0
+```
+
+## The M4 stack at a glance
+
+```text
+camera (V4L2 /dev/video0)
+      |
+      v
+/perception/cameras/front/image          <- sensor_msgs/Image
+      |
+      v
+bev_detection (YOLO11n TensorRT)  ------> /perception/detections
+      |                                          |
+      |                                          v
+      |                              bev_tracking (ByteTrack)
+      |                                          |
+      |                                          v
+      |                                  /perception/tracks
+      v
+/perception/demo/m4_x                    <- visualization (m4_demo_bringup)
+
+bev_segmentation ----------------------> /perception/semantic_mask
+                                         /perception/drivable_mask
+
+bev_pose (+ Orbbec RGB-D) ------------> /perception/object_pose (+ TF)
+```
+
+Every topic carries the source image's `header.stamp` and `frame_id` unchanged. The only
+exceptions are noted per chapter below.
+
+## Build
+
+```bash
+cd docs/M04-AI-Vision-And-Edge-Acceleration/code
+./scripts/setup_workspace.sh                  # creates ros2_ws/src/<pkg> symlinks
+
+export PATH=/usr/local/cuda/bin:$PATH         # REQUIRED: nvcc for the CUDA kernels
+export CUDACXX=/usr/local/cuda/bin/nvcc
+source /opt/ros/humble/setup.bash
+
+cd ros2_ws
+colcon build --symlink-install --packages-select \
+  bev_interfaces bev_detection bev_tracking bev_segmentation bev_pose m4_demo_bringup
+```
+
+`setup_workspace.sh --clean` removes `ros2_ws/{build,install,log}`. The script derives the
+module root from its own location, so it works from a checkout of this folder unchanged.
+
+> `bev_interfaces` lives in `common/ros2/` and is a hard build dependency of
+> `bev_detection` — `camera_adapter_node` uses its `FrameSet` message.
+
+## Model preparation
+
+Model binaries are **not** committed: they are target-specific, and the segmentation
+checkpoint's licence does not permit redistribution. Each chapter's `models/m4/…/README.md`
+names the expected file, its source and the build command.
+
+| Chapter | Artifact | Produce with |
+|---|---|---|
+| 4.1 | `engines/yolo11n_fp16.engine` | `models/m4/detection/README.md` |
+| 4.3 | `onnx/segformer_b0.onnx` + `engines/segformer_b0_fp16.engine` | `scripts/m4/export_segformer.sh`, `scripts/m4/build_segformer_engine.sh` |
+| 4.4 | none yet — chapter is blocked | see 4.4 below |
+
+## 4.1 — YOLO object detection (TensorRT)
+
+Training → ONNX → TensorRT engine → ROS 2 detection topic, at ~30 Hz on Orin.
+
+```bash
+ros2 launch bev_detection yolo.launch.py            # detection only
+ros2 launch bev_detection m4_detection.launch.py    # + legacy GMSL frameset bridge
+
+./scripts/m4/run_m4_1_demo.sh                       # auto camera resolution
+CAMERA_SOURCE=test ./scripts/m4/run_m4_1_demo.sh    # synthetic, no hardware
+./scripts/m4/run_m4_1_benchmark.sh
+```
+
+Contract: `header` copied from the input image; empty frames still publish an empty
+`Detection2DArray` (4.2 depends on this); `Detection2D.id` is deliberately left `""` for
+4.2 to fill; boxes are in **original image pixels**; `SensorDataQoS` throughout.
+
+Details, measured numbers and known debt: [`4.1-yolo-object-detection/README.md`](4.1-yolo-object-detection/README.md).
+
+## 4.2 — ByteTrack multi-object tracking
+
+```bash
+./scripts/m4/run_m4_2_demo.sh
+```
+
+`/perception/detections` → `/perception/tracks`, with the track id written into
+`Detection2D.id` as a string (not into `hypothesis.id`). The node touches no camera and
+runs no detector.
+
+Its 30 pytest tests only pass with plugin autoload disabled:
+
+```bash
+cd ros2/bev_tracking && source /opt/ros/humble/setup.bash
+PYTEST_DISABLE_PLUGIN_AUTOLOAD=1 python3 -m pytest -q     # -> 30 passed
+```
+
+Details: [`4.2-multi-object-tracking/README.md`](4.2-multi-object-tracking/README.md).
+
+## 4.3 — SegFormer semantic segmentation
+
+```bash
+export HF_ENDPOINT=https://hf-mirror.com   # huggingface.co has no route from some Jetsons
+./scripts/m4/export_segformer.sh           # checkpoint -> ONNX (static 1x3x512x1024)
+./scripts/m4/build_segformer_engine.sh     # ONNX -> FP16 engine
+./scripts/m4/generate_labels_json.sh       # id2label -> labels.json
+./scripts/m4/run_m4_3_demo.sh
+```
+
+Without the engine the node **throws in its constructor** — there is no ONNX or PyTorch
+fallback. `test_engine_smoke.cpp` skips when the engine is absent and gtest scores a skip
+as a pass, so the suite is split into two CTest labels:
+
+```bash
+colcon test --packages-select bev_segmentation --ctest-args -L unit          # no artifacts needed
+colcon test --packages-select bev_segmentation --ctest-args -L engine_gate   # RED until the engine exists
+```
+
+Two things in this chapter are worth reading even if you do not run it: the
+**inverse-letterbox** restoration (`unletterbox_mask()`, and why the previous
+`nearest_neighbor_resize` was wrong for any source that is not exactly 2:1), and the
+**PyTorch ↔ TensorRT parity harness** — torch and the `tensorrt` bindings are importable
+from different interpreters only, so the check is split across two processes joined over
+raw buffers.
+
+Details: [`4.3-semantic-segmentation/README.md`](4.3-semantic-segmentation/README.md).
+
+## 4.4 — FoundationPose 6D object pose
+
+**BLOCKED — published as-is. Nothing in this chapter has been executed.**
+
+The package installs, but the scaffold's FoundationPose calls were written against an API
+that does not exist, and every runtime dependency is absent. The API has since been
+rewritten against the real upstream revision (`estimater.py`,
+`a1b694b83e633c2cb6115b9063d940a687759392`), but the Phase 0 gate — running NVlabs
+FoundationPose standalone — has **not** been passed, so no ROS integration has been done.
+
+Also absent: the NVlabs weights (Google Drive is unreachable), the official demo data, the
+Orbbec driver and the Orbbec Gemini 2 itself. `launch/orbbec_gemini2.launch.py` names a
+package and executable that do not exist; it was written against an invented interface.
+
+Read [`4.4-foundationpose/README.md`](4.4-foundationpose/README.md) before touching this
+chapter — it quotes the real API, records the CAD model's verified units, and lists the
+four unmet hard gates.
+
+## Common — bev_interfaces + m4_demo_bringup
+
+Everything that is not algorithm code: the demo orchestrator, the visualizers, the web
+preview server, and the shared process-lifecycle shell library.
+
+```bash
+./scripts/m4/run_m4_web_hub.sh          # unified web preview on :8080
+```
+
+A single aiohttp server on port 8080 serves `/healthz`, `/stream` (MJPEG), `/signaling`
+(WebRTC), `/api/demos` and `/m4/{1,2,3,4,hub}`. Transport is selected automatically
+`h264 → mjpeg → vp8`; hardware H.264 (`nvv4l2h264enc`) is the normal result. Frames live in
+a single-slot buffer that drops stale frames — there are no unbounded queues.
+
+The supervisor owns every child process by PID **and** `/proc/<pid>/stat` start-tick, so a
+recycled PID is never signalled; there is no blanket `pkill` on this path.
+
+Details: [`common/README.md`](common/README.md).
+
+## Troubleshooting
+
+| Symptom | Cause / fix |
+| --- | --- |
+| `No CMAKE_CUDA_COMPILER could be found` | `export PATH=/usr/local/cuda/bin:$PATH` before building |
+| `ros2 pkg prefix` returns *Package not found* | re-run `scripts/setup_workspace.sh`, then `source ros2_ws/install/setup.bash` |
+| `Cannot open engine file: ...` on node start | the chapter's model artifact is missing; there is no fallback path |
+| Camera busy / no `/perception/cameras/front/image` | another demo still owns `/dev/video0`; run `scripts/m4/cleanup_demo_residual.sh --list` then `--yes` |
+| Python tests fail with `ModuleNotFoundError: _pytest.scope` | run pytest with `PYTEST_DISABLE_PLUGIN_AUTOLOAD=1` (see 4.2) |
+| `setup_workspace.sh` dies with `<pkg>: unbound variable` | you are on bash 3.2 (macOS's default), which has no associative arrays. The script needs bash 4+ — run it on the Jetson, or with a newer bash (`brew install bash`) |
+| Demo exits at preflight | a required model or binary is missing; the message names the exact path |
+| `m4_2_demo.launch.py` / `m4_3_demo.launch.py` raise `invalid condition expression` | known bug: `IfCondition('$(eval ...)')` is not valid ROS 2 launch syntax. The demos themselves work via `m4_all_demo.launch.py` (what `run_m4_web_hub.sh` uses) |
+
+Per-chapter status — what is verified, what is blocked, and the measurements behind both —
+is in [`../PROJECT_STATUS.md`](../PROJECT_STATUS.md).
