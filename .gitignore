@@ -37,6 +37,8 @@ node_modules/
 *.mcap
 *.engine
 *.onnx
+# Weights sidecar emitted by the torch.onnx exporter next to large models
+*.onnx.data
 *.pt
 *.pth
 *.ckpt

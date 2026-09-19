@@ -1,0 +1,48 @@
+#!/usr/bin/env bash
+# test/check_engine_gate.sh.in  ->  check_engine_gate.sh (configured by CMake)
+#
+# A hard gate on the model artifact.
+#
+# Why this is a separate test rather than an assertion inside test_engine_smoke:
+# that test cannot run without an engine, so it calls GTEST_SKIP() when the file
+# is absent — and gtest scores a skip as a pass. A suite with no engine at all
+# therefore reported "16 passed, 0 failed" while two of those tests had never
+# executed. Anything that reads a green suite as "the model works" is being
+# misled, so the missing artifact gets its own test that FAILS.
+#
+#   colcon test --packages-select bev_segmentation --ctest-args -L unit
+#       ^ fast path, no model artifact needed
+#   colcon test --packages-select bev_segmentation --ctest-args -L engine_gate
+#       ^ release gate; red until the engine is actually built
+
+set -uo pipefail
+
+ENGINE="@SEGFORMER_ENGINE_PATH@"
+
+if [[ -f "$ENGINE" ]]; then
+    size=$(stat -c '%s' "$ENGINE" 2>/dev/null || echo '?')
+    echo "PASS: TensorRT engine present ($size bytes)"
+    echo "      $ENGINE"
+    exit 0
+fi
+
+cat >&2 <<EOF
+============================================================
+ BLOCKED: the M4.3 TensorRT engine does not exist.
+
+   expected at: $ENGINE
+
+ M4.3 has never been able to run without it, and a skipped
+ engine test must not look like a passing one.
+
+ To build it, on the target Jetson:
+
+   cd @M4_MODULE_ROOT@
+   export HF_ENDPOINT=https://hf-mirror.com   # huggingface.co is unreachable here
+   ./scripts/m4/export_segformer.sh           # checkpoint -> ONNX
+   ./scripts/m4/build_segformer_engine.sh     # ONNX       -> FP16 engine
+
+ Then re-run:  colcon test --packages-select bev_segmentation --ctest-args -L engine_gate
+============================================================
+EOF
+exit 1

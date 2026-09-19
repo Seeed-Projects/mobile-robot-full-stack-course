@@ -1,0 +1,26 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematyp="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>m4_demo_bringup</name>
+  <version>0.1.0</version>
+  <description>M4.1/M4.2/M4.3 demo integration package: visualizers + launch files for one-click student-facing demos. Algorithm packages (bev_detection, bev_tracking, bev_segmentation) are untouched.</description>
+  <maintainer email="dev@jetson.local">bev-dev</maintainer>
+  <license>MIT</license>
+
+  <depend>rclpy</depend>
+  <depend>sensor_msgs</depend>
+  <depend>vision_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>cv_bridge</depend>
+
+  <exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-opencv</exec_depend>
+
+  <test_depend>ament_cmake</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
