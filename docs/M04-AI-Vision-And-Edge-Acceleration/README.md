@@ -8,15 +8,15 @@ TensorRT and wired into ROS 2.
 
 | Chapter | Topic | ROS 2 package | Status | 教程 |
 | --- | --- | --- | --- | --- |
-| 4.1 | YOLO object detection (training → ONNX → TensorRT → ROS 2) | `bev_detection` | **PASS** — verified on hardware | 待发布 |
-| 4.2 | Multi-object tracking (ByteTrack) | `bev_tracking` | **PASS** — verified on hardware | 待发布 |
-| 4.3 | Semantic segmentation + drivable area (SegFormer TensorRT) | `bev_segmentation` | **VERIFIED** — parity, geometry and live topics all measured | 待发布 |
-| 4.4 | 6D pose estimation (FoundationPose + Orbbec Gemini 2) | `bev_pose` | **BLOCKED** — no backend, no camera | 待发布 |
+| 4.1 | YOLO object detection (training → ONNX → TensorRT → ROS 2) | `bev_detection` | **PASS** — verified on hardware | [中文](./4.1_YOLO_Object_Detection_and_TensorRT_Deployment/README_zh_CN.md) / [English](./4.1_YOLO_Object_Detection_and_TensorRT_Deployment/README_en_US.md) |
+| 4.2 | Multi-object tracking (ByteTrack) | `bev_tracking` | **PASS** — verified on hardware | [中文](./4.2_Multi-Object_Tracking/README_zh_CN.md) / [English](./4.2_Multi-Object_Tracking/README_en_US.md) |
+| 4.3 | Semantic segmentation + drivable area (SegFormer TensorRT) | `bev_segmentation` | **VERIFIED** — parity, geometry and live topics all measured | [中文](./4.3_Semantic_Segmentation_and_Drivable_Area_Analysis/README_zh_CN.md) / [English](./4.3_Semantic_Segmentation_and_Drivable_Area_Analysis/README_en_US.md) |
+| 4.4 | 6D pose estimation (FoundationPose + Orbbec Gemini 2) | `bev_pose` | **BLOCKED** — no backend, no camera | [中文](./4.4_6D_Pose_Estimation_with_FoundationPose/README_zh_CN.md) / [English](./4.4_6D_Pose_Estimation_with_FoundationPose/README_en_US.md) |
 | — | Shared infrastructure (demo orchestrator, web preview, interfaces) | `m4_demo_bringup`, `bev_interfaces` | — | — |
-| 4.5 | Isaac ROS / model optimization | — | out of scope | — |
+| 4.5 | Isaac ROS / model optimization | — | out of scope | [中文](./4.5_Isaac_ROS_Acceleration_and_Model_Optimization/README_zh_CN.md) / [English](./4.5_Isaac_ROS_Acceleration_and_Model_Optimization/README_en_US.md) |
 
-中英文教程（`README_en_US.md` / `README_zh_CN.md`）随代码逐个章节发布。代码现在就可以
-构建和运行 —— 见下方 **代码 / Code**。
+中英文教程（`README_en_US.md` / `README_zh_CN.md`）已按章节发布，见上表「教程」列。代码现在
+就可以构建和运行 —— 见下方 **代码 / Code**。
 
 Full evidence table — what is verified, what is blocked, and the measurements behind both:
 [PROJECT_STATUS.md](./PROJECT_STATUS.md).
