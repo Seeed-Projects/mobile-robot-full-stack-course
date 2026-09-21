@@ -51,6 +51,7 @@ const settingsEl = document.getElementById("settings");
 const settingsBtn = document.getElementById("settingsBtn");
 const langBtn = document.getElementById("lang");
 const qualityBtn = document.getElementById("quality");
+const qualityRow = document.getElementById("qualityRow");
 const dcCodecEl = document.getElementById("dcCodec");
 const dcTransportEl = document.getElementById("dcTransport");
 const dcStreamFpsEl = document.getElementById("dcStreamFps");
@@ -116,6 +117,7 @@ let transport = "webrtc";
 // The server always serves an MJPEG crisp view at /stream, even when WebRTC is
 // the primary transport. Remember the primary so the toggle can come back.
 let primaryTransport = "webrtc";
+let mjpegAvailable = false;
 // Explicit user choice: "mjpeg" (crisp) or "primary" (server's transport).
 // The 2 s /api/demos poll must not silently undo a manual toggle.
 let userPref = null;
@@ -124,6 +126,8 @@ let backendName = "";
 let rttMs = null;
 let iceState = "";
 let lang = (navigator.language || "zh").toLowerCase().startsWith("zh") ? "zh" : "en";
+let reconnectTimer = null;
+let reconnectDelay = 1000;
 
 /* ---- i18n ---------------------------------------------------------------- */
 
@@ -481,6 +485,8 @@ async function refreshModules() {
     try { health = await healthRes.json(); } catch (e) { /* keep going */ }
 
     mergeModules(data.modules || [], health);
+    mjpegAvailable = data.mjpeg === true;
+    if (qualityRow) qualityRow.hidden = !mjpegAvailable;
 
     // Respect a manual choice; otherwise follow the server.
     if (userPref === "mjpeg") {
@@ -585,6 +591,8 @@ function preferCodec(pc, transportName) {
 
 async function connect() {
   if (transport === "mjpeg") return;
+  if (ws && (ws.readyState === WebSocket.OPEN || ws.readyState === WebSocket.CONNECTING)) return;
+  if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null; }
   setLive(tr("连接中", "connecting"), "");
   showConnecting();
 
@@ -593,6 +601,7 @@ async function connect() {
   );
 
   ws.onopen = () => {
+    reconnectDelay = 1000;
     pc = new RTCPeerConnection();
     pc.ontrack = (ev) => {
       if (ev.streams && ev.streams[0]) {
@@ -659,9 +668,17 @@ async function connect() {
   };
 
   ws.onclose = () => {
+    ws = null;
     setLive(tr("已断开", "disconnected"), "err");
     iceState = "closed";
     renderDrawer();
+    if (transport !== "mjpeg" && !reconnectTimer) {
+      reconnectTimer = setTimeout(() => {
+        reconnectTimer = null;
+        connect();
+      }, reconnectDelay);
+      reconnectDelay = Math.min(reconnectDelay * 2, 10000);
+    }
   };
   ws.onerror = () => setLive(tr("连接错误", "ws error"), "err");
 }
@@ -800,12 +817,6 @@ document.addEventListener("keydown", (e) => {
   closeSettings();
   setDrawerOpen(false);
 });
-
-// Auto-reconnect on ws close (a new stream must be negotiated).
-setInterval(() => {
-  if (transport === "mjpeg") return;
-  if (!ws || ws.readyState === WebSocket.CLOSED) connect();
-}, 3000);
 
 /* ---- boot ---------------------------------------------------------------- */
 

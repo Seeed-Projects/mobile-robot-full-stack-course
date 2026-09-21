@@ -531,9 +531,11 @@ def build_app(
                 "modules": payload,
                 # Primary transport for the WebRTC-capable path...
                 "transport": transport,
-                # ...and the URL of the MJPEG crisp view, which is always
-                # available so the page can offer it as a one-click toggle.
-                "stream": "/stream",
+                # MJPEG is intentionally opt-in for the hardware H.264 path:
+                # keeping a second encoder alive doubled the preview cost on
+                # the Jetson even when nobody used the crisp fallback.
+                "mjpeg": mjpeg is not None,
+                "stream": "/stream" if mjpeg is not None else None,
             }
         )
 
@@ -800,11 +802,9 @@ async def main_async(args: argparse.Namespace) -> int:
         await start_pump()
         _log.info("h264 pump coroutine started")
 
-    # The MJPEG crisp view is ALWAYS available, even when WebRTC is primary.
-    # It backs three things: the one-click quality toggle in the page, the
-    # per-client fallback when hardware H.264 is not negotiated, and headless
-    # verification (a JPEG is far easier to assert on than an RTP stream).
-    if mjpeg is None:
+    # MJPEG remains available for software backends and explicit opt-in. The
+    # default Jetson H.264 path avoids a second encoder unless requested.
+    if mjpeg is None and (backend_name != "h264_gst" or args.mjpeg_side_channel):
         try:
             mjpeg = MjpegBackend(
                 slot_for_backend,
@@ -946,9 +946,9 @@ def main() -> int:
     p.add_argument("--port", type=int, default=8080)
     p.add_argument(
         "--backend",
-        default="auto",
+        default="h264",
         choices=["auto", "h264", "mjpeg", "vp8"],
-        help="auto = hardware H.264 -> MJPEG -> software VP8",
+        help="h264 = Jetson hardware path; auto falls back to MJPEG/VP8",
     )
     p.add_argument(
         "--encode-width", type=int, default=1280,
@@ -959,17 +959,21 @@ def main() -> int:
         help="encode/JPEG height (frames are fitted inside this box)",
     )
     p.add_argument(
-        "--encode-fps", type=int, default=30,
+        "--encode-fps", type=int, default=15,
         help="maximum encoded frame rate",
     )
     p.add_argument(
-        "--h264-bitrate", type=int, default=6_000_000,
+        "--h264-bitrate", type=int, default=3_500_000,
         help="hardware H.264 bitrate in bits/s (aiortc's 1.5/3 Mbps clamps do "
              "NOT apply on this path)",
     )
     p.add_argument(
         "--jpeg-quality", type=int, default=85,
         help="MJPEG JPEG quality (30-95)",
+    )
+    p.add_argument(
+        "--mjpeg-side-channel", action="store_true",
+        help="also run the MJPEG fallback beside hardware H.264",
     )
     p.add_argument(
         "--width", type=int, default=1280,

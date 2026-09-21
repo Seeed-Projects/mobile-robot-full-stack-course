@@ -29,10 +29,10 @@
   --warn: #e2a33c;
   --bad: #ef5350;
 
-  --rail-w: 184px;
+  --rail-w: 176px;
   --rail-w-compact: 60px;
   --header-h: 48px;
-  --status-h: 44px;
+  --status-h: 48px;
   --radius: 8px;
   --radius-sm: 6px;
 
@@ -52,7 +52,7 @@ body {
     "PingFang SC", "Microsoft YaHei", sans-serif;
   background: var(--bg);
   color: var(--text);
-  font-size: 13px;
+  font-size: 14px;
   line-height: 1.45;
   display: flex;
   flex-direction: column;
@@ -170,9 +170,10 @@ h1, h2, h3 { margin: 0; color: var(--text); font-weight: 600; }
 .app {
   flex: 1;
   display: flex;
-  gap: 12px;
-  padding: 12px;
+  gap: 16px;
+  padding: 16px;
   min-height: 0;
+  align-items: center;
 }
 
 /* ---- module rail --------------------------------------------------------- */
@@ -257,12 +258,17 @@ h1, h2, h3 { margin: 0; color: var(--text); font-weight: 600; }
   min-width: 0;
   min-height: 0;
   display: flex;
+  align-items: center;
+  justify-content: center;
 }
 
 .video-wrap {
   position: relative;
-  flex: 1;
+  flex: 0 1 auto;
   min-height: 0;
+  width: min(100%, 1440px, calc((100vh - 128px) * 16 / 9));
+  max-height: calc(100vh - 128px);
+  aspect-ratio: 16 / 9;
   background: #000;
   border: 1px solid var(--border);
   border-radius: var(--radius);
@@ -365,7 +371,7 @@ h1, h2, h3 { margin: 0; color: var(--text); font-weight: 600; }
 .sb-left {
   display: flex;
   align-items: center;
-  gap: 12px;
+  gap: 16px;
   min-width: 0;
   font-size: 12px;
 }
@@ -557,6 +563,11 @@ h1, h2, h3 { margin: 0; color: var(--text); font-weight: 600; }
 }
 
 @media (max-width: 820px) {
+  .app { padding: 8px; gap: 8px; align-items: stretch; }
   .sidebar { display: none; }
   .sb-left { gap: 8px; }
+  .video-wrap { width: 100%; max-height: none; }
+  .icon-btn span { display: none; }
+  .statusbar { padding: 0 8px; }
+  .sb-model { max-width: 28vw; }
 }

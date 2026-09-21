@@ -23,7 +23,7 @@
 # bring-up.
 #
 # Usage:
-#   scripts/m4/run_m4_web_hub.sh                 # native 1920x1080@30, all modules
+#   scripts/m4/run_m4_web_hub.sh                 # native camera, 720p15 preview
 #   scripts/m4/run_m4_web_hub.sh --check         # read-only preflight, no side effects
 #   scripts/m4/run_m4_web_hub.sh --dry-run       # print the plan, launch nothing
 #   scripts/m4/run_m4_web_hub.sh --duration=120  # auto-stop after 120s
@@ -33,7 +33,7 @@
 #   CAMERA_SOURCE={auto|csi|v4l2|existing|gmsl|usb|test}   default: auto
 #   CAMERA_DEVICE=/dev/videoN                              default: /dev/video0
 #   CAMERA_WIDTH/HEIGHT/FPS                                1920/1080/30 (native)
-#   WEB_PORT (8080) · WEB_HOST (0.0.0.0) · WEB_BACKEND (vp8|h264) · WEB_ACTIVE (m4_1)
+#   WEB_PORT (8080) · WEB_HOST (0.0.0.0) · WEB_BACKEND (h264|auto|mjpeg|vp8) · WEB_ACTIVE (m4_1)
 #   ENABLE_TRACKING=1 · ENABLE_SEGMENTATION=auto|0|1
 
 set -u
@@ -290,10 +290,12 @@ else
     m4_section "Web hub (one server, all modules)"
     if m4_launch_web_hub "$TOPICS_SPEC"; then
         if [ "$M4_WEB_PID" != "0" ]; then
-            m4_report_hub_url || m4_warn "web hub health gate not satisfied"
+            if ! m4_report_hub_url; then
+                m4_die "web hub health gate failed; refusing to continue with an unavailable preview"
+            fi
         fi
     else
-        m4_warn "web hub failed to start; pipeline continues without preview"
+        m4_die "web hub failed to start"
     fi
 fi
 

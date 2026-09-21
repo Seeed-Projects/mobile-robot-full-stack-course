@@ -626,6 +626,13 @@ m4_start_status_reporter() {
                 kill -INT $parent 2>/dev/null || true
                 exit 0
             fi
+            if [ -n "$M4_WEB_PID" ] && [ "$M4_WEB_PID" != "0" ] \
+               && ! kill -0 "$M4_WEB_PID" 2>/dev/null; then
+                m4_fail "web server process died, asking parent to clean up"
+                m4_fail "inspect $M4_LOG_DIR/web.log for the root cause"
+                kill -INT $parent 2>/dev/null || true
+                exit 0
+            fi
             local ready="$M4_FIRST_READY"
             local topic_count
             topic_count=$(ros2 topic list 2>/dev/null | wc -l | tr -d ' ')
@@ -824,16 +831,16 @@ m4_cleanup() {
 # LAN can connect. Override with WEB_HOST=127.0.0.1 for local-only.
 M4_WEB_HOST="${WEB_HOST:-0.0.0.0}"
 M4_WEB_PORT="${WEB_PORT:-8080}"
-M4_WEB_BACKEND="${WEB_BACKEND:-auto}"     # auto | h264 | mjpeg | vp8
+M4_WEB_BACKEND="${WEB_BACKEND:-h264}"     # h264 | auto | mjpeg | vp8
 # Encode target for the preview stream. Frames are fitted inside this box;
 # 1280x720 keeps both the software fallback and the LAN bandwidth sane while
 # still looking sharp in a browser.
 M4_WEB_ENCODE_WIDTH="${WEB_ENCODE_WIDTH:-1280}"
 M4_WEB_ENCODE_HEIGHT="${WEB_ENCODE_HEIGHT:-720}"
-M4_WEB_ENCODE_FPS="${WEB_ENCODE_FPS:-30}"
+M4_WEB_ENCODE_FPS="${WEB_ENCODE_FPS:-15}"
 # Only meaningful for the hardware H.264 path (nvv4l2h264enc), which is NOT
 # subject to aiortc's 1.5/3 Mbps encoder clamps.
-M4_WEB_H264_BITRATE="${WEB_H264_BITRATE:-6000000}"
+M4_WEB_H264_BITRATE="${WEB_H264_BITRATE:-3500000}"
 M4_WEB_JPEG_QUALITY="${WEB_JPEG_QUALITY:-85}"
 M4_WEB_DRY_RUN="${WEB_DRY_RUN:-0}"
 
