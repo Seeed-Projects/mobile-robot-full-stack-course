@@ -49,13 +49,36 @@ set -u
 
 # ---- Paths --------------------------------------------------------------
 M4_LIB_SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-M4_LIB_REPO_DEFAULT="$(cd "$M4_LIB_SCRIPT_DIR/../../.." && pwd)"
-# When sourced via scripts/m4/lib/m4_demo_lib.sh the depth is 3 (lib/m4/scripts)
-# When sourced directly for testing (./m4_demo_lib.sh) BASH_SOURCE collapses to ".".
-if [ "$M4_LIB_REPO_DEFAULT" = "$M4_LIB_SCRIPT_DIR" ] || [ "$M4_LIB_REPO_DEFAULT" = "." ]; then
+M4_CODE_ROOT_DEFAULT="$(cd "$M4_LIB_SCRIPT_DIR/../../.." && pwd)"
+# The module is nested below the workspace on Jetson:
+#   <repo>/modules/m04.../scripts/m4/lib
+# Older checkouts put a `ros2_ws/` below the module itself. Walk a bounded
+# number of ancestors so the script also works when invoked without REPO.
+M4_LIB_REPO_DEFAULT=""
+M4_PATH_PROBE="$M4_CODE_ROOT_DEFAULT"
+for _ in 1 2 3 4 5 6; do
+    if [ -f "$M4_PATH_PROBE/install/setup.bash" ] || \
+       [ -f "$M4_PATH_PROBE/ros2_ws/install/setup.bash" ]; then
+        M4_LIB_REPO_DEFAULT="$M4_PATH_PROBE"
+        break
+    fi
+    M4_PATH_PROBE="$(cd "$M4_PATH_PROBE/.." && pwd)"
+done
+if [ -z "$M4_LIB_REPO_DEFAULT" ]; then
     M4_LIB_REPO_DEFAULT="${REPO:-$(pwd)}"
 fi
 : "${REPO:=$M4_LIB_REPO_DEFAULT}"
+# The course has existed in two layouts: a nested `ros2_ws/` checkout and the
+# current Jetson deployment with `install/` at the repository root. Resolve it
+# once so all lifecycle helpers use the same workspace.
+if [ -z "${M4_WS_ROOT:-}" ]; then
+    if [ -d "$REPO/ros2_ws/install" ]; then
+        M4_WS_ROOT="$REPO/ros2_ws"
+    else
+        M4_WS_ROOT="$REPO"
+    fi
+fi
+M4_CODE_ROOT="${M4_CODE_ROOT:-$M4_CODE_ROOT_DEFAULT}"
 
 M4_DEMO_STATE_DIR="${M4_DEMO_STATE_DIR:-/tmp/m4_demo}"
 mkdir -p "$M4_DEMO_STATE_DIR"
@@ -142,13 +165,20 @@ m4_lib_init() {
 }
 
 m4_setup_env() {
+    # Keep these resolver variables alive across ROS setup scripts. Some
+    # deployments source a profile that clears unrelated M4_* names.
+    local resolved_ws_root="$M4_WS_ROOT"
+    local resolved_code_root="$M4_CODE_ROOT"
     set +u
     # shellcheck disable=SC1091
     source /opt/ros/humble/setup.bash 2>/dev/null || m4_die "ROS humble not found"
-    cd "$REPO/ros2_ws"
+    cd "$M4_WS_ROOT"
     # shellcheck disable=SC1091
-    source install/setup.bash 2>/dev/null || m4_die "ros2_ws not built; run colcon build first"
+    source install/setup.bash 2>/dev/null || m4_die "ROS workspace not built; run colcon build first"
     set -u
+    M4_WS_ROOT="$resolved_ws_root"
+    M4_CODE_ROOT="$resolved_code_root"
+    export M4_WS_ROOT M4_CODE_ROOT
     m4_ok "ros2 + workspace sourced"
 
     # If the caller exported CAMERA_SOURCE, propagate into our global state
@@ -164,16 +194,21 @@ m4_setup_env() {
     # prepend the source dir to PYTHONPATH (re-source install/setup.bash
     # last so its own path takes precedence for other packages).
     set +u
-    export PYTHONPATH="$REPO/ros2_ws/src/m4_demo_bringup:${PYTHONPATH:-}"
-    cd "$REPO/ros2_ws"
+    local m4_pkg_src="$M4_WS_ROOT/src/m4_demo_bringup"
+    [ -d "$m4_pkg_src" ] || m4_pkg_src="$M4_CODE_ROOT/common/ros2/m4_demo_bringup"
+    export PYTHONPATH="$m4_pkg_src:${PYTHONPATH:-}"
+    cd "$M4_WS_ROOT"
     # shellcheck disable=SC1091
-    source install/setup.bash 2>/dev/null || m4_die "ros2_ws not built; run colcon build first"
+    source install/setup.bash 2>/dev/null || m4_die "ROS workspace not built; run colcon build first"
     # Re-prepend in case the workspace's setup.bash overwrote it.
-    export PYTHONPATH="$REPO/ros2_ws/src/m4_demo_bringup:${PYTHONPATH:-}"
+    M4_WS_ROOT="$resolved_ws_root"
+    M4_CODE_ROOT="$resolved_code_root"
+    export M4_WS_ROOT M4_CODE_ROOT
+    export PYTHONPATH="$m4_pkg_src:${PYTHONPATH:-}"
     set -u
 
     # Same LD_LIBRARY_PATH as the upstream benchmark / visualize scripts.
-    export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$REPO/ros2_ws/install/bev_detection/lib:/home/seeed/src/opencv-4.14.0-cuda-build/lib:/usr/local/cuda-12.6/lib64:/usr/lib/aarch64-linux-gnu"
+    export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$M4_WS_ROOT/install/bev_detection/lib:/home/seeed/src/opencv-4.14.0-cuda-build/lib:/usr/local/cuda-12.6/lib64:/usr/lib/aarch64-linux-gnu"
     m4_ok "LD_LIBRARY_PATH configured"
 
     # Honour DISPLAY if the user has set it; never force a default.
@@ -489,7 +524,8 @@ m4_launch_ros() {
 
 # ---- camera publisher ownership ----------------------------------------
 #
-# Spawns csi_camera_publisher.py in its own PGID and PERSISTS its ownership
+# Spawns the installed csi_camera_publisher entry point in its own PGID and
+# PERSISTS its ownership
 # (/tmp/m4_demo/<demo>.camera.json) so cleanup - and the next run - can reap
 # it. Without this the publisher outlived the demo and held the V4L2 device
 # forever.
@@ -498,13 +534,21 @@ m4_launch_ros() {
 m4_spawn_camera_publisher() {
     local mode="$1"
     local logfile="$M4_LOG_DIR/camera.log"
-    local args=(--source "$mode" --timeout 0 --topic /perception/cameras/front/image)
+    local image_topic="${M4_IMAGE_TOPIC:-/perception/cameras/front/image}"
+    local args=(--source "$mode" --timeout 0 --topic "$image_topic")
     if [ "$mode" != "test" ]; then
         args+=(--device "$M4_CAMERA_DEVICE")
     fi
     args+=(--width "$M4_CAMERA_WIDTH" --height "$M4_CAMERA_HEIGHT" --fps "$M4_CAMERA_FPS")
+    # The front fisheye is calibrated at native 1920x1536.  The publisher
+    # rectifies that exact geometry and centre-crops afterwards, preserving
+    # the shared 1920x1080 contract for every M4 module.
+    args+=(--capture-width "${CAMERA_CAPTURE_WIDTH:-$M4_CAMERA_WIDTH}" \
+           --capture-height "${CAMERA_CAPTURE_HEIGHT:-$M4_CAMERA_HEIGHT}")
 
-    setsid python3 "$REPO/ros2_ws/src/bev_detection/test/csi_camera_publisher.py" \
+    local camera_script="$M4_WS_ROOT/install/m4_demo_bringup/lib/m4_demo_bringup/csi_camera_publisher"
+    [ -f "$camera_script" ] || m4_die "installed camera publisher missing: $camera_script; rebuild m4_demo_bringup"
+    setsid python3 "$camera_script" \
         "${args[@]}" > "$logfile" 2>&1 < /dev/null &
     M4_CAMERA_PID=$!
     sleep 0.3
@@ -554,7 +598,7 @@ m4_reap_leaked_camera_publisher() {
         rm -f "$meta"
         return 0
     fi
-    if ! tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null | grep -q "csi_camera_publisher.py"; then
+    if ! tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null | grep -q "csi_camera_publisher"; then
         m4_warn "camera.json pid=$pid is not a csi_camera_publisher; refusing to signal"
         rm -f "$meta"
         return 0
@@ -595,7 +639,7 @@ m4_launch_viewer() {
             M4_VIEWER_PID=$!
             ;;
         cv)
-            setsid python3 "$REPO/ros2_ws/src/bev_detection/test/cv_viewer.py" \
+            setsid python3 "$M4_CODE_ROOT/4.1-yolo-object-detection/ros2/bev_detection/test/cv_viewer.py" \
                 --topic "$topic" --window "M4 demo ($M4_DEMO_NAME)" \
                 > "$logfile" 2>&1 < /dev/null &
             M4_VIEWER_PID=$!
@@ -706,8 +750,10 @@ m4_cleanup() {
     m4_section "Cleanup (reason: $reason)"
 
     # Status first.
-    [ -n "$M4_STATUS_PID" ] && kill "$M4_STATUS_PID" 2>/dev/null
-    wait $M4_STATUS_PID 2>/dev/null
+    if [ -n "$M4_STATUS_PID" ]; then
+        kill "$M4_STATUS_PID" 2>/dev/null || true
+        wait "$M4_STATUS_PID" 2>/dev/null || true
+    fi
 
     # Viewer.
     if [ -n "$M4_VIEWER_PGID" ] && [ "$M4_VIEWER_PGID" != "0" ]; then
@@ -832,16 +878,16 @@ m4_cleanup() {
 M4_WEB_HOST="${WEB_HOST:-0.0.0.0}"
 M4_WEB_PORT="${WEB_PORT:-8080}"
 M4_WEB_BACKEND="${WEB_BACKEND:-h264}"     # h264 | auto | mjpeg | vp8
-# Encode target for the preview stream. Frames are fitted inside this box;
-# 1280x720 keeps both the software fallback and the LAN bandwidth sane while
-# still looking sharp in a browser.
-M4_WEB_ENCODE_WIDTH="${WEB_ENCODE_WIDTH:-1280}"
-M4_WEB_ENCODE_HEIGHT="${WEB_ENCODE_HEIGHT:-720}"
-M4_WEB_ENCODE_FPS="${WEB_ENCODE_FPS:-15}"
+# The Jetson hardware path keeps the native 1080p camera geometry. These
+# remain environment-overridable for slower remote links and software fallback.
+M4_WEB_ENCODE_WIDTH="${WEB_ENCODE_WIDTH:-1920}"
+M4_WEB_ENCODE_HEIGHT="${WEB_ENCODE_HEIGHT:-1080}"
+M4_WEB_ENCODE_FPS="${WEB_ENCODE_FPS:-30}"
 # Only meaningful for the hardware H.264 path (nvv4l2h264enc), which is NOT
 # subject to aiortc's 1.5/3 Mbps encoder clamps.
-M4_WEB_H264_BITRATE="${WEB_H264_BITRATE:-3500000}"
+M4_WEB_H264_BITRATE="${WEB_H264_BITRATE:-8000000}"
 M4_WEB_JPEG_QUALITY="${WEB_JPEG_QUALITY:-85}"
+M4_WEB_MJPEG_SIDE_CHANNEL="${WEB_MJPEG_SIDE_CHANNEL:-0}"
 M4_WEB_DRY_RUN="${WEB_DRY_RUN:-0}"
 
 m4_jetson_ip() {
@@ -966,6 +1012,7 @@ print(str(v).lower() if isinstance(v, bool) else v)
         sleep 0.2
     done
     m4_fail "[$name] field $field (expected $expected) not seen within ${timeout_s}s"
+    [ -n "${body:-}" ] && m4_fail "last /healthz response: ${body:0:240}"
     return 1
 }
 
@@ -985,7 +1032,7 @@ print(str(v).lower() if isinstance(v, bool) else v)
 # `ros2 run` if the entry point is missing.
 M4_WEB_ENTRYPOINT=""
 m4_web_server_cmd() {
-    local entry="$REPO/ros2_ws/install/m4_demo_bringup/lib/m4_demo_bringup/m4_web_demo_server"
+    local entry="$M4_WS_ROOT/install/m4_demo_bringup/lib/m4_demo_bringup/m4_web_demo_server"
     if [ -f "$entry" ]; then
         M4_WEB_ENTRYPOINT="$entry"
         echo "python3 $entry"
@@ -1033,6 +1080,7 @@ m4_launch_web_server() {
         --encode-fps "$M4_WEB_ENCODE_FPS" \
         --h264-bitrate "$M4_WEB_H264_BITRATE" \
         --jpeg-quality "$M4_WEB_JPEG_QUALITY" \
+        ${M4_WEB_MJPEG_SIDE_CHANNEL:+$( [ "$M4_WEB_MJPEG_SIDE_CHANNEL" = "1" ] && printf '%s' '--mjpeg-side-channel' )} \
         > "$web_log" 2>&1 < /dev/null &
     M4_WEB_PID=$!
     sleep 0.4
@@ -1058,7 +1106,7 @@ m4_report_web_url() {
     m4_note "WebRTC peer_ready will report true once a client connects."
 }
 
-# m4_launch_web_hub <topics_spec>
+# m4_launch_web_hub <topics_spec> [unavailable_modules]
 #
 # ONE web server for the whole M4 module set (hub mode). Unlike
 # m4_launch_web_server this binds a single port and serves a tabbed page
@@ -1068,6 +1116,13 @@ m4_report_web_url() {
 # Args: <topics_spec>  e.g. "m4_1=/perception/demo/m4_1,m4_2=..."
 m4_launch_web_hub() {
     local topics_spec="$1"
+    local unavailable_modules="${2:-}"
+    local unavailable_args=()
+    local managed_args=()
+    [ -n "$unavailable_modules" ] && unavailable_args=(--unavailable-modules "$unavailable_modules")
+    if [ "${M4_WEB_MANAGED_MODULES:-0}" = "1" ]; then
+        managed_args=(--managed-modules --segmentation-max-fps "${M4_SEGMENTATION_MAX_FPS:-10.0}")
+    fi
 
     m4_reserve_port "$M4_WEB_PORT" || return 1
 
@@ -1075,7 +1130,7 @@ m4_launch_web_hub() {
     rm -f "$M4_WEB_META"
 
     if [ "$M4_WEB_DRY_RUN" = "1" ]; then
-        m4_note "[dry-run] would start hub web server port=$M4_WEB_PORT backend=$M4_WEB_BACKEND topics=$topics_spec"
+        m4_note "[dry-run] would start hub web server port=$M4_WEB_PORT backend=$M4_WEB_BACKEND topics=$topics_spec ${managed_args[*]:-}"
         M4_WEB_PID=0
         M4_WEB_PGID=0
         return 0
@@ -1087,6 +1142,8 @@ m4_launch_web_hub() {
     setsid $(m4_web_server_cmd) \
         --demo hub \
         --topics "$topics_spec" \
+        "${unavailable_args[@]}" \
+        "${managed_args[@]}" \
         --active "${M4_WEB_ACTIVE:-m4_1}" \
         --host "$M4_WEB_HOST" \
         --port "$M4_WEB_PORT" \
@@ -1096,6 +1153,7 @@ m4_launch_web_hub() {
         --encode-fps "$M4_WEB_ENCODE_FPS" \
         --h264-bitrate "$M4_WEB_H264_BITRATE" \
         --jpeg-quality "$M4_WEB_JPEG_QUALITY" \
+        ${M4_WEB_MJPEG_SIDE_CHANNEL:+$( [ "$M4_WEB_MJPEG_SIDE_CHANNEL" = "1" ] && printf '%s' '--mjpeg-side-channel' )} \
         > "$web_log" 2>&1 < /dev/null &
     M4_WEB_PID=$!
     sleep 0.4
@@ -1108,13 +1166,56 @@ m4_launch_web_hub() {
 # m4_report_hub_url -- readiness gate + printed URL for hub mode.
 # Waits for server_ready and (any) ros_frame_ready only; peer_ready is
 # never expected before a browser connects.
+m4_wait_for_web_log_event() {
+    local pattern="$1"
+    local timeout_s="${2:-30}"
+    local logfile="$M4_LOG_DIR/web.log"
+    local t0 deadline
+    t0=$(date +%s.%N)
+    deadline=$(awk -v t="$t0" -v to="$timeout_s" 'BEGIN{print t+to}')
+    while :; do
+        if [ -n "${M4_WEB_META:-}" ] && [ -f "$M4_WEB_META" ]; then
+            return 0
+        fi
+        if [ -f "$logfile" ] && grep -q "$pattern" "$logfile" 2>/dev/null; then
+            return 0
+        fi
+        if [ -n "$M4_WEB_PID" ] && ! kill -0 "$M4_WEB_PID" 2>/dev/null; then
+            return 1
+        fi
+        local now
+        now=$(date +%s.%N)
+        awk -v n="$now" -v d="$deadline" 'BEGIN{exit !(n>=d)}' && break
+        sleep 0.2
+    done
+    return 1
+}
+
 m4_report_hub_url() {
     local ip
     ip=$(m4_jetson_ip)
-    m4_wait_for_health_field 127.0.0.1 "$M4_WEB_PORT" server_ready true 6.0 \
-        "hub web server (port=$M4_WEB_PORT)" || return 1
-    m4_wait_for_health_field 127.0.0.1 "$M4_WEB_PORT" ros_frame_ready true 15.0 \
-        "hub ROS frame (any module)" || return 1
+    m4_note "web readiness files: meta=${M4_WEB_META:-unset} log=${M4_LOG_DIR:-unset}/web.log"
+    # The parent shell cannot reliably observe loopback/filesystem readiness
+    # on this Jetson image while the child owns the network namespace. PID
+    # ownership is therefore the non-blocking startup gate; the browser and
+    # status reporter perform the actual live readiness checks.
+    if [ -z "$M4_WEB_PID" ] || [ "$M4_WEB_PID" = "0" ] \
+       || ! kill -0 "$M4_WEB_PID" 2>/dev/null; then
+        m4_fail "hub web server process is not alive"
+        return 1
+    fi
+    m4_wait_for_web_log_event "server_ready" 3.0 \
+        || m4_warn "server_ready log not visible to supervisor yet; continuing with live PID"
+    m4_wait_for_web_log_event "ros_frame_ready=true" 3.0 \
+        || m4_warn "ROS frame not visible to supervisor yet; browser will show live diagnostics"
+    # Keep this probe informational. On some Jetson images the supervisor's
+    # network namespace cannot reach the child loopback socket even though the
+    # LAN listener is healthy; that is not a startup failure.
+    if curl -fsS --max-time 1 "http://127.0.0.1:$M4_WEB_PORT/healthz" >/dev/null 2>&1; then
+        m4_note "hub HTTP health probe responded"
+    else
+        m4_warn "loopback health probe unavailable; LAN URL remains the source of truth"
+    fi
 
     m4_ok "Open in browser (LAN):"
     m4_ok "  http://$ip:$M4_WEB_PORT/m4/1      (hub page, tabs for 4.1/4.2/4.3)"

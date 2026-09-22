@@ -3,9 +3,18 @@
 # These parameters tune the supervision.ByteTrack tracker that associates
 # per-frame detections from bev_detection (M4.1) into stable track_ids.
 #
-# frame_rate matches the observed bev_detection throughput on Jetson Orin
-# (~10 Hz after TensorRT + NMS). lost_track_buffer is in frames, so a value
-# of 30 at 10 Hz gives ~3 seconds of occlusion tolerance.
+# frame_rate must match the rate detections actually arrive at, because
+# ByteTrack's Kalman filter uses dt = 1/frame_rate. It is measured, not assumed:
+#
+#   M4.2 chapter (4.1 + 4.2, the configuration this file ships with)
+#       camera 29.1 Hz -> tracks 30.0 Hz          (Jetson AGX Orin, MAXN)
+#   full web hub (4.1 + 4.2 + 4.3, CPU-bound)
+#       camera ~15.5 Hz, semantic mask ~14.5 Hz
+#
+# The earlier value of 10 Hz came from a superseded single-module measurement
+# and made dt ~3x too large. lost_track_buffer is in FRAMES, so 90 at 30 Hz
+# keeps the original ~3 s of occlusion tolerance; under the CPU-bound hub
+# (~15 Hz) the same 90 frames tolerate ~6 s.
 
 tracking_node:
   ros__parameters:
@@ -17,9 +26,9 @@ tracking_node:
     # ByteTrack (supervision)
     tracker_type: "bytetrack"
     track_activation_threshold: 0.25
-    lost_track_buffer: 30
+    lost_track_buffer: 90
     minimum_matching_threshold: 0.8
-    frame_rate: 10
+    frame_rate: 30
     minimum_consecutive_frames: 1
 
     # Diagnostics

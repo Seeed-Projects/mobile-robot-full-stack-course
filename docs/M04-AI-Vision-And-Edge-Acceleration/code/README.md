@@ -3,8 +3,8 @@
 Curated, git-safe source code for M04 chapters 4.1–4.4 plus the shared infrastructure
 they build on. This folder is the **published copy** referenced by the M04 chapters.
 
-**Edit one way only.** The canonical, editable source is the course repository on the
-Jetson (`/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration/`).
+**Edit one way only.** The canonical, editable source is the runtime repository on the
+Jetson (`/home/seeed/workspace/ros2_bev/`).
 Changes flow **Jetson → this folder**, never the reverse — otherwise the two trees drift
 and the published copy silently becomes a second, wrong answer. See
 [Provenance](#provenance) for the exact revision this snapshot came from.
@@ -16,6 +16,8 @@ All changes in this course project live under `docs/M04-AI-Vision-And-Edge-Accel
 ```text
 code/
   README.md
+  PROJECT_STATUS.md                    # canonical runtime status at snapshot time
+  SOURCE_SNAPSHOT.md                   # source commit and mapping
   4.1-yolo-object-detection/           # chapter 4.1
     README.md
     ros2/bev_detection/                # ROS 2 ament_cmake package (C++ / TensorRT)
@@ -42,23 +44,26 @@ code/
     regression/                        # regression gates
 ```
 
-There is exactly **one editable copy** of each ROS 2 package. `scripts/setup_workspace.sh`
-symlinks them into a colcon workspace; nothing is duplicated.
+The Jetson tree is the only editable runtime source. In this standalone course copy,
+`scripts/setup_workspace.sh` is a course-only adapter that symlinks the published
+packages into `ros2_ws/src`; it is not the Jetson build entry.
 
 ## Provenance
 
 | Chapter folder | Source | Detail |
 |---|---|---|
-| `4.1-yolo-object-detection/` | Jetson `<Jetson IP>` | `/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration/4.1-yolo-object-detection/` |
+| `4.1-yolo-object-detection/` | Jetson `<Jetson IP>` | `/home/seeed/workspace/ros2_bev/modules/m04-ai-vision-and-edge-acceleration/4.1-yolo-object-detection/` |
 | `4.2-multi-object-tracking/` | Jetson | same module root, `4.2-multi-object-tracking/` |
 | `4.3-semantic-segmentation/` | Jetson | same module root, `4.3-semantic-segmentation/` |
 | `4.4-foundationpose/` | Jetson | same module root, `4.4-foundationpose/` |
-| `common/` | Jetson | same module root, `common/` |
+| `common/ros2/m4_demo_bringup/` | Jetson | same module root, `common/ros2/m4_demo_bringup/` |
+| `common/ros2/bev_interfaces/` | Jetson | `/home/seeed/workspace/ros2_bev/modules/common/ros2/bev_interfaces/` |
 | `models/m4/` | Jetson | same module root, `models/m4/` (tracked metadata only) |
 | `scripts/` | Jetson | same module root, `scripts/` |
 
-Captured from branch `main`, commit **`f6b8afb`**, on 2026-09-18. All 166 files in this
-folder are byte-identical to that revision.
+Captured from branch `main`, commit
+**`cd3b6698425eb301fc1b9809d81f5d96f16da2f1`**, on 2026-09-22. See
+[`SOURCE_SNAPSHOT.md`](SOURCE_SNAPSHOT.md) for the exact mapping and course-only files.
 
 Jetson access: `ssh seeed@<Jetson IP>` (the working configuration used an SSH alias
 `j50-robotics`).
@@ -68,43 +73,27 @@ Jetson access: `ssh seeed@<Jetson IP>` (the working configuration used an SSH al
 
 ### Re-syncing
 
-The tracked file list *is* the manifest — anything not in it (engines, ONNX exports, the
-CAD, `output/`) is deliberately excluded, so driving the copy from `git ls-files` cannot
-leak an artifact:
+Sync only from a clean, tested Jetson commit. The source commit and selected paths are
+the manifest; engines, ONNX exports, CAD, `output/` and local configuration are excluded:
 
 ```bash
-# 1. ask the Jetson which files are tracked, minus the exclusions in the next section
 ssh seeed@<Jetson IP> \
-  'cd /home/seeed/mobile-robot-full-stack-course && \
-   git ls-files modules/m04-ai-vision-and-edge-acceleration' \
-  | sed 's|^modules/m04-ai-vision-and-edge-acceleration/||' \
-  | grep -vE '^(README\.md|CLEANUP_REPORT\.md|MIGRATION_REPORT\.md|ros2_ws/src/)' \
-  > /tmp/m4-manifest.txt
-
-# 2. copy exactly those files
-rsync -av --files-from=/tmp/m4-manifest.txt \
-  seeed@<Jetson IP>:/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration/ \
-  docs/M04-AI-Vision-And-Edge-Acceleration/code/
+  'git -C /home/seeed/workspace/ros2_bev archive <verified-sha> <selected-paths>' \
+  > /tmp/m4-source.tar
 ```
 
-> On macOS the system `rsync` is `openrsync`, which does not implement `--files-from`.
-> Substituting `tar` works and is what produced this snapshot:
-> `ssh … 'tar -c -C <module dir> --files-from=-' < /tmp/m4-manifest.txt | tar -x -C code/`
-
-After syncing, re-check the result with `git status` — nothing in this folder should ever
-be large or generated.
+Extract to a temporary directory, map the paths documented in
+`SOURCE_SNAPSHOT.md`, and inspect `git diff` before committing. Never copy this folder
+back to the Jetson.
 
 ## Excluded from this copy
 
-`ros2_ws/src/` (the six package symlinks — recreated by `scripts/setup_workspace.sh`),
-`README.md` at the module root (its content is folded into this file),
-`CLEANUP_REPORT.md` and `MIGRATION_REPORT.md` (internal records of the working
-repository's own restructuring, not course material), `output/`, `ros2_ws/{build,install,log}`,
+Jetson `build/`, `install/`, `log/` and `output/`, internal requirement/Agent files,
+the runtime repository's root scripts and local configuration, course `ros2_ws/{build,install,log}`,
 `__pycache__/`, and every model binary — `*.engine`, `*.onnx`, `*.onnx.data`, `*.obj`,
 `*.step` — which the repository `.gitignore` already covers.
 
-The largest file in this folder is `common/ros2/m4_demo_bringup/web/static/app.js` at 29 KB.
-There are no binaries and no symlinks.
+The published source snapshot contains no model binaries or tracked symlinks.
 
 ## Prerequisites
 

@@ -112,7 +112,7 @@ def generate_launch_description():
         ),
         DeclareLaunchArgument(
             'yolo_model_path',
-            default_value='/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration/models/m4/detection/engines/yolo11n_fp16.engine',
+            default_value='/home/seeed/workspace/ros2_bev/modules/m04-ai-vision-and-edge-acceleration/models/m4/detection/engines/yolo11n_fp16.engine',
             description='TensorRT engine path (forwarded to bev_detection)',
         ),
         detection_launch_action,

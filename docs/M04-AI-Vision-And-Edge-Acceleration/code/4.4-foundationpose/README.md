@@ -1,5 +1,8 @@
 # 4.4 FoundationPose 6D Object Pose
 
+> All relative paths below are relative to the module root,
+> `modules/m04-ai-vision-and-edge-acceleration/`.
+
 NVlabs FoundationPose over an Orbbec Gemini 2 RGB-D stream, registering and
 tracking a known CAD object and publishing its 6D pose.
 

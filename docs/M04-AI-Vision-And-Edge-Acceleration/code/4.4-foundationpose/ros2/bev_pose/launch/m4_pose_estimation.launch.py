@@ -71,11 +71,11 @@ def generate_launch_description() -> LaunchDescription:
     return LaunchDescription([
         DeclareLaunchArgument(
             'mesh_npz_path',
-            default_value='/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration/models/m4/pose/processed/cup.npz',
+            default_value='/home/seeed/workspace/ros2_bev/modules/m04-ai-vision-and-edge-acceleration/models/m4/pose/processed/cup.npz',
             description='Pre-computed mesh .npz produced by mesh_preprocessor.'),
         DeclareLaunchArgument(
             'mesh_obj',
-            default_value='/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration/models/m4/pose/obj_models/cup.obj',
+            default_value='/home/seeed/workspace/ros2_bev/modules/m04-ai-vision-and-edge-acceleration/models/m4/pose/obj_models/cup.obj',
             description='Original OBJ (FoundationPose reads tex; the .npz covers geometry).'),
         DeclareLaunchArgument(
             'frame_id', default_value='cup',

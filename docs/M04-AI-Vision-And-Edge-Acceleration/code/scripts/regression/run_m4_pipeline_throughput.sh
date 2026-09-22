@@ -22,13 +22,19 @@
 #
 # Exits 0 only when the measured rate is >= MIN_FPS.
 
+# --- module anchors: derived from this script's own location, never hardcoded ---
+# M4_ROOT is this M04 module; WS_ROOT is the repository root.
+M4_ROOT="${M4_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+WS_ROOT="${WS_ROOT:-$(cd "$M4_ROOT/../.." && pwd)}"
+export M4_ROOT WS_ROOT
+
 set -u
 # Do NOT enable 'set -e' (we want the log inspected on failure) and do not
 # source ROS under 'set -u' — /opt/ros/humble/setup.bash touches unbound vars.
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-WS="$REPO_ROOT/ros2_ws"
-PUBLISHER="$WS/src/bev_detection/test/csi_camera_publisher.py"
+WS="$WS_ROOT/"
+PUBLISHER="$WS_ROOT/install/m4_demo_bringup/lib/m4_demo_bringup/csi_camera_publisher"
 
 MIN_FPS="${MIN_FPS:-25}"
 WIDTH="${WIDTH:-1920}"
@@ -36,7 +42,7 @@ HEIGHT="${HEIGHT:-1080}"
 FPS="${FPS:-30}"
 DURATION="${DURATION:-15}"
 TOPIC="${TOPIC:-/probe/m4_throughput}"
-LOG_DIR="${LOG_DIR:-$REPO_ROOT/output/regression/m4_throughput_$(date +%Y%m%d_%H%M%S)}"
+LOG_DIR="${LOG_DIR:-$M4_ROOT/output/regression/m4_throughput_$(date +%Y%m%d_%H%M%S)}"
 
 mkdir -p "$LOG_DIR"
 LOG="$LOG_DIR/publisher.log"

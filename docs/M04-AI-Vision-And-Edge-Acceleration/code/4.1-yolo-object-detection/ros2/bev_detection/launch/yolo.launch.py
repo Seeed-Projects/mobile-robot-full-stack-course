@@ -29,8 +29,8 @@ def generate_launch_description():
     publish_debug_image = LaunchConfiguration('publish_debug_image')
 
     # Defaults
-    default_model = '/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration/models/m4/detection/engines/yolo11n_fp16.engine'
-    default_class_names = '/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration/models/m4/detection/labels/coco.names'
+    default_model = '/home/seeed/workspace/ros2_bev/modules/m04-ai-vision-and-edge-acceleration/models/m4/detection/engines/yolo11n_fp16.engine'
+    default_class_names = '/home/seeed/workspace/ros2_bev/modules/m04-ai-vision-and-edge-acceleration/models/m4/detection/labels/coco.names'
 
     return LaunchDescription([
         DeclareLaunchArgument('model_path', default_value=default_model,

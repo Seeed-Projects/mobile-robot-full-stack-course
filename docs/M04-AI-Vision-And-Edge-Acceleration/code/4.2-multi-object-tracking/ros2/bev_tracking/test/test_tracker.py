@@ -23,12 +23,13 @@ warnings.filterwarnings('ignore', category=UserWarning)
 
 @pytest.fixture
 def tracker():
-    # 10 Hz camera, 30-frame lost buffer => ~3 s occlusion tolerance.
+    # 30 Hz detections, 90-frame lost buffer => ~3 s occlusion tolerance.
+    # Keep these in step with config/bytetrack.yaml.
     return sv.ByteTrack(
         track_activation_threshold=0.25,
-        lost_track_buffer=30,
+        lost_track_buffer=90,
         minimum_matching_threshold=0.8,
-        frame_rate=10,
+        frame_rate=30,
         minimum_consecutive_frames=1,
     )
 
@@ -66,7 +67,7 @@ def test_motion_keeps_id_under_50px_per_frame(tracker):
 def test_short_occlusion_preserves_id(tracker):
     t1 = tracker.update_with_detections(_det(100, 100, 150, 150))
     id1 = int(t1.tracker_id[0])
-    # 5 empty frames (well within lost_track_buffer=30)
+    # 5 empty frames (well within lost_track_buffer=90)
     for _ in range(5):
         empty = tracker.update_with_detections(sv.Detections.empty())
         assert len(empty) == 0
@@ -77,8 +78,8 @@ def test_short_occlusion_preserves_id(tracker):
 def test_long_occlusion_creates_new_id(tracker):
     t1 = tracker.update_with_detections(_det(100, 100, 150, 150))
     id1 = int(t1.tracker_id[0])
-    # 60 empty frames >> lost_track_buffer=30; old track is dropped.
-    for _ in range(60):
+    # 200 empty frames >> lost_track_buffer=90; old track is dropped.
+    for _ in range(200):
         tracker.update_with_detections(sv.Detections.empty())
     # Re-acquire the object: ByteTrack 0.27 needs minimum_consecutive_frames
     # confirmations before exposing a tracker_id. We feed enough frames to

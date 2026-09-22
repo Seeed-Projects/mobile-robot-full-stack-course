@@ -33,12 +33,15 @@ PYTHON="${PYTHON:-/home/seeed/miniconda3/envs/py310/bin/python}"
 
 # ---- repo + paths ---------------------------------------------------
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO="$(cd "$SCRIPT_DIR/../.." && pwd)"
+# --- module anchors: derived from this script's own location, never hardcoded ---
+# M4_ROOT is this M04 module; WS_ROOT is the repository root.
+M4_ROOT="${M4_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+WS_ROOT="${WS_ROOT:-$(cd "$M4_ROOT/../.." && pwd)}"
 FOUNDATIONPOSE_DIR="${FOUNDATIONPOSE_DIR:-${HOME}/FoundationPose}"
 WEIGHTS_DIR="${FOUNDATIONPOSE_WEIGHTS:-$FOUNDATIONPOSE_DIR/weights}"
-TESTDATA_DIR="${FOUNDATIONPOSE_TESTDATA:-$REPO/models/m4/pose/test/cup}"
+TESTDATA_DIR="${FOUNDATIONPOSE_TESTDATA:-$M4_ROOT/models/m4/pose/test/cup}"
 
-OUT_DIR="$REPO/output/m4/phase0"
+OUT_DIR="$M4_ROOT/output/m4/phase0"
 mkdir -p "$OUT_DIR"
 LOG="$OUT_DIR/phase0.log"
 REPORT="$OUT_DIR/phase0_report.json"
@@ -185,7 +188,7 @@ if [ ! -d "$TESTDATA_DIR/rgb" ]; then
     upsert_json "step5_register" "false"
     upsert_json "step5_register_msg" "\"test data missing\""
 else
-    cd "$FOUNDATIONPOSE_DIR" || cd "$REPO"
+    cd "$FOUNDATIONPOSE_DIR" || cd "$M4_ROOT"
     STEP5_OUT=$("$PYTHON" - <<PY 2>&1 || echo "ERROR"
 import sys, os, json
 import numpy as np
@@ -256,7 +259,7 @@ if [ ! -d "$TESTDATA_DIR/rgb" ]; then
     warn "test data missing under $TESTDATA_DIR"
     upsert_json "step6_tracking" "false"
 else
-    cd "$FOUNDATIONPOSE_DIR" || cd "$REPO"
+    cd "$FOUNDATIONPOSE_DIR" || cd "$M4_ROOT"
     STEP6_OUT=$("$PYTHON" - <<PY 2>&1 || echo "ERROR"
 import sys, os, json, time
 import numpy as np

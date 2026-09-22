@@ -13,8 +13,11 @@
 
 set -euo pipefail
 
-REPO_ROOT="${REPO_ROOT:-/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration}"
-OUT_DIR="$REPO_ROOT/models/m4/segmentation/onnx"
+# --- module anchors: derived from this script's own location, never hardcoded ---
+# M4_ROOT is this M04 module; WS_ROOT is the repository root.
+M4_ROOT="${M4_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+WS_ROOT="${WS_ROOT:-$(cd "$M4_ROOT/../.." && pwd)}"
+OUT_DIR="$M4_ROOT/models/m4/segmentation/onnx"
 OUT_FILE="$OUT_DIR/segformer_b0.onnx"
 CHECKPOINT="nvidia/segformer-b0-finetuned-cityscapes-512-1024"
 

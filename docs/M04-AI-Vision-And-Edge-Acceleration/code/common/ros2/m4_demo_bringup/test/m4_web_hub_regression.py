@@ -14,7 +14,7 @@ Acceptance per cycle:
      unresolved {{TEMPLATE}} placeholders
   6. a `select` signaling message switches /healthz `active`
   7. an unknown module is rejected without killing the connection
-  8. SIGINT frees the port within 5s and leaves no orphan
+  8. SIGTERM frees the port within 5s and leaves no orphan
 
 Usage:
   python3 m4_web_hub_regression.py [--port 8091] [--log-dir /tmp/x]
@@ -37,7 +37,17 @@ import urllib.request
 
 # Make m4_demo_bringup importable in a source/symlink-install workspace.
 _HERE = os.path.dirname(os.path.abspath(__file__))
-_WS = os.path.abspath(os.path.join(_HERE, "..", "..", ".."))
+# Resolve the workspace by its install marker instead of assuming how many
+# course/module directories surround this package. This covers both the
+# source checkout (`code/`) and Jetson's `modules/m04.../` deployment.
+_WS = os.path.abspath(_HERE)
+for _ in range(10):
+    if os.path.isfile(os.path.join(_WS, "install", "setup.bash")):
+        break
+    _parent = os.path.dirname(_WS)
+    if _parent == _WS:
+        break
+    _WS = _parent
 for _p in (
     os.path.join(_WS, "install/m4_demo_bringup/lib/python3.10/site-packages"),
     os.path.join(_WS, "build/m4_demo_bringup"),
@@ -274,7 +284,8 @@ def main() -> int:
     # Mirror the production launch path (m4_web_server_cmd in m4_demo_lib.sh):
     # run the installed console script rather than `ros2 run`, because
     # `ros2 run` places the node in a DIFFERENT process group, so a group
-    # SIGINT never reaches it and the orphan keeps the port bound.
+    # A signal sent only to the wrapper never reaches it and the orphan keeps
+    # the port bound.
     entry = os.path.join(
         _WS, "install/m4_demo_bringup/lib/m4_demo_bringup/m4_web_demo_server"
     )
@@ -319,6 +330,12 @@ def main() -> int:
               f"/api/demos lists modules in order {keys}")
         check(all(m.get("ready") for m in listing.get("modules", [])),
               "/api/demos marks every module ready")
+        check(listing.get("video") == {
+                  "width": 1920, "height": 1080, "fps": 30, "bitrate": None,
+              },
+              f"/api/demos exposes 1080p30 defaults: {listing.get('video')}")
+        check(hz.get("video") == listing.get("video"),
+              "/healthz and /api/demos report the same video configuration")
 
         html = http_text(f"http://127.0.0.1:{port}/m4/1")
         check(html is not None and 'data-hub="1"' in html,
@@ -349,8 +366,35 @@ def main() -> int:
         # ---- redesigned UI contract (P3) --------------------------------
         check(css is not None and ".panel" in css and ".badge" in css,
               "redesigned style.css carries .panel/.badge (calib_web design system)")
+        check(css is not None and ".workspace" in css and ".control-rail" in css,
+              "M2-style main-view plus control-rail workspace is present")
+        check(html is not None and 'id="activeTitle"' in html and
+              'id="pipelineFps"' in html and 'id="dcSize"' in html,
+              "primary view exposes module, browser FPS, and resolution")
         check(app_js is not None and "data-i18n" in (html or "") + (app_js or ""),
               "i18n hooks present (data-i18n)")
+
+        # ---- runtime input controls ------------------------------------
+        # These controls share a single ROS pipeline: the toggle changes the
+        # camera input and the drawer changes global YOLO/ByteTrack values.
+        check(html is not None and 'id="undistortToggle"' in html and
+              'id="parameterBtn"' in html and 'id="parameterDrawer"' in html,
+              "page exposes the undistortion control bar and parameter drawer")
+        check(app_js is not None and '"/api/settings"' in app_js and
+              '"/api/settings/reset"' in app_js,
+              "app.js wires runtime settings and reset endpoints")
+        check(css is not None and ".input-control-bar" in css and
+              ".parameter-drawer" in css,
+              "style.css contains responsive input controls and parameter drawer")
+        settings = http_json(f"http://127.0.0.1:{port}/api/settings", timeout=4.0)
+        required_settings = {"values", "defaults", "limits", "undistort_available"}
+        check(required_settings.issubset(settings),
+              f"GET /api/settings exposes control contract: {sorted(settings)}")
+        check(set(settings.get("values", {})) >= {
+              "undistort_enabled", "confidence_threshold", "nms_threshold",
+              "track_activation_threshold", "minimum_matching_threshold",
+              "lost_track_buffer", "minimum_consecutive_frames",
+          }, "GET /api/settings exposes all shared pipeline values")
 
         # ---- transport reporting (P4) -----------------------------------
         check(isinstance(hz.get("transport"), str) and hz["transport"],
@@ -394,13 +438,13 @@ def main() -> int:
             check(hz3.get("active") == "m4_3", "rejected switch left active unchanged")
 
         # ---- shutdown behaviour ----------------------------------------
-        proc.send_signal(signal.SIGINT)
+        proc.send_signal(signal.SIGTERM)
         try:
             proc.wait(timeout=8)
         except subprocess.TimeoutExpired:
             proc.kill()
             proc.wait(timeout=5)
-        check(proc.returncode is not None, "hub server exited on SIGINT")
+        check(proc.returncode is not None, "hub server exited on SIGTERM")
 
         freed = False
         deadline = time.time() + 5
@@ -418,10 +462,12 @@ def main() -> int:
     finally:
         pub_timer.set()
         stop.set()
+        pub_thread.join(timeout=2.0)
         try:
             executor.shutdown()
         except Exception:
             pass
+        spin_thread.join(timeout=2.0)
         # `proc` is the `ros2` CLI wrapper; the server itself is its child in
         # the same process group/session. Killing only the wrapper left an
         # orphan holding the port, so tear down the WHOLE group.

@@ -75,7 +75,7 @@ def generate_launch_description() -> LaunchDescription:
         DeclareLaunchArgument(
             'fallback_publisher', default_value='image_republisher.py',
             description='Override of the fallback script path. By default uses '
-                        'ros2_ws/src/bev_segmentation/test/image_republisher.py '
+                        'modules/m04-ai-vision-and-edge-acceleration/4.3-semantic-segmentation/ros2/bev_segmentation/test/image_republisher.py '
                         'which is identical to the bev_detection version.'),
     ]
 

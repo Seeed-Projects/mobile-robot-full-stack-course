@@ -1,7 +1,7 @@
 """M4.1 demo launch.
 
 Camera mode (camera_source arg, passed from bash wrapper):
-  v4l2   : Start csi_camera_publisher.py with v4l2src (GMSL via V4L2) → YOLO
+  v4l2   : Start the installed csi_camera_publisher with v4l2src → YOLO
   existing: /perception/cameras/front/image already live; start YOLO only
   test   : GStreamer videotestsrc (synthetic, always works)
   gmsl   : (deprecated) legacy nvargus mode — use v4l2 instead

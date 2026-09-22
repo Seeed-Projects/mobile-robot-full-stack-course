@@ -80,73 +80,73 @@ std::vector<BBox> applyNMS(const std::vector<BBox> & boxes, float nms_thresh)
   return result;
 }
 
-std::vector<BBox> parseYoloOutput(
+// ============================================================================
+// YoloPostprocess -- the single parser
+// ============================================================================
+
+YoloPostprocess::YoloPostprocess(int num_classes, float conf_thresh, float nms_thresh)
+  : num_classes_(num_classes), conf_thresh_(conf_thresh), nms_thresh_(nms_thresh)
+{}
+
+std::vector<BBox> YoloPostprocess::parse(
   const float * output, int output_size,
-  int num_classes, float conf_thresh, float nms_thresh,
-  const LetterBox & letterbox)
+  int img_h, int img_w, const LetterBox & letterbox) const
 {
-  // YOLO11n output: [1, 84, 8400]
-  // 84 = 4 (bbox: cx, cy, w, h in model space) + 80 (class scores)
+  // YOLO11n output: [1, 4 + num_classes, 8400]
   const int num_anchors = 8400;
-  const int channels = 4 + num_classes;   // bbox(4) + class scores(nc)
-  if (output_size < channels * num_anchors) { return {}; }
+  const int channels = 4 + num_classes_;
+
+  // img_h / img_w are not needed: boxes are clipped to the model input box here
+  // and mapped back through `letterbox`, which already carries the original
+  // geometry.
+  (void)img_h;
+  (void)img_w;
+
+  if (output == nullptr || output_size < channels * num_anchors) { return {}; }
 
   std::vector<BBox> candidates;
   candidates.reserve(num_anchors);
 
-  // CHANNEL-MAJOR [1, channels, num_anchors]: element (c, i) is at
-  // c * num_anchors + i. The old anchor-major walk (output + i*stride) read box
-  // coordinates as class scores, flooding the UI with hundreds of boxes
-  // labelled "69696%", "620505%" etc.
   for (int i = 0; i < num_anchors; ++i) {
-    // Find class with maximum score
+    // Best class score for this anchor.
     float max_score = 0.f;
     int max_class = 0;
-    for (int c = 0; c < num_classes; ++c) {
+    for (int c = 0; c < num_classes_; ++c) {
       const float score = output[(4 + c) * num_anchors + i];
       if (score > max_score) {
         max_score = score;
         max_class = c;
       }
     }
+    if (max_score < conf_thresh_) { continue; }
 
-    // Apply confidence threshold
-    if (max_score < conf_thresh) continue;
-
-    // Get bbox in model space [0, 640]
+    // Box in model space [0, 640]: center format -> corner format.
     const float cx = output[0 * num_anchors + i];
     const float cy = output[1 * num_anchors + i];
     const float w  = output[2 * num_anchors + i];
     const float h  = output[3 * num_anchors + i];
 
-    // Convert from center format to corner format
-    float x1 = cx - w * 0.5f;
-    float y1 = cy - h * 0.5f;
-    float x2 = cx + w * 0.5f;
-    float y2 = cy + h * 0.5f;
-
-    // Clip to model bounds
-    x1 = std::max(0.f, std::min(640.f, x1));
-    y1 = std::max(0.f, std::min(640.f, y1));
-    x2 = std::max(0.f, std::min(640.f, x2));
-    y2 = std::max(0.f, std::min(640.f, y2));
-
-    // Skip invalid boxes
-    if (x2 <= x1 || y2 <= y1) continue;
-
     BBox box;
-    box.x1 = x1;
-    box.y1 = y1;
-    box.x2 = x2;
-    box.y2 = y2;
+    box.x1 = std::max(0.f, std::min(640.f, cx - w * 0.5f));
+    box.y1 = std::max(0.f, std::min(640.f, cy - h * 0.5f));
+    box.x2 = std::max(0.f, std::min(640.f, cx + w * 0.5f));
+    box.y2 = std::max(0.f, std::min(640.f, cy + h * 0.5f));
+
+    // A degenerate box has no area: it can never suppress anything, and it
+    // would be published as a zero-size detection.
+    if (box.x2 <= box.x1 || box.y2 <= box.y1) { continue; }
+
     box.confidence = max_score;
     box.class_id = max_class;
-
     candidates.push_back(box);
   }
 
-  // Apply NMS
-  return applyNMS(candidates, nms_thresh);
+  // applyNMS works in model space; map the survivors back afterwards.
+  std::vector<BBox> kept = applyNMS(candidates, nms_thresh_);
+  for (BBox & box : kept) {
+    box = letterbox.restore(box);
+  }
+  return kept;
 }
 
 }  // namespace bev::detection

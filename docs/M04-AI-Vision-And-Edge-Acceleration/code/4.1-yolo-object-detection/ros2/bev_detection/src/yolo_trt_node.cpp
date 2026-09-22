@@ -5,11 +5,13 @@
 #include <chrono>
 #include <cmath>
 #include <cstdio>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
 
 #include <rclcpp/rclcpp.hpp>
+#include <rcl_interfaces/msg/set_parameters_result.hpp>
 #include <sensor_msgs/msg/image.hpp>
 #include <vision_msgs/msg/detection2_d_array.hpp>
 #include <vision_msgs/msg/detection2_d.hpp>
@@ -71,6 +73,9 @@ public:
       return;
     }
 
+    parameter_callback_handle_ = add_on_set_parameters_callback(
+      std::bind(&YoloTrtNode::onSetParameters, this, std::placeholders::_1));
+
     RCLCPP_INFO(get_logger(), "YOLO engine loaded successfully");
 
     // Subscribe to image topic (use rclcpp subscription since image_transport API differs)
@@ -95,6 +100,49 @@ public:
   }
 
 private:
+  rcl_interfaces::msg::SetParametersResult onSetParameters(
+    const std::vector<rclcpp::Parameter> & parameters)
+  {
+    rcl_interfaces::msg::SetParametersResult result;
+    result.successful = true;
+    float confidence = confidence_threshold_;
+    float nms = nms_threshold_;
+    bool changed = false;
+
+    for (const auto & parameter : parameters) {
+      if (parameter.get_name() == "confidence_threshold") {
+        if (parameter.get_type() != rclcpp::ParameterType::PARAMETER_DOUBLE) {
+          result.successful = false;
+          result.reason = "confidence_threshold must be a float";
+          return result;
+        }
+        confidence = static_cast<float>(parameter.as_double());
+        changed = true;
+      } else if (parameter.get_name() == "nms_threshold") {
+        if (parameter.get_type() != rclcpp::ParameterType::PARAMETER_DOUBLE) {
+          result.successful = false;
+          result.reason = "nms_threshold must be a float";
+          return result;
+        }
+        nms = static_cast<float>(parameter.as_double());
+        changed = true;
+      }
+    }
+    if (confidence < 0.05F || confidence > 0.95F || nms < 0.05F || nms > 0.95F) {
+      result.successful = false;
+      result.reason = "detection thresholds must be between 0.05 and 0.95";
+      return result;
+    }
+    if (changed) {
+      confidence_threshold_ = confidence;
+      nms_threshold_ = nms;
+      inferencer_->setPostprocessThresholds(confidence_threshold_, nms_threshold_);
+      RCLCPP_INFO(get_logger(), "updated postprocess thresholds: confidence=%.2f nms=%.2f",
+        confidence_threshold_, nms_threshold_);
+    }
+    return result;
+  }
+
   void onImage(const sensor_msgs::msg::Image::SharedPtr & msg)
   {
     const auto t_receipt = std::chrono::steady_clock::now();
@@ -287,66 +335,6 @@ private:
       font, font_scale, cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
   }
 
-  // Translucent top-left HUD so students can see throughput without a shell.
-  void drawHudPanel(cv::Mat & im, std::size_t n_boxes)
-  {
-    const int w = im.cols;
-    const int h = im.rows;
-    const double fs = std::max(0.5, std::min(w, h) / 1600.0);
-    const int font = cv::FONT_HERSHEY_DUPLEX;
-    const int pad = std::max(6, static_cast<int>(std::lround(14.0 * fs)));
-    const int gap = std::max(2, static_cast<int>(std::lround(6.0 * fs)));
-
-    char line1[96];
-    char line2[128];
-    std::snprintf(line1, sizeof(line1), "M4.1  YOLO TensorRT");
-    std::snprintf(line2, sizeof(line2), "FPS %.1f    boxes %zu", hud_fps_, n_boxes);
-
-    int b1 = 0;
-    int b2 = 0;
-    const cv::Size t1 = cv::getTextSize(line1, font, fs, 1, &b1);
-    const cv::Size t2 = cv::getTextSize(line2, font, fs, 1, &b2);
-    const int text_w = std::max(t1.width, t2.width);
-    const int text_h = t1.height + b1 + gap + t2.height + b2;
-
-    cv::Rect panel(0, 0, text_w + 2 * pad, text_h + 2 * pad);
-    panel &= cv::Rect(0, 0, w, h);
-    if (panel.width < 4 || panel.height < 4) {
-      return;
-    }
-
-    // Opaque backing. A translucent panel let a saturated label chip from a
-    // detection underneath bleed through, which made the HUD unreadable
-    // (e.g. "FPS 23.9 boxes 3" with a green "traffic light 35%" showing
-    // through between the two). The HUD is drawn last, so it always wins.
-    // LINE_8 (not LINE_AA) so the fill exactly covers `panel`; anti-aliased
-    // FILLED rectangles leave a partially transparent inset edge.
-    cv::rectangle(im, panel, cv::Scalar(24, 28, 34), cv::FILLED);
-    cv::line(im, cv::Point(panel.x, panel.y + panel.height - 1),
-             cv::Point(panel.x + panel.width - 1, panel.y + panel.height - 1),
-             cv::Scalar(60, 160, 255), 2, cv::LINE_AA);
-
-    int y = panel.y + pad + t1.height;
-    cv::putText(im, line1, cv::Point(panel.x + pad, y), font, fs,
-                cv::Scalar(255, 255, 255), 1, cv::LINE_AA);
-    y += b1 + gap + t2.height;
-    cv::putText(im, line2, cv::Point(panel.x + pad, y), font, fs,
-                cv::Scalar(120, 230, 255), 1, cv::LINE_AA);
-  }
-
-  void updateHudFps()
-  {
-    const auto now = std::chrono::steady_clock::now();
-    if (last_draw_t_.time_since_epoch().count() != 0) {
-      const double dt = std::chrono::duration<double>(now - last_draw_t_).count();
-      if (dt > 1e-6) {
-        const double inst = 1.0 / dt;
-        hud_fps_ = (hud_fps_ <= 0.0) ? inst : (0.9 * hud_fps_ + 0.1 * inst);
-      }
-    }
-    last_draw_t_ = now;
-  }
-
   void publishDebugImage(
     const sensor_msgs::msg::Image::SharedPtr & msg,
     const std::vector<BBox> & boxes,
@@ -398,9 +386,6 @@ private:
       drawLabelChip(vis_img, label, roi, color, font_scale);
     }
 
-    updateHudFps();
-    drawHudPanel(vis_img, boxes.size());
-
     cv_bridge::CvImage out_img;
     out_img.header = msg->header;
     out_img.encoding = "bgr8";
@@ -431,6 +416,7 @@ private:
   rclcpp::Publisher<vision_msgs::msg::Detection2DArray>::SharedPtr detections_pub_;
   rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr debug_pub_;
   rclcpp::TimerBase::SharedPtr stats_timer_;
+  rclcpp::node_interfaces::OnSetParametersCallbackHandle::SharedPtr parameter_callback_handle_;
 
   // Parameters
   std::string model_path_;
@@ -460,10 +446,6 @@ private:
   double total_inference_ms_{0.f};
   std::size_t last_detection_count_{0};
 
-  // Debug-overlay HUD state (smoothed draw rate, independent of the
-  // 1 Hz publishStats() window which resets frames_in_window_).
-  double hud_fps_{0.0};
-  std::chrono::steady_clock::time_point last_draw_t_{};
 };
 
 }  // namespace bev::detection

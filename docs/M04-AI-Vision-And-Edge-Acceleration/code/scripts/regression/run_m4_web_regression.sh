@@ -24,6 +24,12 @@
 #
 # Exits 0 only if all cycles pass.
 
+# --- module anchors: derived from this script's own location, never hardcoded ---
+# M4_ROOT is this M04 module; WS_ROOT is the repository root.
+M4_ROOT="${M4_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+WS_ROOT="${WS_ROOT:-$(cd "$M4_ROOT/../.." && pwd)}"
+export M4_ROOT WS_ROOT
+
 set -u
 # NOTE: do NOT enable 'set -e'; we explicitly handle error codes from
 # sub-processes and want the regression to attempt all cycles. Also do
@@ -31,10 +37,10 @@ set -u
 # touches unbound variables during its own initialization.
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-WS="$REPO_ROOT/ros2_ws"
+WS="$WS_ROOT/"
 CYCLES="${CYCLES:-3}"
 PORT="${PORT:-8089}"
-LOG_DIR="${LOG_DIR:-$REPO_ROOT/output/regression/m4_web_$(date +%Y%m%d_%H%M%S)}"
+LOG_DIR="${LOG_DIR:-$M4_ROOT/output/regression/m4_web_$(date +%Y%m%d_%H%M%S)}"
 
 mkdir -p "$LOG_DIR"
 
@@ -61,7 +67,7 @@ run_cycle() {
     local cycle_log="$LOG_DIR/cycle_${idx}.log"
     echo
     echo "-- cycle $idx --"
-    if python3 "$REPO_ROOT/ros2_ws/src/m4_demo_bringup/test/m4_web_regression_cycle.py" \
+    if python3 "$WS_ROOT/modules/m04-ai-vision-and-edge-acceleration/common/ros2/m4_demo_bringup/test/m4_web_regression_cycle.py" \
         --port "$PORT" \
         --cycles 1 \
         --log-dir "$LOG_DIR/cycle_${idx}" \

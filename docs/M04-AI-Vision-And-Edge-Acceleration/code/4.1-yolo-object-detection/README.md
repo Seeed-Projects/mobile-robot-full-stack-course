@@ -1,5 +1,8 @@
 # 4.1 YOLO Object Detection (TensorRT)
 
+> All relative paths below are relative to the module root,
+> `modules/m04-ai-vision-and-edge-acceleration/`.
+
 Training -> ONNX -> TensorRT engine -> ROS 2 detection topic, at ~30 Hz on Orin.
 
 **Status: PASS - verified on physical hardware.**
@@ -82,15 +85,10 @@ CAMERA_SOURCE=test ./scripts/m4/run_m4_1_demo.sh   # synthetic, no hardware
 | No boxes but the image is fine | `confidence_threshold` too high, or the objects are not COCO-80 classes |
 | `No module named 'std_msgs'` when running tests | source `/opt/ros/humble/setup.bash` first |
 
-## Known technical debt
+## Implementation ownership
 
-- `src/preprocessing.cpp::letterboxPreprocess()` and the standalone
-  `src/postprocessing.cpp` helpers are **dead code** - the live path re-implements
-  that logic inside `yolo_engine.cpp`. The two copies have diverged: the standalone
-  `parseYoloOutput` returns empty even for high-confidence input, and
-  `test_postprocessing.cpp::ParseYoloOutput.ConfidenceFilterGatesBelowThreshold`
-  fails for exactly that reason. Not on the runtime path, but it should be deleted
-  or fixed.
-- The camera publisher is `test/csi_camera_publisher.py` - a test-tree helper that
-  is the de-facto production camera source for 4.1-4.3. It drives a GMSL V4L2 node
-  despite the `--source csi` flag name.
+- Runtime inference and the GTests both use `YoloPostprocess`, `applyNMS`,
+  `computeIoU`, `restoreBBox`, and `computeLetterBox` from the production
+  library. There is no test-only parser implementation.
+- The shared production camera source is installed by `m4_demo_bringup` as
+  `csi_camera_publisher`; it is not part of this package's test tree.

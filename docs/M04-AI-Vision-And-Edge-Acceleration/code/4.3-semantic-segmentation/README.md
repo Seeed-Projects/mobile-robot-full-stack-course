@@ -1,5 +1,8 @@
 # 4.3 Semantic Segmentation + Drivable Area
 
+> All relative paths below are relative to the module root,
+> `modules/m04-ai-vision-and-edge-acceleration/`.
+
 SegFormer-B0 (Cityscapes, 19 classes) exported to TensorRT, producing a per-pixel
 class map and a binary drivable-area mask.
 

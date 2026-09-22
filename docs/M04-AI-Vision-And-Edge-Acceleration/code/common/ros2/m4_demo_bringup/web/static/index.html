@@ -5,52 +5,62 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{{TITLE}}</title>
   <link rel="icon" href="data:," />
-  <!-- Absolute paths on purpose: the page is served at /m4/<n> (no trailing
-       slash), so a relative "style.css" would resolve to /m4/style.css and hit
-       the page route instead. m4_web_hub_regression.py asserts these two
-       absolute references. -->
   <link rel="stylesheet" href="/static/style.css" />
 </head>
-<!--
-  data-demo / data-hub are filled in by web_demo_server.build_app().
-  data-hub="1" selects the hub layout; app.js reads both.
--->
 <body data-demo="{{DEMO_KEY}}" {{HUB_ATTR}}>
-
-  <header class="header">
-    <div class="brand">
-      <span class="name" data-i18n-zh="M4 感知实验室"
-            data-i18n-en="M4 Perception Lab">M4 感知实验室</span>
-      <span class="sub" data-i18n-zh="AI 视觉与边缘加速"
-            data-i18n-en="AI Vision &amp; Edge Acceleration">AI 视觉与边缘加速</span>
+  <header class="topbar">
+    <div class="topbar-inner">
+      <div class="brand">
+        <span class="brand-kicker">M04</span>
+        <div>
+          <div class="brand-name" data-i18n-zh="AI 视觉与边缘加速"
+               data-i18n-en="AI Vision &amp; Edge Acceleration">AI 视觉与边缘加速</div>
+          <div class="brand-sub" data-i18n-zh="实时感知工作台"
+               data-i18n-en="Live perception workspace">实时感知工作台</div>
+        </div>
+      </div>
+      <div class="connection-strip">
+        <span class="live" id="live">
+          <span class="dot"></span>
+          <span data-i18n-zh="连接中" data-i18n-en="Connecting">连接中</span>
+        </span>
+        <span class="badge muted" id="transport" title="stream transport">—</span>
+      </div>
     </div>
-
-    <div class="spacer"></div>
-
-    <!-- Connection state. Filled by app.js. -->
-    <span class="live" id="live">
-      <span class="dot"></span>
-      <span data-i18n-zh="连接中" data-i18n-en="connecting">连接中</span>
-    </span>
-    <!-- Transport indicator (H.264 HW / VP8 / MJPEG). Filled by app.js. -->
-    <span class="badge muted" id="transport" title="stream transport">—</span>
   </header>
 
-  <div class="app">
-    <!-- Module rail. One vertical list for 4.1-4.4; each item carries a small
-         state dot and, only where it matters, a short state word. Populated
-         by app.js from the module registry merged with /api/demos. -->
-    <nav class="sidebar" id="sidebar" aria-label="modules">
-      <div id="modules"></div>
-    </nav>
+  <main class="workspace">
+    <section class="viewer-panel" aria-label="live perception video">
+      <div class="viewer-head">
+        <div class="viewer-title">
+          <span class="eyebrow" data-i18n-zh="实时画面" data-i18n-en="Live view">实时画面</span>
+          <h1 id="activeTitle">M4 感知</h1>
+          <p id="pipelineModel">—</p>
+        </div>
+        <div class="viewer-actions">
+          <button class="icon-btn" id="shot" type="button"
+                  data-i18n-title-zh="截图" data-i18n-title-en="Snapshot" title="截图">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M3 8.5A2 2 0 0 1 5 6.5h1.6l1-1.6h4.8l1 1.6H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
+              <circle cx="12" cy="12.5" r="3.2"/>
+            </svg>
+            <span data-i18n-zh="截图" data-i18n-en="Snapshot">截图</span>
+          </button>
+          <button class="icon-btn" id="fs" type="button"
+                  data-i18n-title-zh="全屏" data-i18n-title-en="Fullscreen" title="全屏">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+                 stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>
+            </svg>
+            <span data-i18n-zh="全屏" data-i18n-en="Fullscreen">全屏</span>
+          </button>
+        </div>
+      </div>
 
-    <main class="stage">
-      <div class="video-wrap">
-        <!-- WebRTC transports (h264 / vp8) use the video element; the MJPEG
-             transport uses the img element. app.js shows exactly one. -->
+      <div class="video-wrap" id="videoWrap">
         <video id="v" autoplay playsinline muted></video>
         <img id="stream" class="stream" alt="MJPEG preview" hidden />
-        <!-- Connecting / blocked / empty state. -->
         <div class="stage-msg" id="stageMsg">
           <div class="inner">
             <div class="spinner" id="spinner"></div>
@@ -58,114 +68,157 @@
           </div>
         </div>
       </div>
-    </main>
-  </div>
 
-  <footer class="statusbar">
-    <div class="sb-left">
-      <!-- Model + backend identity for the active chapter. -->
-      <span class="sb-model" id="pipelineModel">—</span>
-      <span class="sep"></span>
-      <!-- Pipeline FPS is the ONLY metric named "FPS" outside the drawer.
-           The browser's own stream rate lives in the Details drawer. -->
-      <span class="sb-metric primary"
-            title="frames arriving from the ROS pipeline for the active module">
-        <span data-i18n-zh="管线" data-i18n-en="Pipeline">管线</span>
-        <span class="v" id="pipelineFps">—</span>
-      </span>
-      <span class="sep"></span>
-      <span class="sb-metric"
-            title="current frame age at the server (camera to server)">
-        <span class="v" id="pipelineLatency">—</span>
-      </span>
-      <!-- Shown only when the selected chapter is not producing frames. -->
-      <span class="sb-metric muted" id="pipelineState" hidden></span>
-    </div>
-
-    <div class="spacer"></div>
-
-    <div class="sb-right">
-      <button class="icon-btn" id="shot" type="button"
-              data-i18n-title-zh="截图" data-i18n-title-en="Snapshot"
-              title="截图">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M3 8.5A2 2 0 0 1 5 6.5h1.6l1-1.6h4.8l1 1.6H19a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>
-          <circle cx="12" cy="12.5" r="3.2"/>
-        </svg>
-        <span data-i18n-zh="截图" data-i18n-en="Snapshot">截图</span>
-      </button>
-
-      <button class="icon-btn" id="fs" type="button"
-              data-i18n-title-zh="全屏" data-i18n-title-en="Fullscreen"
-              title="全屏">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M4 9V4h5M20 9V4h-5M4 15v5h5M20 15v5h-5"/>
-        </svg>
-        <span data-i18n-zh="全屏" data-i18n-en="Fullscreen">全屏</span>
-      </button>
-
-      <button class="icon-btn" id="drawerToggle" type="button" aria-pressed="false"
-              aria-controls="drawer"
-              data-i18n-title-zh="详情" data-i18n-title-en="Details"
-              title="详情">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <rect x="3.5" y="4.5" width="17" height="15" rx="2"/>
-          <path d="M14.5 4.5v15"/>
-        </svg>
-        <span data-i18n-zh="详情" data-i18n-en="Details">详情</span>
-      </button>
-
-      <button class="icon-btn" id="settingsBtn" type="button" aria-pressed="false"
-              aria-controls="settings"
-              data-i18n-title-zh="设置" data-i18n-title-en="Settings"
-              title="设置">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
-             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <circle cx="12" cy="12" r="3"/>
-          <path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 7.5 19.4l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3 13.9H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 7.5l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 10 3.6V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.5 1.4l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/>
-        </svg>
-        <span data-i18n-zh="设置" data-i18n-en="Settings">设置</span>
-      </button>
-    </div>
-
-    <!-- Settings popover. Holds the two controls that are not part of the
-         hero path: the crisp/low-latency stream toggle and the language
-         switch. Closed by default. -->
-    <div class="popover" id="settings" hidden>
-      <div class="pop-row" id="qualityRow">
-        <div>
-          <div class="pop-label" data-i18n-zh="码流模式"
-               data-i18n-en="Stream mode">码流模式</div>
-          <div class="pop-hint" id="qualityHint"
-               data-i18n-zh="低延迟 WebRTC 或逐帧清晰 MJPEG"
-               data-i18n-en="Low-latency WebRTC or per-frame MJPEG">
-            低延迟 WebRTC 或逐帧清晰 MJPEG
+      <div class="result-strip" aria-label="inference results">
+        <div class="result-stat">
+          <span data-i18n-zh="管线帧率" data-i18n-en="Pipeline FPS">管线帧率</span>
+          <strong id="pipelineFps">—</strong>
+          <span class="state-label" id="pipelineState" hidden></span>
+        </div>
+        <div class="result-stat source-result">
+          <span data-i18n-zh="输入源" data-i18n-en="Input source">输入源</span>
+          <strong id="activeInputSource">实时相机</strong>
+          <small id="activeInputFile" hidden></small>
+        </div>
+        <div class="segmentation-results" id="segmentationResults" hidden>
+          <div class="view-switch" role="group" aria-label="M4.3 visualization">
+            <button type="button" data-view="original" data-i18n-zh="原始" data-i18n-en="Original">原始</button>
+            <button type="button" data-view="semantic" data-i18n-zh="语义" data-i18n-en="Semantic">语义</button>
+            <button type="button" data-view="drivable" data-i18n-zh="可行驶" data-i18n-en="Drivable">可行驶</button>
+          </div>
+          <div class="class-results" id="classResults" aria-label="top semantic classes"></div>
+          <div class="drivable-result">
+            <span data-i18n-zh="可行驶区域" data-i18n-en="Drivable area">可行驶区域</span>
+            <strong id="drivableRatio">—</strong>
           </div>
         </div>
-        <button class="btn btn-sm" id="quality" type="button" aria-pressed="false"></button>
       </div>
-      <div class="pop-row">
-        <div>
-          <div class="pop-label" data-i18n-zh="语言" data-i18n-en="Language">语言</div>
-          <div class="pop-hint" data-i18n-zh="界面与标签" data-i18n-en="Interface and labels">
-            界面与标签
+
+      <div class="input-control-bar" aria-label="perception input controls">
+        <div class="source-control">
+          <div class="source-copy">
+            <span class="eyebrow" data-i18n-zh="共享输入" data-i18n-en="Shared input">共享输入</span>
+            <div class="source-buttons" role="group" aria-label="input source">
+              <button class="source-btn" id="cameraSourceBtn" type="button" data-source="camera"
+                      data-i18n-zh="实时相机" data-i18n-en="Live camera">实时相机</button>
+              <button class="source-btn" id="videoSourceBtn" type="button" data-source="video"
+                      data-i18n-zh="本地视频" data-i18n-en="Local video">本地视频</button>
+            </div>
+            <p id="videoFileSummary" data-i18n-zh="尚未上传视频" data-i18n-en="No video uploaded">尚未上传视频</p>
+            <div class="upload-progress" id="uploadProgress" hidden>
+              <span id="uploadProgressBar"></span>
+            </div>
+          </div>
+          <div class="source-actions">
+            <input id="videoFileInput" type="file" accept=".mp4,.mov,.mkv,video/mp4,video/quicktime,video/x-matroska" hidden />
+            <button class="btn btn-sm" id="uploadVideoBtn" type="button"
+                    data-i18n-zh="选择视频" data-i18n-en="Choose video">选择视频</button>
+            <button class="btn btn-sm danger-btn" id="deleteVideoBtn" type="button" hidden
+                    data-i18n-zh="删除" data-i18n-en="Delete">删除</button>
           </div>
         </div>
-        <button class="btn btn-sm" id="lang" type="button">EN</button>
+        <div class="input-actions">
+          <div class="undistort-control">
+          <div class="undistort-copy">
+            <span class="eyebrow" data-i18n-zh="感知输入" data-i18n-en="Perception input">感知输入</span>
+            <div class="undistort-title-row">
+              <strong data-i18n-zh="去畸变" data-i18n-en="Undistortion">去畸变</strong>
+              <span class="control-state muted" id="undistortState">—</span>
+            </div>
+            <p id="undistortHint" data-i18n-zh="检测、追踪与预览使用同一输入"
+               data-i18n-en="Detection, tracking and preview share this input">检测、追踪与预览使用同一输入</p>
+          </div>
+          <label class="switch" for="undistortToggle">
+            <input id="undistortToggle" class="input" type="checkbox" role="switch"
+                   aria-label="Enable undistortion" />
+            <span class="slider round"></span>
+          </label>
+          </div>
+          <button class="btn" id="parameterBtn" type="button" aria-pressed="false"
+                aria-controls="parameterDrawer" aria-label="算法参数 / Algorithm parameters">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M4 7h9M17 7h3M4 17h3M11 17h9"/>
+            <circle cx="15" cy="7" r="2"/><circle cx="9" cy="17" r="2"/>
+          </svg>
+          <span data-i18n-zh="算法参数" data-i18n-en="Algorithm parameters">算法参数</span>
+          </button>
+        </div>
       </div>
-    </div>
-  </footer>
+    </section>
 
-  <!-- Details drawer: all WebRTC / ROS / transport diagnostics live here and
-       it is closed by default, so the demo page never reads as a networking
-       console. -->
-  <aside class="drawer" id="drawer" aria-label="details">
+    <aside class="control-rail" aria-label="module controls">
+      <section class="rail-section">
+        <div class="section-heading">
+          <div>
+            <span class="eyebrow" data-i18n-zh="课程章节" data-i18n-en="Course chapters">课程章节</span>
+            <h2 data-i18n-zh="感知模块" data-i18n-en="Perception modules">感知模块</h2>
+          </div>
+          <span class="module-count">4</span>
+        </div>
+        <nav class="module-list" id="modules" aria-label="modules"></nav>
+      </section>
+
+      <section class="rail-section runtime-section">
+        <div class="section-heading compact">
+          <h2 data-i18n-zh="运行状态" data-i18n-en="Runtime">运行状态</h2>
+        </div>
+        <dl class="quick-kv">
+          <div><dt data-i18n-zh="编码" data-i18n-en="Codec">编码</dt><dd id="quickCodec">—</dd></div>
+          <div><dt data-i18n-zh="传输" data-i18n-en="Transport">传输</dt><dd id="quickTransport">—</dd></div>
+          <div><dt data-i18n-zh="连接" data-i18n-en="Connection">连接</dt><dd id="quickConnection">—</dd></div>
+          <div><dt data-i18n-zh="往返延迟" data-i18n-en="Round trip">往返延迟</dt><dd id="quickRtt">—</dd></div>
+        </dl>
+      </section>
+
+      <section class="rail-section rail-actions">
+        <button class="btn" id="drawerToggle" type="button" aria-pressed="false"
+                aria-controls="drawer">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <rect x="3.5" y="4.5" width="17" height="15" rx="2"/>
+            <path d="M14.5 4.5v15"/>
+          </svg>
+          <span data-i18n-zh="技术详情" data-i18n-en="Technical details">技术详情</span>
+        </button>
+        <button class="btn" id="settingsBtn" type="button" aria-pressed="false"
+                aria-controls="settings">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+               stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="3"/>
+            <path d="M19.4 15a1.6 1.6 0 0 0 .3 1.8l.1.1a2 2 0 1 1-2.8 2.8l-.1-.1a1.6 1.6 0 0 0-2.7 1.1V21a2 2 0 1 1-4 0v-.1A1.6 1.6 0 0 0 7.5 19.4l-.1.1a2 2 0 1 1-2.8-2.8l.1-.1A1.6 1.6 0 0 0 3 13.9H3a2 2 0 1 1 0-4h.1A1.6 1.6 0 0 0 4.6 7.5l-.1-.1a2 2 0 1 1 2.8-2.8l.1.1A1.6 1.6 0 0 0 10 3.6V3a2 2 0 1 1 4 0v.1a1.6 1.6 0 0 0 2.5 1.4l.1-.1a2 2 0 1 1 2.8 2.8l-.1.1a1.6 1.6 0 0 0 1.1 2.7H21a2 2 0 1 1 0 4h-.1a1.6 1.6 0 0 0-1.5 1z"/>
+          </svg>
+          <span data-i18n-zh="显示设置" data-i18n-en="Display settings">显示设置</span>
+        </button>
+      </section>
+
+      <div class="popover" id="settings" hidden>
+        <div class="pop-row" id="qualityRow">
+          <div>
+            <div class="pop-label" data-i18n-zh="码流模式" data-i18n-en="Stream mode">码流模式</div>
+            <div class="pop-hint" data-i18n-zh="实时 H.264 或逐帧 MJPEG"
+                 data-i18n-en="Live H.264 or frame-by-frame MJPEG">实时 H.264 或逐帧 MJPEG</div>
+          </div>
+          <button class="btn btn-sm" id="quality" type="button" aria-pressed="false"></button>
+        </div>
+        <div class="pop-row">
+          <div>
+            <div class="pop-label" data-i18n-zh="语言" data-i18n-en="Language">语言</div>
+            <div class="pop-hint" data-i18n-zh="界面与标签" data-i18n-en="Interface labels">界面与标签</div>
+          </div>
+          <button class="btn btn-sm" id="lang" type="button">EN</button>
+        </div>
+      </div>
+    </aside>
+  </main>
+
+  <aside class="drawer" id="drawer" aria-label="technical details">
     <div class="drawer-head">
-      <h2 data-i18n-zh="详情" data-i18n-en="Details">详情</h2>
-      <button class="icon-btn" id="drawerClose" type="button"
+      <div>
+        <span class="eyebrow" data-i18n-zh="诊断" data-i18n-en="Diagnostics">诊断</span>
+        <h2 data-i18n-zh="技术详情" data-i18n-en="Technical details">技术详情</h2>
+      </div>
+      <button class="icon-only" id="drawerClose" type="button"
               data-i18n-title-zh="关闭" data-i18n-title-en="Close" title="关闭">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
              stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
@@ -173,31 +226,28 @@
         </svg>
       </button>
     </div>
-
     <div class="drawer-body">
-      <section class="panel">
-        <div class="drawer-section-title" data-i18n-zh="码流" data-i18n-en="Stream">码流</div>
+      <section class="detail-section panel">
+        <h3 data-i18n-zh="码流" data-i18n-en="Stream">码流</h3>
         <dl class="kv">
           <dt data-i18n-zh="编码" data-i18n-en="Codec">编码</dt><dd id="dcCodec">—</dd>
           <dt data-i18n-zh="传输" data-i18n-en="Transport">传输</dt><dd id="dcTransport">—</dd>
-          <dt data-i18n-zh="流帧率" data-i18n-en="Stream FPS">流帧率</dt><dd id="dcStreamFps">—</dd>
+          <dt data-i18n-zh="浏览器帧率" data-i18n-en="Browser FPS">浏览器帧率</dt><dd id="dcStreamFps">—</dd>
           <dt data-i18n-zh="已渲染帧" data-i18n-en="Frames">已渲染帧</dt><dd id="dcFrames">0</dd>
           <dt data-i18n-zh="连接" data-i18n-en="WebRTC">连接</dt><dd id="dcWebrtc">—</dd>
           <dt data-i18n-zh="往返延迟" data-i18n-en="RTT">往返延迟</dt><dd id="dcRtt">—</dd>
         </dl>
       </section>
-
-      <section class="panel">
-        <div class="drawer-section-title" data-i18n-zh="ROS" data-i18n-en="ROS">ROS</div>
+      <section class="detail-section panel">
+        <h3>ROS</h3>
         <dl class="kv">
           <dt data-i18n-zh="活动话题" data-i18n-en="Active topic">活动话题</dt><dd id="dcTopic">—</dd>
           <dt data-i18n-zh="分辨率" data-i18n-en="Resolution">分辨率</dt><dd id="dcSize">—</dd>
           <dt data-i18n-zh="帧龄" data-i18n-en="Frame age">帧龄</dt><dd id="dcAge">—</dd>
         </dl>
       </section>
-
-      <section class="panel">
-        <div class="drawer-section-title" data-i18n-zh="系统" data-i18n-en="System">系统</div>
+      <section class="detail-section panel">
+        <h3 data-i18n-zh="系统" data-i18n-en="System">系统</h3>
         <dl class="kv">
           <dt data-i18n-zh="后端" data-i18n-en="Backend">后端</dt><dd id="dcBackend">—</dd>
           <dt data-i18n-zh="模块状态" data-i18n-en="Module state">模块状态</dt><dd id="dcState">—</dd>
@@ -205,6 +255,32 @@
       </section>
     </div>
   </aside>
+
+  <aside class="drawer parameter-drawer" id="parameterDrawer" aria-label="algorithm parameters">
+    <div class="drawer-head">
+      <div>
+        <span class="eyebrow" data-i18n-zh="全局控制" data-i18n-en="Global controls">全局控制</span>
+        <h2 data-i18n-zh="算法参数" data-i18n-en="Algorithm parameters">算法参数</h2>
+      </div>
+      <button class="icon-only" id="parameterClose" type="button"
+              data-i18n-title-zh="关闭" data-i18n-title-en="Close" title="关闭">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"
+             stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M6 6l12 12M18 6L6 18"/>
+        </svg>
+      </button>
+    </div>
+    <div class="drawer-body parameter-body">
+      <p class="parameter-intro" data-i18n-zh="拖动后松手即可应用。调整任一追踪参数会重置当前轨迹 ID。"
+         data-i18n-en="Release a control to apply it. Any tracking change resets current track IDs.">
+        拖动后松手即可应用。调整任一追踪参数会重置当前轨迹 ID。
+      </p>
+      <div id="parameterControls"></div>
+      <button class="btn parameter-reset" id="parameterReset" type="button"
+              data-i18n-zh="恢复课程默认值" data-i18n-en="Restore course defaults">恢复课程默认值</button>
+    </div>
+  </aside>
+  <div class="control-toast" id="controlToast" role="status" aria-live="polite" hidden></div>
 
   <script src="/static/app.js"></script>
 </body>

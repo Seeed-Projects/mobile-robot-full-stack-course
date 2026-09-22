@@ -12,11 +12,14 @@
 
 set -uo pipefail
 
-REPO_ROOT="${REPO_ROOT:-/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration}"
-ONNX="$REPO_ROOT/models/m4/segmentation/onnx/segformer_b0.onnx"
-ENGINE="$REPO_ROOT/models/m4/segmentation/engines/segformer_b0_fp16.engine"
-TEST_IMAGE_DIR="${TEST_IMAGE_DIR:-$REPO_ROOT/output/m4/4.3/test_inputs}"
-LOG_DIR="$REPO_ROOT/output/m4/4.3/logs"
+# --- module anchors: derived from this script's own location, never hardcoded ---
+# M4_ROOT is this M04 module; WS_ROOT is the repository root.
+M4_ROOT="${M4_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+WS_ROOT="${WS_ROOT:-$(cd "$M4_ROOT/../.." && pwd)}"
+ONNX="$M4_ROOT/models/m4/segmentation/onnx/segformer_b0.onnx"
+ENGINE="$M4_ROOT/models/m4/segmentation/engines/segformer_b0_fp16.engine"
+TEST_IMAGE_DIR="${TEST_IMAGE_DIR:-$M4_ROOT/output/m4/4.3/test_inputs}"
+LOG_DIR="$M4_ROOT/output/m4/4.3/logs"
 mkdir -p "$TEST_IMAGE_DIR" "$LOG_DIR"
 
 # 阈值 (Plan §H)
@@ -94,11 +97,11 @@ mkdir -p "$TRT_OUT"
 # 但它只跑一次随机输入. 本 gate 使用 C++ runner: 编译一个 gate_runner.
 
 # 编译 gate_runner
-RUNNER="$REPO_ROOT/output/m4/4.3/gate_runner"
+RUNNER="$M4_ROOT/output/m4/4.3/gate_runner"
 "$PYTHON" - << PYEOF
 # 检查 C++ 编译环境
 import subprocess
-src = "$REPO_ROOT/ros2_ws/src/bev_segmentation/test/test_engine_smoke.cpp"
+src = "$WS_ROOT/modules/m04-ai-vision-and-edge-acceleration/4.3-semantic-segmentation/ros2/bev_segmentation/test/test_engine_smoke.cpp"
 # 把 test_engine_smoke 改写为 gate_runner (复用 SegmentationEngine 类, 加载 ONNX->PyTorch ref)
 PYEOF
 

@@ -17,7 +17,7 @@ def generate_launch_description():
     use_test_image = LaunchConfiguration("use_test_image", default="false")
     test_image_path = LaunchConfiguration(
         "test_image_path",
-        default="/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration/output/m4/4.3/test_input.png",
+        default="/home/seeed/workspace/ros2_bev/modules/m04-ai-vision-and-edge-acceleration/output/m4/4.3/test_input.png",
     )
 
     seg_node = Node(
@@ -45,7 +45,7 @@ def generate_launch_description():
         DeclareLaunchArgument("use_test_image", default_value="false"),
         DeclareLaunchArgument(
             "test_image_path",
-            default_value="/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration/output/m4/4.3/test_input.png",
+            default_value="/home/seeed/workspace/ros2_bev/modules/m04-ai-vision-and-edge-acceleration/output/m4/4.3/test_input.png",
         ),
         seg_node,
     ])

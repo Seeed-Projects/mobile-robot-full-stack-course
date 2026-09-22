@@ -1,5 +1,8 @@
 # 4.2 Multi-Object Tracking (ByteTrack)
 
+> All relative paths below are relative to the module root,
+> `modules/m04-ai-vision-and-edge-acceleration/`.
+
 Concepts: MOT association (ByteTrack / DeepSORT / Bot-SORT). Implemented here with
 **ByteTrack** from the `supervision` library.
 
@@ -50,9 +53,9 @@ publishes a `Detection2DArray`.
 
 ```yaml
 track_activation_threshold: 0.25
-lost_track_buffer: 30          # ~3 s of occlusion tolerance
+lost_track_buffer: 90          # ~3 s of occlusion tolerance at 30 Hz
 minimum_matching_threshold: 0.8
-frame_rate: 10                 # NOTE: the live chain runs at ~28 Hz
+frame_rate: 30                 # measured: camera 29.1 Hz -> tracks 30.0 Hz
 minimum_consecutive_frames: 1
 ```
 
@@ -90,8 +93,6 @@ opt-outs; the autoload flag is the missing piece.
 
 ## Known technical debt
 
-- `frame_rate: 10` while the real chain runs ~28 Hz - the tracker's internal dt is
-  ~3x off. Functionally it still tracks; the values should be aligned.
 - `mock_detection_publisher.py` (a synthetic detection source) ships inside the
   installable package rather than under `test/`.
 - `package.xml` has a `schematyps` typo in the schema declaration.

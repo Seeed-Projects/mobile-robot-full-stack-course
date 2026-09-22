@@ -9,7 +9,7 @@
 # 跑完后 output/m4/4.1/snapshot.png 就是带 bbox 的可视化结果。
 #
 # 用法：
-#   bash /home/seeed/workspace/ros2_bev/scripts/m4/visualize_yolo.sh
+#   bash /home/seeed/workspace/ros2_bev/modules/m04-ai-vision-and-edge-acceleration/scripts/m4/visualize_yolo.sh
 #
 # 自定义：
 #   SAMPLE_DIR=/path/to/images bash scripts/m4/visualize_yolo.sh
@@ -17,11 +17,14 @@
 #   SKIP_SCREENSHOT=1 bash scripts/m4/visualize_yolo.sh   # 只跑节点，不截图
 set -uo pipefail
 
-REPO="/home/seeed/workspace/ros2_bev"
-ENGINE="$REPO/models/m4/detection/engines/yolo11n_fp16.engine"
-LABELS="$REPO/models/m4/detection/labels/coco.names"
-SAMPLE_DIR="${SAMPLE_DIR:-$REPO/datasets/nuscenes/samples/CAM_FRONT}"
-OUT="$REPO/output/m4/4.1"
+# --- module anchors: derived from this script's own location, never hardcoded ---
+# M4_ROOT is this M04 module; WS_ROOT is the repository root.
+M4_ROOT="${M4_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+WS_ROOT="${WS_ROOT:-$(cd "$M4_ROOT/../.." && pwd)}"
+ENGINE="$M4_ROOT/models/m4/detection/engines/yolo11n_fp16.engine"
+LABELS="$M4_ROOT/models/m4/detection/labels/coco.names"
+SAMPLE_DIR="${SAMPLE_DIR:-$WS_ROOT/shared/datasets/nuscenes/samples/CAM_FRONT}"
+OUT="$M4_ROOT/output/m4/4.1"
 SNAPSHOT="$OUT/snapshot.png"
 NUM_SAMPLES="${NUM_SAMPLES:-3}"
 TIMEOUT_PUBLISH="${TIMEOUT_PUBLISH:-25}"   # seconds of "loop" mode runtime
@@ -62,13 +65,13 @@ fail()    { echo "${RED}  [FAIL] $*${NC}"; }
 section "Step 0/4 — ROS environment"
 set +u
 source /opt/ros/humble/setup.bash
-cd "$REPO/ros2_ws"
+cd "$WS_ROOT"
 source install/setup.bash
 set -u
 ok "ros2 + bev_detection sourced"
 
 # ---- LD_LIBRARY_PATH（CUDA + opencv 4.14 + TRT） ----
-export LD_LIBRARY_PATH="$REPO/ros2_ws/install/bev_detection/lib:/home/seeed/src/opencv-4.14.0-cuda-build/lib:/usr/local/cuda-12.6/lib64:/usr/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH"
+export LD_LIBRARY_PATH="$WS_ROOT/install/bev_detection/lib:/home/seeed/src/opencv-4.14.0-cuda-build/lib:/usr/local/cuda-12.6/lib64:/usr/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH"
 ok "LD_LIBRARY_PATH configured"
 
 # ---- 1. 启动 yolo_trt_node（后台） ----
@@ -83,12 +86,12 @@ echo "  yolo_trt_node PID=$YOLO_PID  (logs: $LOG_DIR/yolo.log)"
 
 # ---- 2. 启动 image loop publisher（后台） ----
 section "Step 2/4 — image_loop_publisher"
-if [ ! -f "$REPO/ros2_ws/src/bev_detection/test/image_loop_publisher.py" ]; then
+if [ ! -f "$WS_ROOT/modules/m04-ai-vision-and-edge-acceleration/4.1-yolo-object-detection/ros2/bev_detection/test/image_loop_publisher.py" ]; then
   fail "image_loop_publisher.py not found"
   kill $YOLO_PID 2>/dev/null
   exit 1
 fi
-python3 "$REPO/ros2_ws/src/bev_detection/test/image_loop_publisher.py" \
+python3 "$WS_ROOT/modules/m04-ai-vision-and-edge-acceleration/4.1-yolo-object-detection/ros2/bev_detection/test/image_loop_publisher.py" \
   --dir "$SAMPLE_DIR" \
   --fps 2 \
   --num-frames "$NUM_SAMPLES" \
@@ -139,7 +142,7 @@ if [ "$SKIP_SCREENSHOT" = "1" ]; then
   echo "  stopping nodes in 8s..."
   sleep 8
 else
-  python3 "$REPO/ros2_ws/src/bev_detection/test/screenshot_saver.py" \
+  python3 "$WS_ROOT/modules/m04-ai-vision-and-edge-acceleration/4.1-yolo-object-detection/ros2/bev_detection/test/screenshot_saver.py" \
     --out "$SNAPSHOT" \
     --topic "/perception/debug/detection_image" \
     --timeout 25 \

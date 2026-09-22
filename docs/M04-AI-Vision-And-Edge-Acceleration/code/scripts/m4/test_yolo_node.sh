@@ -8,10 +8,13 @@
 # Exit: 0 = smoke OK (≥ 1 detection frame), 1 = smoke FAIL
 set -uo pipefail
 
-REPO="${REPO:-/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration}"
-ENGINE="$REPO/models/m4/detection/engines/yolo11n_fp16.engine"
-TEST_IMAGE="$REPO/datasets/nuscenes/samples/CAM_FRONT/$(ls $REPO/datasets/nuscenes/samples/CAM_FRONT/ 2>/dev/null | head -1)"
-OUT="$REPO/output/m4/4.1"
+# --- module anchors: derived from this script's own location, never hardcoded ---
+# M4_ROOT is this M04 module; WS_ROOT is the repository root.
+M4_ROOT="${M4_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+WS_ROOT="${WS_ROOT:-$(cd "$M4_ROOT/../.." && pwd)}"
+ENGINE="$M4_ROOT/models/m4/detection/engines/yolo11n_fp16.engine"
+TEST_IMAGE="$WS_ROOT/shared/datasets/nuscenes/samples/CAM_FRONT/$(ls $WS_ROOT/shared/datasets/nuscenes/samples/CAM_FRONT/ 2>/dev/null | head -1)"
+OUT="$M4_ROOT/output/m4/4.1"
 TIMEOUT="${TIMEOUT:-15}"  # seconds for capture
 
 mkdir -p "$OUT"
@@ -28,12 +31,12 @@ fi
 # Source ROS env (avoid set -u issues from /opt/ros/* setup.bash)
 set +u
 source /opt/ros/humble/setup.bash
-cd "$REPO/ros2_ws"
+cd "$WS_ROOT"
 source install/setup.bash
 set -u
 
 # Required libs (opencv-cuda, CUDA, TensorRT)
-export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$REPO/ros2_ws/install/bev_detection/lib:/home/seeed/src/opencv-4.14.0-cuda-build/lib:/usr/local/cuda-12.6/lib64:/usr/lib/aarch64-linux-gnu"
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$WS_ROOT/install/bev_detection/lib:/home/seeed/src/opencv-4.14.0-cuda-build/lib:/usr/local/cuda-12.6/lib64:/usr/lib/aarch64-linux-gnu"
 
 COUNT_FILE="$OUT/smoke_count.txt"
 rm -f "$COUNT_FILE"
@@ -52,13 +55,13 @@ YOLO_PID=$!
 sleep 5
 
 # 2. Publisher
-python3 src/bev_detection/test/image_republisher.py "$TEST_IMAGE" \
+python3 "$M4_ROOT/4.1-yolo-object-detection/ros2/bev_detection/test/image_republisher.py" "$TEST_IMAGE" \
   > "$OUT/smoke_pub.log" 2>&1 &
 PUB_PID=$!
 sleep 2
 
 # 3. Counter (Python subscription)
-python3 src/bev_detection/test/count_detections.py "$COUNT_FILE" "$TIMEOUT" \
+python3 "$M4_ROOT/4.1-yolo-object-detection/ros2/bev_detection/test/count_detections.py" "$COUNT_FILE" "$TIMEOUT" \
   > "$OUT/smoke_count_stdout.txt" 2> "$OUT/smoke_count_err.txt" &
 COUNT_PID=$!
 
