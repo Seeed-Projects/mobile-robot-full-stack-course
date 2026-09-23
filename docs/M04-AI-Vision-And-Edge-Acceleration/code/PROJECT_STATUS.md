@@ -14,7 +14,7 @@ Allowed states: `PASS`, `VERIFIED`, `PARTIAL`, `BLOCKED`, `PLANNED`.
 | M4.1 YOLO11n TensorRT | **PASS** | Build and 28 production-path GTests pass; physical camera and web overlay previously measured at about 29 FPS | None for the documented scope |
 | M4.2 ByteTrack | **PASS** | 30 pytest tests pass; physical camera tracking previously measured at about 30 FPS | None for the documented scope |
 | M4.3 SegFormer TensorRT | **PARTIAL** | Bilinear preprocessing and logits restoration are implemented; CUDA and CPU paths agree; 8/8 CTests and the engine gate pass; Hub semantic output averaged about 11.3 FPS after optimization | Hub preview was 6.7–10.4 FPS in a 30-second page-rate sample, so stable 10 FPS is not accepted; ADE20K indoor candidate remains unevaluated and Cityscapes stays default |
-| M4.4 Isaac ROS FoundationPose | **PARTIAL** | Isaac ROS 3.2 packages, official Mustard bag/mesh, ONNX models, FP32 refine and FP16 RT-DETR engines are present; no pose output accepted | Score engine build fails at the official max profile; official bag replay remains incomplete |
+| M4.4 Isaac ROS FoundationPose | **PARTIAL** | The 42-candidate FP32 adaptation produced a valid Mustard `Detection3DArray` pose on `/output` | Official 252-candidate score build fails for device memory; Orbbec Gemini 2 physical RGB-D acceptance remains open |
 | M4.5 NVlabs FoundationPose | **BLOCKED** | Legacy `bev_pose` scaffold installs; no successful inference exists | Native runtime, weights, supported RGB-D driver and physical camera remain incomplete |
 | Shared Hub / video input | **PARTIAL** | Video repair is committed; build, 3 Hub regression cycles and 9 video state tests pass; a fresh three-upload run reached `playing` each time | The final run used a synthetic camera and did not exercise a physical-camera session or injected stall |
 
@@ -79,7 +79,9 @@ Allowed states: `PASS`, `VERIFIED`, `PARTIAL`, `BLOCKED`, `PLANNED`.
 
 ## M4.4 — Isaac ROS FoundationPose
 
-- **Status:** `PARTIAL` for setup only; no 6D pose inference is accepted.
+- **Status:** `PARTIAL` overall. The **42-candidate adaptation passed the
+  single-frame Mustard demonstration**; the official 252-candidate example and
+  physical RGB-D gate have not passed.
 - **Runtime:** separate `m4-isaacros-foundationpose` container with
   `ros-humble-isaac-ros-foundationpose 3.2.14` and
   `ros-humble-isaac-ros-examples 3.2.5` on JetPack 6.2.1 / ROS 2 Humble.
@@ -87,23 +89,43 @@ Allowed states: `PASS`, `VERIFIED`, `PARTIAL`, `BLOCKED`, `PLANNED`.
   textured mesh, 640x480 interface spec and `quickstart.bag`; the bag has one
   RGB, depth and camera-info message each. FoundationPose `1.0.0_onnx`
   refine/score models are in `/home/seeed/workspace/isaac_ros_assets/models/foundationpose`.
-- **Engine evidence:** FP32 refine engine built with TensorRT 10.3 using
-  `--maxAuxStreams=0 --builderOptimizationLevel=0 --memPoolSize=workspace:4096`;
-  the resulting 92 MB plan passed `trtexec` inference (13.8 ms median for
-  batch 1). The official SyntheticaDETR grasp ONNX was downloaded, parsed and
-  built as a 94 MB FP16 plan; its `trtexec` run passed at 41.1 qps while the
-  shared Hub was active. The score plan did not build: both the concurrent and
-  later idle retries requested a 2190 MB tactic while reporting about 1.4 GB
-  available, including a 12 GB workspace retry.
-- **Entry:** `scripts/m4/run_m4_4_isaacros_quickstart.sh` guards against an
-  active M4.1 or M4.3 inference node, builds missing FoundationPose engines and
-  launches the official `foundationpose` fragment. It uses the separate
-  SyntheticaDETR grasp RT-DETR engine and has not yet produced a pose message.
-- **Next gate:** on an agreed GPU maintenance window, build the score engine,
-  replay the official bag and capture one valid `output` pose. A
-  one-frame bag cannot establish FPS or physical-camera acceptance. Project
-  integration also needs a real object-instance mask and RGB/depth alignment;
-  M4.3's semantic mask is not an instance mask.
+- **Official engine evidence:** on 2026-09-23, an idle FP32 score build used
+  NVIDIA's 1/1/252 min/opt/max shapes with no custom workspace or optimization
+  flags. TensorRT requested a 2190 MB tactic with only 1405 MB available and
+  failed at `ForeignNode[onnx::MatMul_486...]`. The log is
+  `/home/seeed/workspace/isaac_ros_assets/models/foundationpose/score_trtexec_official_fp32.log`.
+  The official 252-candidate score engine does not exist. The FP32 refine
+  engine and the separate FP16 SyntheticaDETR grasp engine passed `trtexec`.
+- **Adapted engine and graph:** FP32 score profile min/opt/max 1/1/42 built
+  and passed TensorRT inference, including a maximum-shape deserialize check.
+  Its independent plan is `score_trt_engine_42_fp32.plan`, with build log
+  `score_trtexec_42_fp32.log`. The project config sets `max_hypothesis: 42`;
+  the custom launch sets `fixed_axis_angles=['z_0']` so the sampled grid fits
+  that cap, at the cost of narrower orientation coverage. Runtime ROS
+  parameters confirmed the config path, angle constraint and 42-profile plan.
+  The successful pose proves the runtime batch fits that engine profile.
+- **Reproduce:** from `/home/seeed/workspace/ros2_bev`, run
+  `M44_MODE=adapted modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_4_isaacros_quickstart.sh`.
+  `M44_MODE=official` selects the separate 252-profile plan and NVIDIA launch;
+  its score build currently fails. The runner blocks active M4.1/M4.3 GPU
+  nodes, loops the one-frame bag, validates `vision_msgs/Detection3DArray`,
+  and stops its launch and bag process groups on exit. Its actual output topic
+  is `/output` (the node's logged remapping), not the example namespace path.
+- **Accepted adapted pose:** 2026-09-23 run
+  `20260923-100715-14266-adapted`: `frame_id=tf_camera`, position in metres
+  `[-0.4713481963, 0.0929617882, 0.8295211196]`, quaternion xyzw
+  `[0.2184645543, -0.3925129918, 0.0745772909, 0.8903061370]`, norm
+  `1.0`. The verifier saw one message, rejected none and returned `valid_pose`.
+  Logs are under `/home/seeed/workspace/isaac_ros_assets/m4_4_logs/` with
+  this run ID. With `POSE_TOPIC=/m44_absent_topic M44_POSE_TIMEOUT=2`, the
+  runner returned a timeout and exit 8; a synthetic active-node process
+  triggered the GPU guard and exit 3. After success and timeout, no launch,
+  rosbag or component-container process remained.
+- **Next gate:** obtain an official 252-candidate FP32 score engine and pose
+  before calling the NVIDIA configuration passed. The one-frame bag cannot
+  establish FPS or physical-camera performance. Orbbec Gemini 2 is not
+  connected; physical RGB-D, camera calibration/alignment and an object
+  instance mask remain unaccepted. M4.3's semantic mask is not one.
 
 ## M4.5 — NVlabs FoundationPose
 
@@ -146,7 +168,8 @@ Allowed states: `PASS`, `VERIFIED`, `PARTIAL`, `BLOCKED`, `PLANNED`.
 - The older all-modules-at-once architecture measured about 15 FPS because it
   was CPU-bound. The managed Hub avoids that mode; this is not evidence of a
   faster individual model.
-- M4.4 object naming/configuration still needs reconciliation when M4.4 resumes.
+- M4.4's adapted Mustard pose is an isolated demonstration, with narrower
+  orientation sampling than NVIDIA's 252-candidate graph.
 - No Git remote is configured on the Jetson. The verified P0 bundle and dirty
   worktree recovery archive are stored on the Mac under
   `m4_code_upgrade/backups/P0_20260922-162759/`.

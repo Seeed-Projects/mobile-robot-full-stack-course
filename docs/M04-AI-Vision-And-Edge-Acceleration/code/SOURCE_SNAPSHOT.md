@@ -4,7 +4,7 @@
 | --- | --- |
 | Source repository | Jetson `/home/seeed/workspace/ros2_bev` |
 | Source branch | `main` |
-| Source commits | `7e945912a299ec36e0a335f508b2a45d53a54060` for M4.4/M4.5; `50e51361eb49d94bdd84e5e258a1962d9dcfa1d1` for the quickstart guard |
+| Source commits | `6b83f5b959e487a36addada0462c00131d86e993` for M4.4 runtime, status and adapted Mustard result; `7e945912a299ec36e0a335f508b2a45d53a54060` for the older M4.5 snapshot |
 | Snapshot date | 2026-09-23 |
 | Direction | A → C only; never copy course code back to the Jetson |
 
@@ -16,8 +16,9 @@
 | `modules/m04-ai-vision-and-edge-acceleration/4.2-multi-object-tracking/` | `code/4.2-multi-object-tracking/` |
 | `modules/m04-ai-vision-and-edge-acceleration/4.3-semantic-segmentation/` | `code/4.3-semantic-segmentation/` |
 | `modules/m04-ai-vision-and-edge-acceleration/4.4-foundationpose/` | `code/4.4-foundationpose/` |
-| `modules/m04-ai-vision-and-edge-acceleration/4.4-isaac-ros-foundationpose/README.md` | `code/4.4-isaac-ros-foundationpose/README.md` |
+| `modules/m04-ai-vision-and-edge-acceleration/4.4-isaac-ros-foundationpose/{README.md,config/foundationpose_42.yaml,launch/m4_4_foundationpose_42.launch.py}` | `code/4.4-isaac-ros-foundationpose/` at matching paths |
 | `modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_4_isaacros_quickstart.sh` | `code/scripts/m4/run_m4_4_isaacros_quickstart.sh` |
+| `modules/m04-ai-vision-and-edge-acceleration/scripts/m4/verify_m4_4_pose.py` | `code/scripts/m4/verify_m4_4_pose.py` |
 | `modules/m04-ai-vision-and-edge-acceleration/common/ros2/m4_demo_bringup/` | `code/common/ros2/m4_demo_bringup/` |
 | `modules/common/ros2/bev_interfaces/` | `code/common/ros2/bev_interfaces/` |
 | `modules/m04-ai-vision-and-edge-acceleration/models/m4/` | `code/models/m4/` |
@@ -34,10 +35,10 @@ does not use it and builds directly with `scripts/build.sh --base-paths modules`
 - M4.1: **PASS**
 - M4.2: **PASS**
 - M4.3: see the canonical status file; this M4.4/M4.5 sync does not update its source
-- M4.4 Isaac ROS FoundationPose: **PARTIAL**; assets and two engines present, no pose output
+- M4.4 Isaac ROS FoundationPose: **PARTIAL** overall; FP32 42-candidate Mustard adaptation produced a valid `Detection3DArray` pose, while the official 252-candidate score build and physical RGB-D gate remain open
 - M4.5 native NVlabs FoundationPose: **BLOCKED**
 
-The M4.4/M4.5 files above were copied from the source commit. Other paths in
+The M4.4 files above were copied from `6b83f5b`. Other paths in
 this course code tree retain their earlier snapshot provenance; this update
 does not copy concurrent M4.1/M4.3 work.
 

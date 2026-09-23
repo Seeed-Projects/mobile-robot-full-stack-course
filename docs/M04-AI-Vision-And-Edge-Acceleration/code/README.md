@@ -32,6 +32,8 @@ code/
     ros2/bev_pose/                     # ROS 2 ament_python package (FoundationPose)
   4.4-isaac-ros-foundationpose/        # chapter 4.4 Isaac ROS runbook
     README.md
+    config/foundationpose_42.yaml      # adapted hypothesis cap
+    launch/m4_4_foundationpose_42.launch.py
   common/                              # shared infrastructure
     README.md
     ros2/bev_interfaces/               # FrameSet / SyncStats / SystemStatus messages
@@ -65,10 +67,9 @@ packages into `ros2_ws/src`; it is not the Jetson build entry.
 | `scripts/` | Jetson | same module root, `scripts/` |
 
 The earlier broad snapshot came from branch `main` at
-`cd3b6698425eb301fc1b9809d81f5d96f16da2f1`; this M4.4/M4.5 update
-copies selected files from Jetson commits
-`7e945912a299ec36e0a335f508b2a45d53a54060` and
-`50e51361eb49d94bdd84e5e258a1962d9dcfa1d1` on 2026-09-23. See
+`cd3b6698425eb301fc1b9809d81f5d96f16da2f1`; this M4.4 update
+copies selected files from Jetson commit
+`6b83f5b959e487a36addada0462c00131d86e993` on 2026-09-23. See
 [`SOURCE_SNAPSHOT.md`](SOURCE_SNAPSHOT.md) for the exact mapping and course-only files.
 
 Jetson access: `ssh seeed@<Jetson IP>` (the working configuration used an SSH alias
