@@ -1,8 +1,6 @@
 # 4.4 6D 姿态估计与 FoundationPose
 
-**[待实现]** 当前环境尚不具备可运行 FoundationPose 的完整条件：模型目录 `/home/seeed/FoundationPose/weights` 不存在，`torch` / `trimesh` / `nvdiffrast` 均无法 import，Orbbec Gemini 2 相机未连接。
-
-**[待验证]** 已有代码路径（`bev_pose` 的节点、launch、参数、话题契约）尚未经过任何实机验证。
+**状态：BLOCKED。** `bev_pose` 脚手架与接口契约已经存在，但 FoundationPose 运行时、权重和真实 RGB-D 输入尚未齐备，当前没有真实推理证据。完整阻塞项以 [`code/PROJECT_STATUS.md`](../code/PROJECT_STATUS.md) 为准。
 
 下面的内容是**实现契约与验收入口**，不是可运行实验。「跑不通」在这一章是预期状态，不是你的操作错误。
 
@@ -251,8 +249,8 @@ ros2 topic list | grep /perception/cameras/front
 按**真实**契约写下游，而不是按直觉。
 
 ```bash
-cat ros2_ws/src/bev_pose/config/pose_estimation.yaml
-grep -n "camera_frame_id\|pose_topic\|publish_det3d" ros2_ws/src/bev_pose/bev_pose/foundationpose_node.py
+cat modules/m04-ai-vision-and-edge-acceleration/ros2/bev_pose/config/pose_estimation.yaml
+grep -n "camera_frame_id\|pose_topic\|publish_det3d" modules/m04-ai-vision-and-edge-acceleration/ros2/bev_pose/bev_pose/foundationpose_node.py
 ```
 
 逐项确认：

@@ -1,10 +1,12 @@
 # 4.5 Isaac ROS Acceleration and Model Optimization in Practice
 
+**Status: PLANNED. There is no runnable implementation yet.** This chapter is an integration and acceptance design; it does not claim that Isaac ROS, NITROS, DLA, or INT8 has been deployed on Jetson A. See [`code/PROJECT_STATUS.md`](../code/PROJECT_STATUS.md) for the canonical status.
+
 ## Course Overview
 
-One model running is not the same as four models running together. When 4.1–4.4 were each accepted on their own, only one Engine on the machine was consuming GPU, one share of memory, and one data stream; once you chain them into a "detection → segmentation → tracking" perception pipeline, the number of copies between CPU and GPU, the memory contention among Engines, and the per-frame kernel launch overhead all appear at once, and the whole pipeline's latency is no longer the sum of each model's latency.
+One model running does not establish multi-module performance. M4.1 and M4.2 are `PASS`, M4.3 is `VERIFIED`, and M4.4 remains `BLOCKED` by its runtime, weights, and RGB-D input. A proposed "detection → segmentation → tracking" pipeline would need fresh measurements of copies, memory contention, and per-frame kernel launch overhead. The current Hub switches among three modules; it does not validate concurrent Isaac ROS inference.
 
-The solution is to move the four models into one and the same Isaac ROS pipeline: first use NITROS to eliminate the redundant GPU memory copies, then optimize layer by layer in the order "fixed input shape → INT8 quantization → CUDA Graph → DLA offload → system level", and finally measure the before/after latency, throughput, memory, power, and temperature into a reproducible table using one fixed protocol. When you finish this page, you will have a performance benchmark you can run repeatedly on the J501, rather than a set of FPS numbers that exist only in a chat log.
+The candidate path is to establish a reproducible multi-module baseline, then evaluate NITROS, fixed shapes, INT8, CUDA Graph, and DLA one at a time. Each choice needs independent correctness and performance evidence. This page defines an implementation order and acceptance design; there is no corresponding runnable Isaac ROS workspace, launch file, or optimization report yet.
 
 Based on version: https://nvidia-isaac-ros.github.io/v/release-3.2/getting_started/index.html
 
@@ -16,12 +18,12 @@ ISAAC ROS version 3.2
 | --- | --- | --- |
 | Read | Which copy NITROS zero-copy actually eliminates, and why it must run in the same process | Be able to point at a pipeline and say which topics are still taking the D2H / H2D copy path |
 | See through | The gain boundaries of one and the same Engine under the four choices of FP16, INT8, CUDA Graph, and DLA | Be able to say why a given optimization does not take effect on this pipeline, instead of copying someone else's parameters |
-| Run | How the four pages' model Engines fit into one ComposableNodeContainer without blocking each other | Get the detection, segmentation, and tracking topics publishing at the same time on the J501 |
-| Measure accurately | What trtexec, nsys, jtop, and a topic probe each answer, and where each one's blind spots are | Deliver a before/after comparison table with all six metrics complete |
+| Plan | How detection and segmentation might share a candidate pipeline, and how tracking consumes detections | List the components to implement and their real ROS interfaces |
+| Define acceptance | What trtexec, nsys, jtop, and a topic probe each answer | Specify measurement conditions and pass criteria for a future report |
 
-The whole pipeline can be split into four stages: camera input and preprocessing → NITROS transport → multi-model inference → post-processing and publishing. This page's approach is to run all four stages together, measure a baseline first, and then change them one stage at a time; after each change, re-measure with the same video and the same number of warm-up frames, otherwise you cannot tell whether the optimization worked or the environment just happened to be a bit cooler.
+The candidate pipeline has four stages: camera input and preprocessing → NITROS transport → multi-model inference → post-processing and publishing. During implementation, measure a baseline first, then change one stage at a time with the same video and warm-up count. Every performance threshold below is a future acceptance target, not a locally measured pass.
 
-## Learning Outcomes
+## Intended Outcomes After Implementation
 
 - Build an Isaac ROS development container, compile the specified packages, and run one official inference example.
 
@@ -45,7 +47,7 @@ The whole pipeline can be split into four stages: camera input and preprocessing
 
 ## Prerequisites
 
-- **M4.1–M4.4**: YOLO detection, multi-object tracking, semantic segmentation, and 6D pose estimation each completed an independent deployment on their own page, and this page migrates exactly those four pages' Engines, post-processing code, and topic definitions. If those four pages have not run through, this page has nothing to migrate.
+- **Current baseline**: M4.1 detection, M4.2 tracking, and M4.3 segmentation are candidates for later integration. M4.4 has no real inference result and cannot be counted as a migrated model. Recheck [`code/PROJECT_STATUS.md`](../code/PROJECT_STATUS.md) before implementation.
 
 - **System and containers**: [1.2 JetPack 6.2 System Flashing and Basic Configuration](https://seeedstudio.feishu.cn/docx/UweQdPUKYobmfMxYjZkcy1ZpnNh) covered flashing and TensorRT availability verification; [1.3 Containerized Development Environment and Remote Toolchain](https://seeedstudio.feishu.cn/docx/Yab1dMx93oHkKRxzP59cV9KunDb) already has a Docker environment that supports GPU passthrough; [1.4 Robot Software Middleware: Getting Started with ROS 2 Humble](https://seeedstudio.feishu.cn/docx/QdL7dbITroR6btxqesrcNJE9nib) has ROS 2 nodes, topics, and cross-machine communication running.
 
@@ -204,7 +206,9 @@ $\text{FPS} = \frac{N}{t_{out}(N) - t_{out}(1)}$
 
 A percentile like p95 is not an average: sort the latencies of N frames and take the $k = \lceil 0.95N \rceil$-th value. In a real-time system what decides whether it stutters is the tail latency, so acceptance looks only at p95 and p99, with the average as reference only.
 
-## Hands-On: Move the Four Pages' Models into One NITROS Pipeline
+## Planned Experiment: Integrate Verified Modules into a Candidate NITROS Pipeline
+
+The commands and configuration below are a future implementation draft. This snapshot has no `m4_isaac_pipeline` package or runnable M4.5 launch. Environment compatibility, package implementation, and interface acceptance must come first.
 
 The five steps are arranged in dependency order, and each step produces something the next step can consume: environment → Engine → pipeline → optimization → report. Every step's readings must be archived, and the last step's report is the summary of those readings; if you skip a step's readings in the middle, you cannot later attribute the gains to a specific change.
 
@@ -407,17 +411,17 @@ ls -lh m4_det_fp16.plan m4_det_int8.plan
 
 ### Step 3: Build the Unified Multi-Model Pipeline (Detection + Segmentation + Tracking)
 
-What you must deliver is a ComposableNodeContainer within one process: camera decoding and preprocessing happen only once, detection and segmentation infer side by side, and the detection results then enter the tracking node. The table below is this page's topic contract — write the consumer side against it and do not guess the message types from memory.
+The candidate design shares camera decoding in one process and feeds detection results to the tracker. The existing M4 interfaces are identified below; `/m4/*` names are examples for a future adapter. No matching publishers or remapping launch exist yet.
 
 | Topic | Message type | Who publishes / who consumes |
 | --- | --- | --- |
 | `/m4/image_raw` | `sensor_msgs/Image` (after successful negotiation the transport layer is a NITROS image type) | Camera driver / preprocessing node and latency probe |
 | `/m4/detections` | `vision_msgs/Detection2DArray` | Detection post-processing / tracking node and latency probe |
 | `/m4/segmentation` | `sensor_msgs/Image` (color mask) | Segmentation post-processing / 4.3's traversable-area analysis |
-| `/m4/tracks` | `m4_tracking/TrackedObjects` (4.2's self-developed message, carrying track ID, velocity, and tracker state, installed together with the workspace). Do **not** substitute `vision_msgs/Detection2DArray`: it has no velocity field and no tracker state, which is exactly the option 4.2 rejected | Tracking node / [M6 Decision Layer: Localization, Navigation, and Path Planning](https://seeedstudio.feishu.cn/docx/LTEkdYEgEo6xqwx0IfYcsfrSnYf) and [M8 Execution Layer: Gimbal and Active Vision](https://seeedstudio.feishu.cn/docx/FjJCdzbHFolniOxenGocRGMOnNP) |
-| `/m4/pose` | `vision_msgs/Detection3DArray` (the output type of the Isaac ROS pose node, with the TF frame defaulting to `fp_object`). 4.4's wrapper node folds it into the self-developed `ObjectPoseArray` for the grasping side, which is an extra layer of conversion that this page does not depend on implicitly | 4.4's pose node / M9 |
+| `/m4/tracks` (planned name) | `vision_msgs/Detection2DArray`; the current topic is `/perception/tracks`, with the track ID in `Detection2D.id` and no velocity or tracker-state fields | `supervision.ByteTrack` tracker / later consumers |
+| `/m4/pose` (unimplemented) | No current message type is defined for this alias; M4.4's scaffold defines `/perception/object_pose` as its primary `geometry_msgs/PoseStamped` output | Design an adapter after real M4.4 inference exists |
 
-Launch the unified pipeline, then watch the frequency of the three topics in three separate terminals
+Only after implementing and validating `m4_isaac_pipeline` could one launch the unified pipeline and measure the three frequencies. The following commands are not runnable steps today:
 
 ```bash
 ros2 launch m4_isaac_pipeline m4_pipeline.launch.py
@@ -430,17 +434,17 @@ ros2 topic hz /m4/tracks
 
 - Detection and segmentation share the same preprocessing output (scaling, normalization, channel order); do not run the image preprocessing node once for each, otherwise both the copies and the compute double.
 
-- The tracking node is CPU-side code (from 4.2's ByteTrack / Bot-SORT) and consumes detection boxes rather than images; put it after post-processing so that it does not block the GPU-side callback.
+- The current tracker uses `supervision.ByteTrack` and consumes `Detection2DArray` boxes. A future adapter must preserve track IDs and empty-frame semantics.
 
 - First measure the "unoptimized multi-model pipeline" readings: three topics simultaneously at ≥30 Hz is the target — if you cannot reach it, write down the actual numbers and change things item by item in the next step. This 30 Hz holds only for detection + segmentation + tracking.
 
-- `/m4/tracks` comes from 4.2's `/tracking/objects` renamed through `remap`, and its type is still 4.2's self-developed `m4_tracking/TrackedObjects`; the remapping is written in the launch file, so do not make the consumer guess the topic name.
+- If `/m4/tracks` is introduced later, it must explicitly remap the existing `/perception/tracks` topic and retain `vision_msgs/Detection2DArray`. No such remap exists today.
 
 - 4.4's pose estimation cannot be folded into this 30 Hz loop: in the official benchmark, the pose estimation node on AGX Orin with 720p input is **1.54 fps on the Isaac ROS 3.2 line (about 780 ms per frame)**; the same row in the 4.6 table is 0.502 fps (about 3800 ms/frame), but that stack is JetPack 7.x / ROS 2 Jazzy and cannot be mixed with this page's JetPack 6.2.1 / Humble (the data comes from `isaac_ros_benchmark`'s release-3.2 and release-4.6 branches, on the same AGX Orin). The tracking stage is counted separately: the official README states that when using the refine model for tracking on the Jetson Orin platform the speed is "exceeding 120 FPS", and what is slow is pose **estimation** (the one-time first frame), not tracking (original sentence: exceeding 120 FPS at Jetson Orin, quoted from isaac_ros_pose_estimation release-3.2/README.md L37. 4.x/main corresponds to Jetson Thor and 3.2 to Jetson Orin, so this page uses it only for an order-of-magnitude comparison). So make pose estimation an independent node triggered on demand (the first-frame estimate is on the order of seconds), outside the real-time loop.
 
 - Before folding the pose node into the same container, work out the memory first — the two sets of official pages do not give the same quantity, so do not blur them into one sentence: the **3.2 versioned page** is limited to the model conversion stage and states that at least **7.5 GB** of free GPU memory space is required; the **4.x latest page** speaks of the pipeline peak, about **7 GB**, with a recommended reservation of **≥8 GB**. This page is pinned to 3.x, so reserve 7.5 GB for the conversion stage and reference the 7 GB peak for the run stage. Jetson uses unified memory, so this usage must be budgeted together with camera buffers and other Engines.
 
-- Write the types according to the contract table above: 4.4's pose node output is `vision_msgs/Detection3DArray` with the TF frame defaulting to `fp_object`, not `geometry_msgs/PoseStamped`; write the consumer against PoseStamped and it will receive no data.
+- M4.4's current scaffold defines `geometry_msgs/PoseStamped` as its primary output with `camera_front` as the TF parent. M4.4 remains `BLOCKED`; the message type in an Isaac ROS example is not the output of the existing node.
 
 - When doing large-model inference inside the container, increase shared memory (start from `--shm-size=8g`), otherwise NITROS's in-process path may fall back to the ordinary path due to an allocation failure — and the fallback is silent: it still runs, and shows up only in the latency numbers.
 
@@ -524,7 +528,9 @@ rclpy.spin(LatencyProbe())
 
 - Finally put the three groups "standalone deployment / unoptimized multi-model / after layer-by-layer optimization" on the same comparison table, and mark each layer's gain and cost row by row.
 
-## Deliverables and Acceptance Criteria
+## Planned Deliverables and Future Acceptance Criteria
+
+The items below are unfinished; the numeric thresholds are design targets, not measured Jetson A results.
 
 ### Deliverables Checklist
 

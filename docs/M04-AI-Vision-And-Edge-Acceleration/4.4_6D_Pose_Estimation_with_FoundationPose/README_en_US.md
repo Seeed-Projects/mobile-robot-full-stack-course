@@ -1,8 +1,6 @@
 # 4.4 6D Pose Estimation with FoundationPose
 
-**[To be implemented]** The current environment does not yet meet the full conditions for running FoundationPose: the model directory `/home/seeed/FoundationPose/weights` does not exist, `torch` / `trimesh` / `nvdiffrast` all fail to import, and the Orbbec Gemini 2 camera is not connected.
-
-**[To be verified]** The existing code path (the `bev_pose` nodes, launch files, parameters, and topic contract) has not undergone any verification on real hardware.
+**Status: BLOCKED.** The `bev_pose` scaffolding and interface contract exist, but the FoundationPose runtime, weights, and real RGB-D input are not yet complete, so there is no real inference evidence. See [`code/PROJECT_STATUS.md`](../code/PROJECT_STATUS.md) for the canonical blockers.
 
 What follows is an **implementation contract and acceptance entry point**, not a runnable experiment. "It will not run" is the expected state in this chapter, not an operating mistake on your part.
 
@@ -251,8 +249,8 @@ The current state of the three items: the weights directory **does not exist**; 
 Write the downstream against the **real** contract, not against intuition.
 
 ```bash
-cat ros2_ws/src/bev_pose/config/pose_estimation.yaml
-grep -n "camera_frame_id\|pose_topic\|publish_det3d" ros2_ws/src/bev_pose/bev_pose/foundationpose_node.py
+cat modules/m04-ai-vision-and-edge-acceleration/ros2/bev_pose/config/pose_estimation.yaml
+grep -n "camera_frame_id\|pose_topic\|publish_det3d" modules/m04-ai-vision-and-edge-acceleration/ros2/bev_pose/bev_pose/foundationpose_node.py
 ```
 
 Confirm item by item:
