@@ -1,10 +1,6 @@
 # 4.3 Semantic Segmentation and Drivable Area Analysis
 
-**[Not yet implemented]** The model and engine artifacts needed to complete inference are currently missing: under `models/m4/segmentation/` there is only `LICENSE.md`, while `engines/` and `labels/` are both empty.
-
-**[Not yet verified]** The existing code path has not yet completed the correctness gate, and there is no measured latency / FPS either.
-
-This chapter provides **interfaces, a skeleton, and an acceptance method**; it does not promise that end-to-end inference can be completed. The steps below all appear in the form of "checking" rather than "after running, you will see".
+**Status: VERIFIED.** Jetson A completed end-to-end SegFormer-B0 FP16 TensorRT inference, geometry restoration, rate limiting, and the unit / engine-gate / full test layers. Model binaries remain on the Jetson and are excluded from the course snapshot; see [`code/PROJECT_STATUS.md`](../code/PROJECT_STATUS.md) for canonical evidence and environment details.
 
 ## Course Overview
 
@@ -12,7 +8,7 @@ This chapter provides **interfaces, a skeleton, and an acceptance method**; it d
 
 The on-robot interface defines **two outputs**: one is the 19-class raw semantic map `/perception/semantic_mask`, and the other is the mapped drivable mask `/perception/drivable_mask`. Splitting them into two paths is intentional: if an upper layer wants to switch to a different definition of "what counts as drivable", what it changes is the mapping, without running the network through again.
 
-The on-robot package in this chapter is `bev_segmentation`. It already has the node, preprocessing, postprocessing, the engine wrapper, the launch file, and the tests written, but **the two artifacts needed for inference have not been generated yet**. So the focus of this chapter is: see clearly what this interface looks like, which steps are still missing, and by what standard to accept it once they are filled in.
+The on-robot package in this chapter is `bev_segmentation`. Its node, preprocessing, postprocessing, engine wrapper, launch file, and tests now form a runnable path. The course repository carries source, metadata, and acceptance methods, but does not redistribute model binaries.
 
 ### Before You Start: What This Lesson Will Walk You Through
 
@@ -21,7 +17,7 @@ The on-robot package in this chapter is `bev_segmentation`. It already has the n
 | Read | The difference between semantic segmentation and instance segmentation, and why navigation needs only the former | Judge which kind of segmentation a task should use |
 | See through | How 19-class semantics turn into one 0/255 drivable mask | Read mapping configurations such as `drivable_class_ids` |
 | Integrate | The separate roles of the two masks and how each is consumed | Consume `/perception/semantic_mask` and `/perception/drivable_mask` with the correct semantics |
-| Accept | What this chapter is still missing before it can really run | Use the correctness gate to judge "when it can be treated as a runnable chapter" |
+| Accept | How to prove geometry restoration, engine parity, and runtime limiting | Recheck the implementation with the unit, engine-gate, and full test layers |
 
 ### Learning Outcomes
 
@@ -35,7 +31,7 @@ The on-robot package in this chapter is `bev_segmentation`. It already has the n
 
 - Restate the boundary that "candidate-drivable is not equal to collision-free", and explain why it must be kept.
 
-- List the three steps `bev_segmentation` still needs to go from skeleton to runnable, and the acceptance criterion for each step.
+- Launch `bev_segmentation` independently, inspect both output topics, and recheck the verified implementation with all three test layers.
 
 ### Hardware and Software Checklist
 
@@ -148,27 +144,30 @@ Expanded, this is $X=(u-c_x)d/f_x$, $Y=(v-c_y)d/f_y$, $Z=d$, where $(u,v)$ is th
 
 To really build a point cloud, four preconditions must hold at the same time: the depth map has undergone D2C alignment (depth pixels correspond one-to-one with color pixels); the depth map and the color image have the same resolution and a consistent `camera_info`; K comes from the same calibration line as the image (this page uses the pinhole `plumb_bob` K of the 2.3 main line; if what you have is the K of the fisheye `equidistant` model, substituting it into this formula gives a systematic offset); and the depth unit conversion is correct (16UC1 encoding generally stores millimeters, so divide by 1000 when reading it in). If any one of these four is missing, the point cloud will be misaligned with the image.
 
-## Hands-On: Check the Skeleton, the Interfaces, and the Acceptance Gates
+## Hands-On: Run the Segmentation Path and Recheck Its Gates
 
-Three steps. All commands are executed on the J501, with the working directory `/home/seeed/workspace/ros2_bev`.
+Three steps. Run the Jetson A commands from `/home/seeed/workspace/ros2_bev`; the course snapshot lives under this chapter's `code/` directory. Models and engines are device-local assets and are not distributed in the course repository.
 
-**To be clear up front**: these three steps are **checking and defining**, not "run it and see the result". This chapter's engine has not been generated yet, so if you follow the steps below, you will get a checklist of "what is still missing", not a segmentation image.
-
-### Step 8: Check the Segmentation Skeleton and Model Asset Status
+### Step 8: Check Source, Installation, and Device-Local Assets
 
 First see clearly how far the code has come and how far the model has come.
 
 ```bash
 cd /home/seeed/workspace/ros2_bev
 
-# 代码骨架：节点 / 前后处理 / engine 封装 / launch / 测试是否齐备
-find ros2_ws/src/bev_segmentation -type f -name "*.cpp" -o -name "*.hpp" -o -name "*.py" | sort
+# Source: node / preprocessing / postprocessing / engine wrapper / launch / tests
+find modules/m04-ai-vision-and-edge-acceleration/ros2/bev_segmentation -type f \
+  \( -name "*.cpp" -o -name "*.hpp" -o -name "*.py" \) | sort
 
-# 模型资产：这里应当只有 LICENSE.md
-find models/m4/segmentation -type f | sort
+# Device-local model assets (binaries are excluded from the course snapshot)
+find modules/m04-ai-vision-and-edge-acceleration/models/m4/segmentation -type f | sort
+
+# Installed executable
+source install/setup.bash
+ros2 pkg executables bev_segmentation
 ```
 
-On the code side, **the skeleton files are all present**: `segmentation_node`, `segmentation_engine`, `preprocess`, `postprocess`, plus `config/segmentation.yaml`, `launch/m4_segmentation.launch.py`, and a set of tests. Complete files do not mean the implementation is verified; all judgments later in this chapter are based on actual run results. The model side is empty: under `models/m4/segmentation/` there is only one `LICENSE.md`.
+The source and installation should expose `segmentation_node`, `segmentation_engine`, `preprocess`, `postprocess`, `config/segmentation.yaml`, the launch file, and tests. Jetson A currently also holds the SegFormer-B0 ONNX, FP16 engine, and label assets; these large files are deliberately excluded from the course snapshot.
 
 The repository provides three scripts as implementation entry points, in order:
 
@@ -178,14 +177,14 @@ scripts/m4/build_segformer_engine.sh  # 建 TensorRT engine
 scripts/m4/generate_labels_json.sh    # 生成 labels.json
 ```
 
-> **[Not yet verified]** These three scripts themselves have not yet been validated by an end-to-end run. Before running them, read through the script contents once to confirm the path parameters; failing to run is currently expected, not an operating mistake on your part.
+These scripts rebuild the device-local assets. Normal study and acceptance reuse the artifacts already verified on Jetson A; regenerate them only when replacing the model or rebuilding the environment.
 
 ### Step 9: Check the Two Output Interfaces
 
 Confirm the semantics by which downstream should consume them.
 
 ```bash
-cat ros2_ws/src/bev_segmentation/config/segmentation.yaml
+cat modules/m04-ai-vision-and-edge-acceleration/ros2/bev_segmentation/config/segmentation.yaml
 ```
 
 Check item by item:
@@ -196,60 +195,70 @@ Check item by item:
 
 - **`drivable_class_ids: [0]`**: by default only road counts as drivable; sidewalk (id=1) must be added explicitly.
 
-- **`publish_debug`**: this item exists in the config and defaults to `false`; its debug output capability is not yet among this chapter's verified items.
+- **`publish_debug`**: this item exists in the config and defaults to `false`; debug output is not part of the canonical acceptance interface.
 
 There are two usage boundaries here: `drivable_mask` is a candidate-drivable mask, not equivalent to collision-free space; and after the mapping is changed, the two masks must be re-checked together.
 
-### Step 10: Define the Correctness Gate Once the Engine Is Ready
+### Step 10: Launch the Node and Rerun the Three Acceptance Layers
 
-Step 10 defines the acceptance conditions once the engine is ready. This chapter does not currently count as complete, so the output of this step is not a reading but a gate:
+Launch M4.3 independently, then inspect whether both masks continue to publish:
 
 ```bash
-scripts/m4/engine_correctness_gate.sh
-scripts/m4/run_m4_3_benchmark.sh
+./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_3_demo.sh
+
+# In a new terminal
+source /home/seeed/workspace/ros2_bev/install/setup.bash
+ros2 topic hz /perception/semantic_mask
+ros2 topic hz /perception/drivable_mask
 ```
 
-Check item by item against the P0 checklist in `docs/M4.3_SEMANTIC_SEGMENTATION.md`; only after all three items are complete can this chapter be upgraded to a runnable chapter:
+Then rerun all three test layers rather than reusing an old report:
 
-| Gate | Criterion | Current status |
+```bash
+colcon test --packages-select bev_segmentation --ctest-args -L unit
+colcon test-result --all --verbose
+
+colcon test --packages-select bev_segmentation --ctest-args -L engine_gate
+colcon test-result --all --verbose
+
+colcon test --packages-select bev_segmentation
+colcon test-result --all --verbose
+```
+
+| Gate | Criterion | Jetson A baseline |
 | --- | --- | --- |
-| Engine Correctness Gate | PyTorch and TensorRT outputs aligned, with the threshold filled in from actual runs | **[Not yet verified]** script written, not run |
-| Latency / FPS report | Run inference N times on a real camera stream and report P50 / P95 | **[Not yet verified]** script written, not run |
-| License verification | See `models/m4/segmentation/LICENSE.md` | **[Not yet verified]** not checked |
+| Unit | Preprocessing, postprocessing, geometry restoration, and rate limiting pass | Passed |
+| Engine Gate | PyTorch and TensorRT outputs align | cosine `0.9966`, mIoU `0.9898` |
+| Full | Every CTest / GTest target passes | 7 CTest targets and 29 GTests passed |
+| Geometry check | The restored letterbox mask agrees with the reference | mIoU `1.0000` after the fix; old path `0.8101` |
 
-Before the gate passes, any number "optimized" out of this chapter does not hold, because there is no baseline to compare against.
+Hub mode limits M4.3 to `10 FPS` by default, while standalone mode allows `25 FPS` or more when configured. That limit is a scheduling policy, not an engine-performance regression.
 
 ## Deliverables and Acceptance Criteria
 
 ### Deliverables Checklist
 
-**Currently deliverable (what this chapter can honor)**
+**Currently deliverable**
 
-1. A code and asset status record: the file list of `bev_segmentation` + the fact that `models/m4/segmentation/` is empty.
+1. An installable `bev_segmentation` node, configuration, launch file, preprocessing, and postprocessing.
 
 2. An interface contract record: the topics, types, and value ranges of the two masks, plus the current value of `drivable_class_ids`.
 
-3. A release gate checklist: Engine Correctness Gate / Latency-FPS report / License verification, each with its status and trigger conditions.
+3. Unit / Engine Gate / Full regression, plus geometry restoration and rate-limiter checks.
 
-4. (Optional) the log and the verbatim error output of an engine build attempt. This is the most valuable output this chapter currently has.
+4. Device-local ONNX, FP16 engine, and label assets on Jetson A; the course snapshot includes metadata and the license, but no model binary.
 
-**Target runtime artifacts (`[Not yet implemented]` / `[Not yet verified]`, which this chapter does not promise to produce)**
-
-- The actual images on the two channels `/perception/semantic_mask` and `/perception/drivable_mask`.
-
-**The execution chain after unlocking** (each step below presumes the corresponding gate has passed; these are not current steps):
-
-Assets successfully generated → correctness gate passed → `[Not yet verified]` `run_m4_3_demo.sh` verifies the two topics → `run_m4_3_benchmark.sh` produces the baseline.
+**Runtime outputs:** actual images on `/perception/semantic_mask` and `/perception/drivable_mask`. After changing the model or engine, rerun the engine gate and geometry checks.
 
 ### Acceptance Criteria
 
 | Check | Pass criterion | Check first when failing |
 | --- | --- | --- |
-| Skeleton check | You can list `bev_segmentation`'s node, preprocessing and postprocessing, engine wrapper, launch, and test files | Whether you have mixed up `bev_segmentation` with another package |
-| Asset status | You can state accurately what `models/m4/segmentation/` is currently missing | Whether you have taken `LICENSE.md` for a model file |
+| Runtime path | The node starts; both masks publish continuously and timestamps advance with the input | Engine path, input topic, and active input source |
+| Test gates | Unit, engine gate, and full layers all pass | Whether old results or a different engine were used |
 | Interface check | The topic names, types, and value ranges of the two masks match the config; you can explain what `drivable_class_ids` does | Whether you remembered only 0/255 and forgot the 19-class path |
 | Safety boundary | You can restate candidate-drivable ≠ collision-free and give an example of why | — |
-| Incomplete items | All three state their current status and "under what conditions they count as complete" | Whether you have taken "the script exists" for "the function works" |
+| Rate limiting | Hub and standalone target FPS match configuration, without duplicate inference nodes | Whether two segmentation processes are running |
 
 ## FAQ and Troubleshooting
 
@@ -257,15 +266,15 @@ Assets successfully generated → correctness gate passed → `[Not yet verified
 
 - **Symptom**: the node does not start, or it starts but produces no output.
 
-- **Cause**: **this is currently expected**. There is no engine and no labels under `models/m4/segmentation/`, so inference cannot begin.
+- **Cause**: the course snapshot does not include model binaries, the configuration points to an old engine, or the input topic has no images.
 
-- **Solution**: run the three generation scripts from Step 8 first, and write down the verbatim error output. Before the engine is generated, read this chapter as an "interface and skeleton description", not as a step-by-step tutorial.
+- **Solution**: on Jetson A, check the device-local engine and labels, then confirm `/perception/cameras/front/image` has data. If the model changed, rebuild the assets using Step 8 and rerun all three test layers.
 
 ### Ground-Class IoU Is Clearly Lower Than Other Classes
 
 - **Symptom**: the overall image looks acceptable, but the ground (road) class is classified very poorly.
 
-- **Cause**: the ground occupies a large share of the frame, has weak texture, and is strongly affected by lighting and reflections; it may also be that the diversity of ground samples in the training set is insufficient. Note that this kind of problem can only be discussed once the engine is ready and evaluation metrics can be produced.
+- **Cause**: the ground occupies a large share of the frame, has weak texture, and is strongly affected by lighting and reflections; the diversity of ground samples in the training set may also be insufficient.
 
 - **Solution**: first look at the confusion matrix to confirm which class the ground was merged into (commonly sidewalk or terrain); then check the camera placement and lighting distribution of the training set. This chapter does not train models, so the direction of this troubleshooting is "swap the upstream weights or add data", not "tune inference parameters".
 
@@ -277,4 +286,4 @@ Assets successfully generated → correctness gate passed → `[Not yet verified
 
 - **Solution**: first `ros2 topic echo` the `header.stamp` of the two masks to confirm they are the same frame; then go back to `config/segmentation.yaml` and check `drivable_class_ids`. The value of this troubleshooting is that it separates a "model problem" from a "mapping problem".
 
-> **Next step:** 4.4 pose estimation uses the same Orbbec Gemini 2 and **consumes both color and depth** channels at once, which is the first time in this module that `depth` is genuinely needed. The two masks left behind by 4.3 will appear side by side with detection and tracking in the 4.5 integration. Although this chapter cannot be run end to end, its interfaces are fixed: remember the semantics of `/perception/semantic_mask` and `/perception/drivable_mask`, because the following chapters all use them.
+> **Next step:** 4.4 requires color and depth but remains `BLOCKED`; 4.5 is an integration plan. The two 4.3 masks are runnable now. Later chapters should consume the interfaces defined here without presenting planned integration as completed work.

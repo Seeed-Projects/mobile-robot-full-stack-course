@@ -1,5 +1,7 @@
 # 4.2 Multi-Object Tracking
 
+**Status: PASS.** Jetson A was revalidated with `supervision.ByteTrack`, `vision_msgs/Detection2DArray`, and 30 pytest cases. See [`code/PROJECT_STATUS.md`](../code/PROJECT_STATUS.md) for the canonical evidence and environment.
+
 ## Course Overview
 
 ![Course Overview](./images/XCQhblwpeo0Zu1x2vOecGZLcnyb.gif)
@@ -134,9 +136,9 @@ The five parameters in `config/bytetrack.yaml` correspond directly to the constr
 | Parameter | Real-machine value | What it changes | Symptom |
 | --- | --- | --- | --- |
 | `track_activation_threshold` | 0.25 | The threshold for a **high-score detection**, and the score that activating a new track depends on | Turn it up: tracks are cleaner and more stable, but weak targets are missed; turn it down: weak targets can also start tracks, but noise and instability come in with them. It is **not** "the minimum confidence for a detection to take part in tracking" — a box below it may still take part in second-stage association |
-| `lost_track_buffer` | 30 | The **buffer base** for lost tracks | Turn it up: occlusion tolerance grows longer and tracks break less easily, at the cost of longer-lasting ghost tracks; turn it down: tracks are cleaned up neatly, but the ID easily changes after occlusion. **The actual window is not equal to this number**; it is scaled by `frame_rate` |
+| `lost_track_buffer` | 90 | The **buffer base** for lost tracks | Turn it up: occlusion tolerance grows longer and tracks break less easily, at the cost of longer-lasting ghost tracks; turn it down: tracks are cleaned up sooner, but IDs may change after occlusion. The actual duration also depends on `frame_rate` |
 | `minimum_matching_threshold` | 0.8 | The **maximum matching cost** allowed in first-stage association | Turn it up: matching is looser, pairings with worse overlap are accepted, and tracks break less easily; turn it down: stricter, and when a target moves fast or box overlap is poor it easily breaks into a new ID. It governs only the first stage and is not a threshold shared by all stages |
-| `frame_rate` | 10 | The scaling factor corresponding to the actual processing frame rate | It takes part in computing the lost window, see the formula below; if the input throughput changes but this is not changed, the actual occlusion tolerance window will deviate from expectations |
+| `frame_rate` | 30 | The scaling factor corresponding to the actual processing frame rate | It participates in lost-window calculation; if throughput changes without updating it, motion prediction and occlusion tolerance can deviate from expectations |
 | `minimum_consecutive_frames` | 1 | How many consecutive matches a track needs before it is used externally as a **stable track** | Turn it up: it suppresses accidental tracks produced by brief false detections, but a new target has to wait several frames before getting a stable ID |
 
 There are two more parameters that do not affect tracking behavior but that you will encounter when reading logs: `tracker_type` (fixed at `bytetrack`, the only tracker on the real machine) and `publish_log_throttle_ms` (log throttling, 1000 ms).
@@ -147,7 +149,7 @@ There are two more parameters that do not affect tracking behavior but that you 
 max_time_lost = int(frame_rate / 30 × lost_track_buffer)
 ```
 
-Substituting the real-machine configuration (`frame_rate = 10`, `lost_track_buffer = 30`), the actual window is 10 frames. Reading `lost_track_buffer` directly as "keep 30 frames" overestimates it threefold.
+Substituting the current configuration (`frame_rate = 30`, `lost_track_buffer = 90`) gives 90 processed frames. At about 30 FPS that is 3 seconds; if actual throughput falls to about 15 FPS while the configuration is unchanged, the same 90 frames span about 6 seconds.
 
 The comment in `config/bytetrack.yaml` states that `frame_rate` corresponds to the observed throughput of `bev_detection` on the Orin. If you switch detection to another input source and the frame rate changes, this value must change with it, otherwise the actual occlusion tolerance window will deviate from expectations.
 
@@ -215,7 +217,7 @@ vim ros2_ws/src/bev_tracking/config/bytetrack.yaml
 | Noise in the frame becomes a track | Turn `track_activation_threshold` up, or turn `minimum_consecutive_frames` up |
 | The occlusion tolerance duration differs greatly from expectations | Check whether `frame_rate` matches the actual input frame rate |
 
-Changing `lost_track_buffer` is the most intuitive experiment: it is originally 30 frames, and after turning it up the ID is more easily reconnected within the same occlusion, but it also lingers a while longer after the target has really walked out of the frame. Writing down the symptoms from both runs is more useful than memorizing what the parameters mean.
+Changing `lost_track_buffer` is the most intuitive experiment: the current setting is 90, and increasing it may reconnect an ID after a longer occlusion, but also retains a departed target longer. Record both effects in the same scene.
 
 ## Deliverables and Acceptance Criteria
 

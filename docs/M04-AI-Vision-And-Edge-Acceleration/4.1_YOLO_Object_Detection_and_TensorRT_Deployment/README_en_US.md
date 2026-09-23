@@ -1,5 +1,7 @@
 # 4.1 YOLO Object Detection: From Training to TensorRT Deployment
 
+**Status: PASS.** Jetson A was revalidated with YOLO11n FP16 TensorRT, the real ROS 2 topics, and 28 GTests. See [`code/PROJECT_STATUS.md`](../code/PROJECT_STATUS.md) for the canonical evidence and environment.
+
 ## Course Overview
 
 ![Course Overview](./images/ZDIIbrRovoXY93x5OKAczK2NnNd.png)

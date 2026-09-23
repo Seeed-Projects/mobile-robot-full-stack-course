@@ -1,10 +1,6 @@
 # 4.3 语义分割与可通行区域分析
 
-**[待实现]** 当前缺少完成推理所需的模型与 engine 产物：`models/m4/segmentation/` 下只有 `LICENSE.md`，`engines/` 与 `labels/` 都是空的。
-
-**[待验证]** 已有代码路径尚未完成 correctness gate，也没有 latency / FPS 实测。
-
-本章提供的是**接口、骨架与验收方法**，不承诺可完成端到端推理。下面的步骤都会以「核对」而不是「运行后你将看到」的形式出现。
+**状态：VERIFIED。** Jetson A 已完成 SegFormer-B0 FP16 TensorRT 端到端推理、几何恢复、限流与 unit / engine gate / full 测试。模型二进制只保留在 Jetson，不进入课程快照；完整证据与环境以 [`code/PROJECT_STATUS.md`](../code/PROJECT_STATUS.md) 为准。
 
 ## 课程概述
 
@@ -12,7 +8,7 @@
 
 实机的接口定义了**两路输出**：一路是 19 类的原始语义图 `/perception/semantic_mask`，一路是映射后的可行驶掩膜 `/perception/drivable_mask`。分成两路是有意的：上层如果想换一套「什么算能走」的定义，改的是映射，不用重新过一遍网络。
 
-本章实机侧的包是 `bev_segmentation`。它已经把节点、预处理、后处理、engine 封装、launch 与测试都写好了，但**推理所需的两份产物还没生成**。所以本章的重点是：看清这套接口长什么样、还差哪几步、以及补上之后按什么标准验收。
+本章实机侧的包是 `bev_segmentation`。节点、预处理、后处理、engine 封装、launch 与测试已经形成可运行链路；课程仓库只同步源码、元数据与验收方法，不分发模型二进制。
 
 ### 先知道：这节课会带你完成什么
 
@@ -21,7 +17,7 @@
 | 读懂 | 语义分割与实例分割的区别，以及导航为什么只需要前者 | 判断一个任务该用哪种分割 |
 | 看透 | 19 类语义怎么变成一张 0/255 的可行驶掩膜 | 读懂 `drivable_class_ids` 这类映射配置 |
 | 接入 | 两路掩膜各自的分工与消费方式 | 按正确语义接住 `/perception/semantic_mask` 与 `/perception/drivable_mask` |
-| 验收 | 这一章还差什么才算真的能跑 | 按 correctness gate 判断「什么时候可以把它当可运行章节」 |
+| 验收 | 如何证明几何恢复、engine 对齐和运行限流正确 | 用 unit、engine gate 与 full 三层测试复核当前实现 |
 
 ### 学完后，你能做到什么
 
@@ -35,7 +31,7 @@
 
 - 复述「candidate-drivable 不等于 collision-free」这条边界，并说明它为什么必须保留。
 
-- 列出 `bev_segmentation` 从骨架到可运行还差哪三步，以及每步的验收判据。
+- 独立启动 `bev_segmentation`，核对两路输出，并用三层测试复核当前已验证实现。
 
 ### 硬件与软件清单
 
@@ -148,27 +144,30 @@ $\begin{bmatrix} X \\ Y \\ Z \end{bmatrix}=d\,K^{-1}\begin{bmatrix} u \\ v \\ 1 
 
 要真正做点云，还需要四个前置条件同时成立：深度图做过 D2C 对齐（深度像素与彩色像素一一对应）；深度图与彩色图分辨率相同且 `camera_info` 一致；K 来自与图像同一条标定线（本页用 2.3 主线的针孔 `plumb_bob` K；如果手上是鱼眼 `equidistant` 的 K，代入本式会得到系统性偏移）；深度单位换算正确（16UC1 编码一般以毫米存储，读进来要除以 1000）。这四条缺一条，点云就会和图像错位。
 
-## 动手：核对骨架、接口与验收门
+## 动手：运行分割链路并复核验收门
 
-三步。所有命令在 J501 上执行，工作目录是 `/home/seeed/workspace/ros2_bev`。
+三步。以下 Jetson A 命令都从 `/home/seeed/workspace/ros2_bev` 执行；课程快照中的路径位于本章 `code/` 目录。模型与 engine 属于设备本地资产，不随课程仓库分发。
 
-**提前说清楚**：这三步是**核对与定义**，不是「跑起来看结果」。本章的 engine 尚未生成，照下面的步骤做，你会得到一份「还差什么」的清单，而不是一张分割图。
-
-### 步骤 8：核对 segmentation 骨架与模型资产状态
+### 步骤 8：核对源码、安装结果与设备本地资产
 
 先看清代码到哪一步、模型到哪一步。
 
 ```bash
 cd /home/seeed/workspace/ros2_bev
 
-# 代码骨架：节点 / 前后处理 / engine 封装 / launch / 测试是否齐备
-find ros2_ws/src/bev_segmentation -type f -name "*.cpp" -o -name "*.hpp" -o -name "*.py" | sort
+# 源码：节点 / 前后处理 / engine 封装 / launch / 测试
+find modules/m04-ai-vision-and-edge-acceleration/ros2/bev_segmentation -type f \
+  \( -name "*.cpp" -o -name "*.hpp" -o -name "*.py" \) | sort
 
-# 模型资产：这里应当只有 LICENSE.md
-find models/m4/segmentation -type f | sort
+# 设备本地模型资产（课程快照不会包含二进制）
+find modules/m04-ai-vision-and-edge-acceleration/models/m4/segmentation -type f | sort
+
+# 已安装节点
+source install/setup.bash
+ros2 pkg executables bev_segmentation
 ```
 
-代码侧**骨架文件齐备**：`segmentation_node`、`segmentation_engine`、`preprocess`、`postprocess`，加上 `config/segmentation.yaml`、`launch/m4_segmentation.launch.py` 与一组测试。文件齐备不等于实现已验证，本章后面所有判断都以实跑结果为准。模型侧是空的：`models/m4/segmentation/` 下只有一个 `LICENSE.md`。
+代码与安装侧应能看到 `segmentation_node`、`segmentation_engine`、`preprocess`、`postprocess`、`config/segmentation.yaml`、launch 与测试。Jetson A 当前还持有 SegFormer-B0 ONNX、FP16 engine 与标签资产；这些大文件被排除在课程快照之外。
 
 仓库提供三个脚本作为实施入口，按顺序：
 
@@ -178,14 +177,14 @@ scripts/m4/build_segformer_engine.sh  # 建 TensorRT engine
 scripts/m4/generate_labels_json.sh    # 生成 labels.json
 ```
 
-> **[待验证]** 这三个脚本本身还没有经过端到端实跑验证。跑之前先读一遍脚本内容确认路径参数；跑不通属当前预期，不是你的操作错误。
+这三个脚本是重建设备本地资产的入口。正常学习与验收直接复用 Jetson A 已验证的产物；只有替换模型或重建环境时才需要重新生成。
 
 ### 步骤 9：核对两路输出接口
 
 确认下游该按什么语义消费。
 
 ```bash
-cat ros2_ws/src/bev_segmentation/config/segmentation.yaml
+cat modules/m04-ai-vision-and-edge-acceleration/ros2/bev_segmentation/config/segmentation.yaml
 ```
 
 逐项核对：
@@ -196,60 +195,70 @@ cat ros2_ws/src/bev_segmentation/config/segmentation.yaml
 
 - **`drivable_class_ids: [0]`**：默认只有 road 算可行驶，sidewalk（id=1）需要显式加入。
 
-- **`publish_debug`**：配置中存在该项，默认 `false`；它的调试输出能力尚未纳入本章已验证项。
+- **`publish_debug`**：配置中存在该项，默认 `false`；调试输出不属于当前规范验收接口。
 
 这里有两条使用边界：`drivable_mask` 是候选可行驶掩膜，不等价于无碰撞空间；映射改了之后两路掩膜要一起复核。
 
-### 步骤 10：定义 engine 就绪后的 correctness gate
+### 步骤 10：启动节点并重新运行三层验收
 
-步骤 10 定义 engine 就绪后的验收条件。这一章目前不算完成，所以这一步的产出不是读数，而是一道门：
+先独立启动 M4.3，再观察两路掩膜是否持续发布：
 
 ```bash
-scripts/m4/engine_correctness_gate.sh
-scripts/m4/run_m4_3_benchmark.sh
+./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_3_demo.sh
+
+# 新终端
+source /home/seeed/workspace/ros2_bev/install/setup.bash
+ros2 topic hz /perception/semantic_mask
+ros2 topic hz /perception/drivable_mask
 ```
 
-对着 `docs/M4.3_SEMANTIC_SEGMENTATION.md` 的 P0 清单逐条核对，三项都完成后本章才能升级为可运行章节：
+随后重新运行三层测试；不得只复用旧结果：
 
-| 门 | 判据 | 当前状态 |
+```bash
+colcon test --packages-select bev_segmentation --ctest-args -L unit
+colcon test-result --all --verbose
+
+colcon test --packages-select bev_segmentation --ctest-args -L engine_gate
+colcon test-result --all --verbose
+
+colcon test --packages-select bev_segmentation
+colcon test-result --all --verbose
+```
+
+| 门 | 判据 | Jetson A 基线 |
 | --- | --- | --- |
-| Engine Correctness Gate | PyTorch 与 TensorRT 输出对齐，阈值由实跑填入 | **[待验证]** 脚本已写，未跑 |
-| Latency / FPS 报告 | 用真实相机流跑 N 次推理，报 P50 / P95 | **[待验证]** 脚本已写，未跑 |
-| License 验证 | 见 `models/m4/segmentation/LICENSE.md` | **[待验证]** 未核 |
+| Unit | 预处理、后处理、几何恢复与限流逻辑通过 | 已通过 |
+| Engine Gate | PyTorch 与 TensorRT 输出对齐 | cosine `0.9966`，mIoU `0.9898` |
+| Full | 全部 CTest / GTest 目标通过 | 7 个 CTest 目标、29 项 GTest 已通过 |
+| 几何专项 | letterbox 还原后与参考掩膜一致 | 修复后 mIoU `1.0000`；旧实现 `0.8101` |
 
-在门通过之前，任何从这一章「优化」出来的数字都不成立，因为没有基线可比。
+Hub 模式默认把 M4.3 限制在 `10 FPS`，独立模式允许按配置运行到 `25 FPS` 以上。限流是调度策略，不得误判为 engine 性能下降。
 
 ## 产出物与验收标准
 
 ### 交付清单
 
-**当前可交付（本章能兑现的）**
+**当前可交付**
 
-1. 一份代码与资产状态记录：`bev_segmentation` 的文件清单 + `models/m4/segmentation/` 为空的事实。
+1. 可安装的 `bev_segmentation` 节点、配置、launch、预处理与后处理实现。
 
 2. 一份接口契约记录：两路掩膜的话题、类型、取值范围，以及 `drivable_class_ids` 的当前取值。
 
-3. 一份 release gate 清单：Engine Correctness Gate / Latency-FPS 报告 / License 验证，各自的状态与触发条件。
+3. Unit / Engine Gate / Full 三层回归，以及几何恢复和限流专项验证。
 
-4. （可选）engine 构建尝试的日志与报错原文。这是本章当前最有价值的产出。
+4. Jetson A 上的 ONNX、FP16 engine 与标签资产；课程快照只保留元数据和许可证，不分发二进制。
 
-**目标运行产物（`[待实现]` / `[待验证]`，本章不承诺产出）**
-
-- `/perception/semantic_mask` 与 `/perception/drivable_mask` 两路实际图像。
-
-**解锁后的执行链**（以下每一步都以对应 gate 通过为前提，不是当前步骤）：
-
-资产成功生成 → correctness gate 通过 → `[待验证]` `run_m4_3_demo.sh` 验证两路话题 → `run_m4_3_benchmark.sh` 出基线。
+**运行产物**：`/perception/semantic_mask` 与 `/perception/drivable_mask` 两路实际图像。每次更换模型或 engine 后，都要重新运行 engine gate 和几何专项验证。
 
 ### 验收标准
 
 | 检查项 | 通过标准 | 不通过时优先检查 |
 | --- | --- | --- |
-| 骨架核对 | 能列出 `bev_segmentation` 的节点、前后处理、engine 封装、launch 与测试文件 | 是否把 `bev_segmentation` 与别的包混了 |
-| 资产状态 | 能准确说出 `models/m4/segmentation/` 当前缺什么 | 是否把 `LICENSE.md` 当成了模型文件 |
+| 运行链路 | 节点可启动，两路掩膜持续发布且时间戳随输入更新 | engine 路径、输入话题和当前输入源 |
+| 测试门 | unit、engine gate、full 均通过 | 是否复用了旧结果，或加载了不同 engine |
 | 接口核对 | 两路掩膜的话题名、类型、取值范围与配置一致；能解释 `drivable_class_ids` 的作用 | 是否只记住了 0/255 而忘了 19 类那一路 |
 | 安全边界 | 能复述 candidate-drivable ≠ collision-free，并举例说明为什么 | — |
-| 未完成项 | 三项都写明了当前状态与「什么条件下算完成」 | 是否把「脚本存在」当成了「功能可用」 |
+| 运行限流 | Hub 与独立模式的目标 FPS 符合配置，无重复推理节点 | 是否同时启动了两个分割进程 |
 
 ## 常见问题与排障
 
@@ -257,15 +266,15 @@ scripts/m4/run_m4_3_benchmark.sh
 
 - **现象**：节点起不来，或者起来了但没有输出。
 
-- **原因**：**这是当前预期**。`models/m4/segmentation/` 下没有 engine 与 labels，推理无从开始。
+- **原因**：通常是课程快照未包含模型二进制、配置仍指向旧 engine，或输入话题没有图像。
 
-- **处理**：先跑步骤 8 里的三个生成脚本，并把报错原文记下来。在 engine 生成之前，把这一章当「接口与骨架说明」读，不要当操作教程读。
+- **处理**：先在 Jetson A 检查设备本地 engine 与 labels，再确认 `/perception/cameras/front/image` 有数据；如果更换过模型，按步骤 8 重建资产并重新跑三层验收。
 
 ### 地面类 IoU 明显低于其他类
 
 - **现象**：整图看着还行，但地面（road）这一类分得很差。
 
-- **原因**：地面在画面里占比大、纹理弱、受光照和反光影响明显；也可能是训练集里地面样本的多样性不足。注意这类问题要等 engine 就绪、能出评估指标之后才谈得上。
+- **原因**：地面在画面里占比大、纹理弱、受光照和反光影响明显；也可能是训练集里地面样本的多样性不足。
 
 - **处理**：先看混淆矩阵确认地面被并进了哪一类（常见是并进 sidewalk 或 terrain）；再检查训练集的机位与光照分布。本章不训练模型，所以这条排障的方向是「换上游权重或补数据」，不是「调推理参数」。
 
@@ -277,4 +286,4 @@ scripts/m4/run_m4_3_benchmark.sh
 
 - **处理**：先 `ros2 topic echo` 两路掩膜的 `header.stamp`，确认是同一帧；再回到 `config/segmentation.yaml` 核对 `drivable_class_ids`。这条排障的价值在于：它把「模型问题」和「映射问题」分开了。
 
-> **下一步：**4.4 姿态估计会用到同一台 Orbbec Gemini 2，并且**同时消费彩色与深度**两路数据，那是本模块里第一次真正需要 `depth`。4.3 留下的两路掩膜在 4.5 的集成里会与检测、跟踪并排出现。本章虽然跑不通，但接口是确定的：把 `/perception/semantic_mask` 与 `/perception/drivable_mask` 的语义记住，后面几章都会用到。
+> **下一步：**4.4 姿态估计需要同时消费彩色与深度，但当前仍为 `BLOCKED`；4.5 只保留集成规划。4.3 的两路掩膜已经可运行，后续章节应按这里定义的接口消费，不能把规划描述成已完成实现。
