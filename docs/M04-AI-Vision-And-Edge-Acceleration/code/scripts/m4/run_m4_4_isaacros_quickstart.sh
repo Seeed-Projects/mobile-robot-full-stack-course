@@ -13,8 +13,8 @@ if ! command -v docker >/dev/null || ! docker inspect "$CONTAINER" >/dev/null 2>
   exit 2
 fi
 
-for active_node in yolo_trt_node segmentation_node; do
-  if pgrep -x "$active_node" >/dev/null; then
+for active_node in '/install/bev_detection/lib/bev_detection/yolo_trt_node' '/install/bev_segmentation/lib/bev_segmentation/segmentation_node'; do
+  if pgrep -f "$active_node" >/dev/null; then
     echo "ERROR: shared Hub inference node '$active_node' is active. Stop its run through the owning Hub before using the GPU." >&2
     exit 3
   fi
@@ -75,7 +75,7 @@ docker exec "$CONTAINER" bash -lc "
     cat \"\$launch_log\"
     exit 7
   fi
-  ros2 bag play '$ASSET_ROOT/quickstart.bag' --loop --rate 0.2 >\"\$bag_log\" 2>&1 &
+  ros2 bag play '$ASSET_ROOT/quickstart.bag' --loop --delay 1 >\"\$bag_log\" 2>&1 &
   bag_pid=\$!
   if timeout 240 ros2 topic echo --once '$POSE_TOPIC'; then
     echo 'Official FoundationPose quickstart published one pose message on $POSE_TOPIC'
