@@ -1,24 +1,24 @@
 # 4.4 Isaac ROS FoundationPose：6D 位姿与加速
 
-**状态：整体 `PARTIAL`；FP32、最大 42 候选的 Mustard 适配演示已通过。** Isaac ROS 3.2 FoundationPose 使用官方单帧 bag，在 `/output` 产出了有效的 `vision_msgs/Detection3DArray` 位姿。NVIDIA 官方 252 候选 FP32 score engine 仍因设备可用显存不足而构建失败，不能记为官方配置通过。Orbbec Gemini 2 的物理 RGB-D 验收也尚未完成。完整证据以 [`code/PROJECT_STATUS.md`](../code/PROJECT_STATUS.md) 为准。
+**状态：整体 `PARTIAL`；官方 FP32、252 候选 Mustard 单帧示例已通过。** Isaac ROS 3.2 FoundationPose 使用官方 bag，在 `/output` 产出了有效的 `vision_msgs/Detection3DArray` 位姿。独立的 FP32、42 候选适配演示也已通过。由于目前没有 Orbbec Gemini 2，相机物理 RGB-D 验收尚未完成。完整证据以 [`code/PROJECT_STATUS.md`](../code/PROJECT_STATUS.md) 为准。
 
 ### 官方 Mustard 示例进度
 
 M4.4 使用 NVIDIA Isaac ROS 对 FoundationPose 算法的 ROS 2 实现，输入是同步、对齐的 RGB、深度、相机内参与**目标实例掩码**，输出为相机坐标系下的 6D 位姿。官方 `launch_fragments:=foundationpose` 快速图使用 SyntheticaDETR/RT-DETR 检测框转成二值 mask；这是示例的初始化方式，不等同于 M4.3 的语义分割 mask。原生 NVlabs/PyTorch 路线移到 [4.5](../4.5_Native_FoundationPose_6D_Pose/README_zh_CN.md)。
 
-在 Jetson `/home/seeed/workspace/ros2_bev`，M4.4 入口是 `modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_4_isaacros_quickstart.sh`。它检查独立 Isaac ROS 容器、官方资产、RT-DETR engine 和 M4.1/M4.3 推理进程，循环播放单帧 bag，验证位置与单位四元数，并清理本次启动的进程。`M44_MODE=official` 选择 NVIDIA 的 252 候选 FP32 图，目前停在 score engine 构建；`M44_MODE=adapted` 选择独立的 FP32 42 候选 engine 和项目 launch，设置 `max_hypothesis: 42`、`fixed_axis_angles=['z_0']`，因此缩小了姿态覆盖范围。这是适配演示，不能算官方配置通过。
+在 Jetson `/home/seeed/workspace/ros2_bev`，M4.4 入口是 `modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_4_isaacros_quickstart.sh`。它检查独立 Isaac ROS 容器、官方资产、RT-DETR engine 和 M4.1/M4.3 推理进程，循环播放单帧 bag，验证位置与单位四元数，并清理本次启动的进程。`M44_MODE=official` 选择 NVIDIA 的 252 候选 FP32 图；相同 profile 在容器中因显存不足构建失败，但改用 Jetson 主机 TensorRT 10.3 成功，脚本现可在 plan 缺失时走主机构建路径。`M44_MODE=adapted` 选择独立的 FP32 42 候选 engine 和项目 launch，设置 `max_hypothesis: 42`、`fixed_axis_angles=['z_0']`，姿态覆盖范围较小，仍应单独表述。
 
 ```bash
-M44_MODE=adapted modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_4_isaacros_quickstart.sh
+M44_MODE=official modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_4_isaacros_quickstart.sh
 ```
 
-已验收样例的位置为 `[-0.4713481963, 0.0929617882, 0.8295211196]` 米，四元数 xyzw 为 `[0.2184645543, -0.3925129918, 0.0745772909, 0.8903061370]`，范数为 1.0。官方 bag 只有 RGB、深度与相机内参各一条消息，不能用于测帧率或多视角精度。Orbbec Gemini 2 尚未接入，真实 RGB-D、TF 与项目 `/perception/object_pose` 适配仍需后续验收。下文的多模型/NITROS/量化部分是后续优化设计，尚无运行数据。
+官方模式已验收样例的位置为 `[-0.4350625575, 0.1339290440, 0.7972502112]` 米，四元数 xyzw 为 `[0.7753970849, -0.3331845536, 0.3022323303, -0.4431738174]`，范数为 1.0。官方 bag 只有 RGB、深度与相机内参各一条消息，不能用于测帧率或多视角精度。目前没有 Orbbec Gemini 2，真实 RGB-D、TF 与项目 `/perception/object_pose` 适配仍需后续验收。下文的多模型/NITROS/量化部分是后续优化设计，尚无运行数据。
 
 ## 课程概述
 
-单模型跑得动，不等于多模块能一起跑。目前 M4.1、M4.2 为 `PASS`，M4.4 仅完成 42 候选单帧位姿演示。规划中的「检测 → 分割 → 跟踪」管线需要重新测量拷贝、显存争抢与每帧 kernel 启动开销；现有 Hub 三模块切换不能算 Isaac ROS 多模型并行验收。
+单模型跑得动，不等于多模块能一起跑。目前 M4.1、M4.2 为 `PASS`，M4.4 完成了官方 252 候选单帧位姿演示。规划中的「检测 → 分割 → 跟踪」管线需要重新测量拷贝、显存争抢与每帧 kernel 启动开销；现有 Hub 三模块切换不能算 Isaac ROS 多模型并行验收。
 
-候选路线是先建立可复现的多模块基线，再评估 NITROS、固定输入形状、INT8、CUDA Graph 和 DLA 等选项。每一项都要有独立正确性与性能证据。当前已有独立 Isaac ROS 容器和适配版 FoundationPose 演示；官方 252 候选配置、多模型工作空间、可运行的多模型 launch 与优化报告仍待实施。
+候选路线是先建立可复现的多模块基线，再评估 NITROS、固定输入形状、INT8、CUDA Graph 和 DLA 等选项。每一项都要有独立正确性与性能证据。官方 FoundationPose 单帧示例已在独立 Isaac ROS 容器运行；多模型工作空间、可运行的多模型 launch 与优化报告仍待实施。
 
 基于版本：https://nvidia-isaac-ros.github.io/v/release-3.2/getting_started/index.html
 
@@ -62,7 +62,7 @@ ISAAC ROS version 3.2
 
 ## 前置基础
 
-- **当前基线**：M4.1 检测、M4.2 跟踪和 M4.3 分割可供未来集成；M4.4 已有适配版单帧位姿结果，但没有物理相机或多模型验收。实施前先复核 [`code/PROJECT_STATUS.md`](../code/PROJECT_STATUS.md)。
+- **当前基线**：M4.1 检测、M4.2 跟踪和 M4.3 分割可供未来集成；M4.4 已有官方单帧位姿结果，但没有物理相机或多模型验收。实施前先复核 [`code/PROJECT_STATUS.md`](../code/PROJECT_STATUS.md)。
 
 - **系统与容器**：[1.2 JetPack 6.2 系统刷机与基础配置](https://seeedstudio.feishu.cn/docx/UweQdPUKYobmfMxYjZkcy1ZpnNh) 里完成过刷机与 TensorRT 可用性验证；[1.3 容器化开发环境与远程工具链](https://seeedstudio.feishu.cn/docx/Yab1dMx93oHkKRxzP59cV9KunDb) 里已有支持 GPU 直通的 Docker 环境；[1.4 机器人软件中间件：ROS2 Humble 快速上手](https://seeedstudio.feishu.cn/docx/QdL7dbITroR6btxqesrcNJE9nib) 里 ROS 2 节点、话题与跨机通信已经跑通。
 
@@ -459,7 +459,7 @@ ros2 topic hz /m4/tracks
 
 - 把姿态节点并进同一个容器前先算显存，两套官方页面给的不是同一个量，别混成一句：**3.2 版本化页**限定在模型转换阶段，写明 free GPU memory space 至少需要 **7.5 GB**；**4.x latest 页**说的是流水线峰值，约为 **7 GB**、建议预留 **≥8 GB**。本页钉在 3.x，转换阶段按 7.5 GB 留，运行阶段参考 7 GB 峰值。Jetson 是统一内存，这份占用要和相机缓冲、其他 Engine 一起算进预算。
 
-- M4.5 原生脚手架约定 `geometry_msgs/PoseStamped` 与 `camera_front` 父 TF；它仍为 `BLOCKED`。M4.4 适配版 Isaac ROS 节点在 `/output` 输出 `vision_msgs/Detection3DArray`，不能把原生脚手架消息类型当成该节点输出。
+- M4.5 原生脚手架约定 `geometry_msgs/PoseStamped` 与 `camera_front` 父 TF；它仍为 `BLOCKED`。M4.4 官方 Isaac ROS 节点在 `/output` 输出 `vision_msgs/Detection3DArray`，不能把原生脚手架消息类型当成该节点输出。
 
 - 容器内做大模型推理时把共享内存调大（`--shm-size=8g` 起步），否则 NITROS 的进程内路径可能因分配失败退回普通路径，而且退回是静默的——功能照跑，只会在延迟数字上体现。
 

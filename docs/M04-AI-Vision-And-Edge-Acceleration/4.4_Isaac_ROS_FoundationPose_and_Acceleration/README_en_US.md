@@ -1,24 +1,24 @@
 # 4.4 Isaac ROS FoundationPose: 6D Pose and Acceleration
 
-**Status: PARTIAL overall; the FP32 42-candidate Mustard adaptation passed.** Isaac ROS 3.2 FoundationPose produced a valid `vision_msgs/Detection3DArray` pose on `/output` from the official one-frame bag. NVIDIA's 252-candidate FP32 score build still fails for insufficient device memory, so the official configuration has not passed. The physical Orbbec Gemini 2 RGB-D gate is also open. See [`code/PROJECT_STATUS.md`](../code/PROJECT_STATUS.md) for the exact evidence.
+**Status: PARTIAL overall; the official FP32 252-candidate Mustard example passed.** Isaac ROS 3.2 FoundationPose produced a valid `vision_msgs/Detection3DArray` pose on `/output` from the official one-frame bag. The separate FP32 42-candidate adaptation also passed. Physical Orbbec Gemini 2 RGB-D acceptance remains open because the camera is unavailable. See [`code/PROJECT_STATUS.md`](../code/PROJECT_STATUS.md) for the exact evidence.
 
 ### Official Mustard Example Progress
 
 M4.4 uses the NVIDIA Isaac ROS ROS 2 implementation of FoundationPose. It consumes synchronized, aligned RGB, depth, camera intrinsics, and an **object instance mask**, then publishes a 6D pose in the camera frame. The official `launch_fragments:=foundationpose` graph initializes the mask by converting a SyntheticaDETR/RT-DETR detection; this example input is not the semantic mask from M4.3. The native NVlabs/PyTorch route is now chapter [4.5](../4.5_Native_FoundationPose_6D_Pose/README_en_US.md).
 
-The M4.4 entry on Jetson `/home/seeed/workspace/ros2_bev` is `modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_4_isaacros_quickstart.sh`. It checks the separate Isaac ROS container, official assets, RT-DETR engine, and active M4.1/M4.3 inference processes; loops the one-frame bag; validates a finite pose and unit quaternion; and cleans up its launch and bag processes. `M44_MODE=official` selects NVIDIA's 252-candidate FP32 graph and currently stops at score-engine construction. `M44_MODE=adapted` selects the independent FP32 42-profile engine and project launch with `max_hypothesis: 42` and `fixed_axis_angles=['z_0']`. This reduced orientation grid is a demonstration adaptation, not the official configuration.
+The M4.4 entry on Jetson `/home/seeed/workspace/ros2_bev` is `modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_4_isaacros_quickstart.sh`. It checks the separate Isaac ROS container, official assets, RT-DETR engine, and active M4.1/M4.3 inference processes; loops the one-frame bag; validates a finite pose and unit quaternion; and cleans up its launch and bag processes. `M44_MODE=official` selects NVIDIA's 252-candidate FP32 graph. The same score engine profile that exhausted device memory inside the container built successfully with Jetson host TensorRT 10.3; the runner now uses that host build path when the plan is missing. `M44_MODE=adapted` selects the independent FP32 42-profile engine and project launch with `max_hypothesis: 42` and `fixed_axis_angles=['z_0']`. That narrower orientation grid remains a separate adaptation.
 
 ```bash
-M44_MODE=adapted modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_4_isaacros_quickstart.sh
+M44_MODE=official modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_4_isaacros_quickstart.sh
 ```
 
-The accepted example returned position `[-0.4713481963, 0.0929617882, 0.8295211196]` metres and quaternion xyzw `[0.2184645543, -0.3925129918, 0.0745772909, 0.8903061370]` (norm 1.0). The bag contains one RGB, depth, and camera-info message, so it cannot establish FPS or multi-view accuracy. The Orbbec Gemini 2 is not attached, so physical RGB-D, TF, and `/perception/object_pose` project adaptation remain future gates. The multi-model/NITROS/quantization material below remains design guidance without local runtime measurements.
+The accepted official example returned position `[-0.4350625575, 0.1339290440, 0.7972502112]` metres and quaternion xyzw `[0.7753970849, -0.3331845536, 0.3022323303, -0.4431738174]` (norm 1.0). The bag contains one RGB, depth, and camera-info message, so it cannot establish FPS or multi-view accuracy. The Orbbec Gemini 2 is unavailable, so physical RGB-D, TF, and `/perception/object_pose` project adaptation remain future gates. The multi-model/NITROS/quantization material below remains design guidance without local runtime measurements.
 
 ## Course Overview
 
-One model running does not establish multi-module performance. M4.1 and M4.2 are `PASS`, while M4.4 has only a 42-candidate single-frame pose demonstration. A proposed "detection → segmentation → tracking" pipeline would need fresh measurements of copies, memory contention, and per-frame kernel launch overhead. The current Hub switches among three modules; it does not validate concurrent Isaac ROS inference.
+One model running does not establish multi-module performance. M4.1 and M4.2 are `PASS`, while M4.4 has an official 252-candidate single-frame pose demonstration. A proposed "detection → segmentation → tracking" pipeline would need fresh measurements of copies, memory contention, and per-frame kernel launch overhead. The current Hub switches among three modules; it does not validate concurrent Isaac ROS inference.
 
-The candidate path is to establish a reproducible multi-module baseline, then evaluate NITROS, fixed shapes, INT8, CUDA Graph, and DLA one at a time. Each choice needs independent correctness and performance evidence. A separate Isaac ROS container and adapted FoundationPose demonstration now exist; the official 252-candidate example, multi-model workspace, runnable multi-model launch, and optimization report remain future work.
+The candidate path is to establish a reproducible multi-module baseline, then evaluate NITROS, fixed shapes, INT8, CUDA Graph, and DLA one at a time. Each choice needs independent correctness and performance evidence. The official FoundationPose single-frame example now runs in the separate Isaac ROS container; the multi-model workspace, runnable multi-model launch, and optimization report remain future work.
 
 Based on version: https://nvidia-isaac-ros.github.io/v/release-3.2/getting_started/index.html
 
@@ -59,7 +59,7 @@ The candidate pipeline has four stages: camera input and preprocessing → NITRO
 
 ## Prerequisites
 
-- **Current baseline**: M4.1 detection, M4.2 tracking, and M4.3 segmentation are candidates for later integration. M4.4 has an adapted single-frame result, but no accepted physical or multi-model result. Recheck [`code/PROJECT_STATUS.md`](../code/PROJECT_STATUS.md) before implementation.
+- **Current baseline**: M4.1 detection, M4.2 tracking, and M4.3 segmentation are candidates for later integration. M4.4 has an official single-frame result, but no accepted physical or multi-model result. Recheck [`code/PROJECT_STATUS.md`](../code/PROJECT_STATUS.md) before implementation.
 
 - **System and containers**: [1.2 JetPack 6.2 System Flashing and Basic Configuration](https://seeedstudio.feishu.cn/docx/UweQdPUKYobmfMxYjZkcy1ZpnNh) covered flashing and TensorRT availability verification; [1.3 Containerized Development Environment and Remote Toolchain](https://seeedstudio.feishu.cn/docx/Yab1dMx93oHkKRxzP59cV9KunDb) already has a Docker environment that supports GPU passthrough; [1.4 Robot Software Middleware: Getting Started with ROS 2 Humble](https://seeedstudio.feishu.cn/docx/QdL7dbITroR6btxqesrcNJE9nib) has ROS 2 nodes, topics, and cross-machine communication running.
 
@@ -456,7 +456,7 @@ ros2 topic hz /m4/tracks
 
 - Before folding the pose node into the same container, work out the memory first — the two sets of official pages do not give the same quantity, so do not blur them into one sentence: the **3.2 versioned page** is limited to the model conversion stage and states that at least **7.5 GB** of free GPU memory space is required; the **4.x latest page** speaks of the pipeline peak, about **7 GB**, with a recommended reservation of **≥8 GB**. This page is pinned to 3.x, so reserve 7.5 GB for the conversion stage and reference the 7 GB peak for the run stage. Jetson uses unified memory, so this usage must be budgeted together with camera buffers and other Engines.
 
-- The M4.5 native scaffold defines `geometry_msgs/PoseStamped` with `camera_front` as its TF parent and remains `BLOCKED`. M4.4's adapted Isaac ROS output is `vision_msgs/Detection3DArray` on `/output`; the native scaffold's message type is not that node's output.
+- The M4.5 native scaffold defines `geometry_msgs/PoseStamped` with `camera_front` as its TF parent and remains `BLOCKED`. M4.4's official Isaac ROS output is `vision_msgs/Detection3DArray` on `/output`; the native scaffold's message type is not that node's output.
 
 - When doing large-model inference inside the container, increase shared memory (start from `--shm-size=8g`), otherwise NITROS's in-process path may fall back to the ordinary path due to an allocation failure — and the fallback is silent: it still runs, and shows up only in the latency numbers.
 

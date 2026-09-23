@@ -4,7 +4,7 @@
 | --- | --- |
 | Source repository | Jetson `/home/seeed/workspace/ros2_bev` |
 | Source branch | `main` |
-| Source commits | `6b83f5b959e487a36addada0462c00131d86e993` for M4.4 runtime, status and adapted Mustard result; `7e945912a299ec36e0a335f508b2a45d53a54060` for the older M4.5 snapshot |
+| Source commits | `6683e08dca3edb7137494d7f84fccc93f5826623` for current M4.4 official Mustard status and runner; `6b83f5b959e487a36addada0462c00131d86e993` for the earlier adapted M4.4 files; `7e945912a299ec36e0a335f508b2a45d53a54060` for the older M4.5 snapshot |
 | Snapshot date | 2026-09-23 |
 | Direction | A → C only; never copy course code back to the Jetson |
 
@@ -35,10 +35,11 @@ does not use it and builds directly with `scripts/build.sh --base-paths modules`
 - M4.1: **PASS**
 - M4.2: **PASS**
 - M4.3: see the canonical status file; this M4.4/M4.5 sync does not update its source
-- M4.4 Isaac ROS FoundationPose: **PARTIAL** overall; FP32 42-candidate Mustard adaptation produced a valid `Detection3DArray` pose, while the official 252-candidate score build and physical RGB-D gate remain open
+- M4.4 Isaac ROS FoundationPose: **PARTIAL** overall; official FP32/252 and separate FP32/42 Mustard runs produced valid `Detection3DArray` poses, while physical RGB-D remains open
 - M4.5 native NVlabs FoundationPose: **BLOCKED**
 
-The M4.4 files above were copied from `6b83f5b`. Other paths in
+The current M4.4 status, runbook and runner were copied from `6683e08`; the
+42-profile config, launch and verifier remain identical to `6b83f5b`. Other paths in
 this course code tree retain their earlier snapshot provenance; this update
 does not copy concurrent M4.1/M4.3 work.
 

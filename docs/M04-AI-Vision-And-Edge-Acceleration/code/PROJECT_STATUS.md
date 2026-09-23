@@ -14,7 +14,7 @@ Allowed states: `PASS`, `VERIFIED`, `PARTIAL`, `BLOCKED`, `PLANNED`.
 | M4.1 YOLO11n TensorRT | **PASS** | Build and 28 production-path GTests pass; physical camera and web overlay previously measured at about 29 FPS | None for the documented scope |
 | M4.2 ByteTrack | **PASS** | 30 pytest tests pass; physical camera tracking previously measured at about 30 FPS | None for the documented scope |
 | M4.3 SegFormer TensorRT | **PARTIAL** | Bilinear preprocessing and logits restoration are implemented; CUDA and CPU paths agree; 8/8 CTests and the engine gate pass; Hub semantic output averaged about 11.3 FPS after optimization | Hub preview was 6.7–10.4 FPS in a 30-second page-rate sample, so stable 10 FPS is not accepted; ADE20K indoor candidate remains unevaluated and Cityscapes stays default |
-| M4.4 Isaac ROS FoundationPose | **PARTIAL** | The 42-candidate FP32 adaptation produced a valid Mustard `Detection3DArray` pose on `/output` | Official 252-candidate score build fails for device memory; Orbbec Gemini 2 physical RGB-D acceptance remains open |
+| M4.4 Isaac ROS FoundationPose | **PARTIAL** | Official FP32/252 Mustard graph and separate FP32/42 adaptation both produced valid `Detection3DArray` poses on `/output` | Orbbec Gemini 2 is unavailable, so physical RGB-D acceptance remains open |
 | M4.5 NVlabs FoundationPose | **BLOCKED** | Legacy `bev_pose` scaffold installs; no successful inference exists | Native runtime, weights, supported RGB-D driver and physical camera remain incomplete |
 | Shared Hub / video input | **PARTIAL** | Video repair is committed; build, 3 Hub regression cycles and 9 video state tests pass; a fresh three-upload run reached `playing` each time | The final run used a synthetic camera and did not exercise a physical-camera session or injected stall |
 
@@ -79,9 +79,9 @@ Allowed states: `PASS`, `VERIFIED`, `PARTIAL`, `BLOCKED`, `PLANNED`.
 
 ## M4.4 — Isaac ROS FoundationPose
 
-- **Status:** `PARTIAL` overall. The **42-candidate adaptation passed the
-  single-frame Mustard demonstration**; the official 252-candidate example and
-  physical RGB-D gate have not passed.
+- **Status:** `PARTIAL` overall. The **official FP32/252 Mustard single-frame
+  example passed**, as did the separate 42-candidate adaptation. The physical
+  RGB-D gate has not passed.
 - **Runtime:** separate `m4-isaacros-foundationpose` container with
   `ros-humble-isaac-ros-foundationpose 3.2.14` and
   `ros-humble-isaac-ros-examples 3.2.5` on JetPack 6.2.1 / ROS 2 Humble.
@@ -89,13 +89,16 @@ Allowed states: `PASS`, `VERIFIED`, `PARTIAL`, `BLOCKED`, `PLANNED`.
   textured mesh, 640x480 interface spec and `quickstart.bag`; the bag has one
   RGB, depth and camera-info message each. FoundationPose `1.0.0_onnx`
   refine/score models are in `/home/seeed/workspace/isaac_ros_assets/models/foundationpose`.
-- **Official engine evidence:** on 2026-09-23, an idle FP32 score build used
-  NVIDIA's 1/1/252 min/opt/max shapes with no custom workspace or optimization
-  flags. TensorRT requested a 2190 MB tactic with only 1405 MB available and
-  failed at `ForeignNode[onnx::MatMul_486...]`. The log is
-  `/home/seeed/workspace/isaac_ros_assets/models/foundationpose/score_trtexec_official_fp32.log`.
-  The official 252-candidate score engine does not exist. The FP32 refine
-  engine and the separate FP16 SyntheticaDETR grasp engine passed `trtexec`.
+- **Official engine evidence:** an idle FP32 score build inside the container
+  used NVIDIA's 1/1/252 min/opt/max shapes and failed when a 2190 MB tactic
+  found only 1405 MB available (`score_trtexec_official_fp32.log`). The same
+  1/1/252 FP32 build on the Jetson host, with TensorRT 10.3 and no custom
+  workspace/optimization flags, **passed** in 213 seconds. It used
+  `--skipInference` only to separate build from runtime verification. The
+  persistent plan is `score_trt_engine.plan`; build log
+  `score_trtexec_252_host_fp32.log`. The container then deserialized that plan
+  at the 252 maximum shape (`score_trtexec_252_load_max.log`, PASSED). The FP32
+  refine and separate FP16 SyntheticaDETR grasp engines also passed `trtexec`.
 - **Adapted engine and graph:** FP32 score profile min/opt/max 1/1/42 built
   and passed TensorRT inference, including a maximum-shape deserialize check.
   Its independent plan is `score_trt_engine_42_fp32.plan`, with build log
@@ -105,9 +108,10 @@ Allowed states: `PASS`, `VERIFIED`, `PARTIAL`, `BLOCKED`, `PLANNED`.
   parameters confirmed the config path, angle constraint and 42-profile plan.
   The successful pose proves the runtime batch fits that engine profile.
 - **Reproduce:** from `/home/seeed/workspace/ros2_bev`, run
-  `M44_MODE=adapted modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_4_isaacros_quickstart.sh`.
-  `M44_MODE=official` selects the separate 252-profile plan and NVIDIA launch;
-  its score build currently fails. The runner blocks active M4.1/M4.3 GPU
+  `M44_MODE=official modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_4_isaacros_quickstart.sh`.
+  If the official score plan is absent, the runner builds it with host
+  TensorRT before entering the container; `M44_MODE=adapted` retains the
+  independent 42-profile path. The runner blocks active M4.1/M4.3 GPU
   nodes, loops the one-frame bag, validates `vision_msgs/Detection3DArray`,
   and stops its launch and bag process groups on exit. Its actual output topic
   is `/output` (the node's logged remapping), not the example namespace path.
@@ -121,10 +125,15 @@ Allowed states: `PASS`, `VERIFIED`, `PARTIAL`, `BLOCKED`, `PLANNED`.
   runner returned a timeout and exit 8; a synthetic active-node process
   triggered the GPU guard and exit 3. After success and timeout, no launch,
   rosbag or component-container process remained.
-- **Next gate:** obtain an official 252-candidate FP32 score engine and pose
-  before calling the NVIDIA configuration passed. The one-frame bag cannot
-  establish FPS or physical-camera performance. Orbbec Gemini 2 is not
-  connected; physical RGB-D, camera calibration/alignment and an object
+- **Accepted official pose:** 2026-09-23 run
+  `20260923-112313-14976-official`: `frame_id=tf_camera`, position in metres
+  `[-0.4350625575, 0.1339290440, 0.7972502112]`, quaternion xyzw
+  `[0.7753970849, -0.3331845536, 0.3022323303, -0.4431738174]`, norm
+  `1.0`; the verifier returned `valid_pose`, with no rejected messages. The
+  launch, bag and pose logs have this run ID under `m4_4_logs/`.
+- **Next gate:** the one-frame bag cannot establish FPS or physical-camera
+  performance. The user confirmed that Orbbec Gemini 2 is not currently
+  available; physical RGB-D, camera calibration/alignment and an object
   instance mask remain unaccepted. M4.3's semantic mask is not one.
 
 ## M4.5 — NVlabs FoundationPose

@@ -7,6 +7,8 @@ CONTAINER="${ISAAC_ROS_CONTAINER:-m4-isaacros-foundationpose}"
 ASSET_ROOT="${ISAAC_ROS_ASSET_ROOT:-/workspaces/isaac_ros-dev/isaac_ros_assets/isaac_ros_foundationpose}"
 MODEL_ROOT="${FOUNDATIONPOSE_MODEL_ROOT:-/workspaces/isaac_ros-dev/isaac_ros_assets/models/foundationpose}"
 TRTEXEC="${TRTEXEC:-/usr/src/tensorrt/bin/trtexec}"
+HOST_TRTEXEC="${HOST_TRTEXEC:-/usr/src/tensorrt/bin/trtexec}"
+HOST_MODEL_ROOT="${HOST_MODEL_ROOT:-/home/seeed/workspace/isaac_ros_assets/models/foundationpose}"
 RTDETR_ENGINE="${RTDETR_ENGINE:-/workspaces/isaac_ros-dev/isaac_ros_assets/models/synthetica_detr/sdetr_grasp.plan}"
 POSE_TOPIC="${POSE_TOPIC:-/output}"
 M44_POSE_TIMEOUT="${M44_POSE_TIMEOUT:-240}"
@@ -33,6 +35,29 @@ docker exec "$CONTAINER" bash -lc "test -x '$TRTEXEC' && test -f '$MODEL_ROOT/re
 if [ "$M44_MODE" = adapted ]; then
   docker exec "$CONTAINER" test -f "$M44_SOURCE_ROOT/4.4-isaac-ros-foundationpose/config/foundationpose_42.yaml" || exit 4
   docker exec "$CONTAINER" test -f "$M44_SOURCE_ROOT/4.4-isaac-ros-foundationpose/launch/m4_4_foundationpose_42.launch.py" || exit 4
+fi
+
+# On this Jetson the official 252-profile build fits when trtexec runs on the
+# host; the same TensorRT 10.3 build exhausted device memory in the container.
+if [ "$M44_MODE" = official ] && [ ! -s "$HOST_MODEL_ROOT/score_trt_engine.plan" ]; then
+  if [ ! -x "$HOST_TRTEXEC" ] || [ ! -f "$HOST_MODEL_ROOT/score_model.onnx" ] || ! sudo -n true; then
+    echo 'ERROR: host TensorRT, score ONNX, or passwordless sudo is unavailable.' >&2
+    exit 4
+  fi
+  host_build_log="$(mktemp /tmp/m44-score-host.XXXXXX.log)"
+  if ! (cd "$HOST_MODEL_ROOT" && sudo -n "$HOST_TRTEXEC" \
+    --onnx=score_model.onnx --saveEngine=score_trt_engine.plan \
+    --minShapes=input1:1x160x160x6,input2:1x160x160x6 \
+    --optShapes=input1:1x160x160x6,input2:1x160x160x6 \
+    --maxShapes=input1:252x160x160x6,input2:252x160x160x6 \
+    --skipInference) >"$host_build_log" 2>&1; then
+    sudo -n cp "$host_build_log" "$HOST_MODEL_ROOT/score_trtexec_252_host_fp32.log"
+    tail -n 40 "$host_build_log" >&2
+    rm -f "$host_build_log"
+    exit 5
+  fi
+  sudo -n cp "$host_build_log" "$HOST_MODEL_ROOT/score_trtexec_252_host_fp32.log"
+  rm -f "$host_build_log"
 fi
 
 docker exec -i -e M44_MODE="$M44_MODE" -e ASSET_ROOT="$ASSET_ROOT" \
@@ -85,6 +110,10 @@ else
   launch_target=("$M44_SOURCE_ROOT/4.4-isaac-ros-foundationpose/launch/m4_4_foundationpose_42.launch.py")
 fi
 if [ ! -s "$score_engine" ]; then
+  if [ "$M44_MODE" = official ]; then
+    echo "ERROR: host-built 252-profile score engine is not visible at $score_engine" >&2
+    exit 5
+  fi
   score_log="$log_root/$run_id-score-build.log"
   if ! "$TRTEXEC" --onnx=score_model.onnx --saveEngine="$score_engine" \
     --minShapes=input1:1x160x160x6,input2:1x160x160x6 \

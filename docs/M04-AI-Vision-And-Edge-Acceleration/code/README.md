@@ -67,9 +67,9 @@ packages into `ros2_ws/src`; it is not the Jetson build entry.
 | `scripts/` | Jetson | same module root, `scripts/` |
 
 The earlier broad snapshot came from branch `main` at
-`cd3b6698425eb301fc1b9809d81f5d96f16da2f1`; this M4.4 update
+`cd3b6698425eb301fc1b9809d81f5d96f16da2f1`; the latest M4.4 update
 copies selected files from Jetson commit
-`6b83f5b959e487a36addada0462c00131d86e993` on 2026-09-23. See
+`6683e08dca3edb7137494d7f84fccc93f5826623` on 2026-09-23. See
 [`SOURCE_SNAPSHOT.md`](SOURCE_SNAPSHOT.md) for the exact mapping and course-only files.
 
 Jetson access: `ssh seeed@<Jetson IP>` (the working configuration used an SSH alias
