@@ -1,6 +1,6 @@
-# 4.4 6D 姿态估计与 FoundationPose
+# 4.5 原生 NVlabs FoundationPose：6D 位姿估计
 
-**状态：BLOCKED。** `bev_pose` 脚手架与接口契约已经存在，但 FoundationPose 运行时、权重和真实 RGB-D 输入尚未齐备，当前没有真实推理证据。完整阻塞项以 [`code/PROJECT_STATUS.md`](../code/PROJECT_STATUS.md) 为准。
+**状态：BLOCKED。** 本章保留原生 NVlabs/PyTorch 的 `bev_pose` 实验路线。物理代码路径仍是 `code/4.4-foundationpose/`，旧 `run_m4_4_demo.sh` 与共享 Hub 入口仍指向该脚手架，不是 [4.4 Isaac ROS 官方示例](../4.4_Isaac_ROS_FoundationPose_and_Acceleration/README_zh_CN.md)。原生运行时、权重和真实 RGB-D 输入尚未齐备，也没有接受过姿态推理结果。完整阻塞项以 [`code/PROJECT_STATUS.md`](../code/PROJECT_STATUS.md) 为准。
 
 下面的内容是**实现契约与验收入口**，不是可运行实验。「跑不通」在这一章是预期状态，不是你的操作错误。
 
@@ -341,4 +341,4 @@ sed -n '1,40p' scripts/m4/run_m4_4_perf_benchmark.sh
 
 - **处理**：先确认深度图的编码与单位（本章要求 `32FC1` 且单位米）；再核对 `camera_info` 与实际相机是否同一套标定；最后查 `T_base^cam` 的来源。这类误差不会自己消失，必须定位到具体那一环。
 
-> **下一步：**4.5 把前面四章的模型放进同一条链路，讨论零拷贝、形状固定、量化与卸载这些优化手段。**注意**：4.5 在实机上同样没有对应实现，它整章都是前瞻内容。与本章一样，读的时候先分清「现在有什么」和「将来要做什么」。
+> **路线关系：**先在 [4.4](../4.4_Isaac_ROS_FoundationPose_and_Acceleration/README_zh_CN.md) 用 Isaac ROS 官方 Mustard 示例验证 ROS 2 运行链路；本章研究原生 NVlabs 实现、算法机制与独立验收。两条路线的运行证据分别记录，不能互相代替。

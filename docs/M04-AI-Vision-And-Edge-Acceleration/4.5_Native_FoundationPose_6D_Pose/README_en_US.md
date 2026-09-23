@@ -1,6 +1,6 @@
-# 4.4 6D Pose Estimation with FoundationPose
+# 4.5 Native NVlabs FoundationPose: 6D Object Pose
 
-**Status: BLOCKED.** The `bev_pose` scaffolding and interface contract exist, but the FoundationPose runtime, weights, and real RGB-D input are not yet complete, so there is no real inference evidence. See [`code/PROJECT_STATUS.md`](../code/PROJECT_STATUS.md) for the canonical blockers.
+**Status: BLOCKED.** This chapter keeps the native NVlabs/PyTorch `bev_pose` route. Its physical code path remains `code/4.4-foundationpose/`; the old `run_m4_4_demo.sh` and shared Hub entry still point at that scaffold, and are not the [4.4 Isaac ROS official example](../4.4_Isaac_ROS_FoundationPose_and_Acceleration/README_en_US.md). The native runtime, weights, and real RGB-D input are incomplete, and no pose result has been accepted. See [`code/PROJECT_STATUS.md`](../code/PROJECT_STATUS.md) for evidence.
 
 What follows is an **implementation contract and acceptance entry point**, not a runnable experiment. "It will not run" is the expected state in this chapter, not an operating mistake on your part.
 
@@ -341,4 +341,4 @@ Dependencies and weights in place → camera connected → `[To be verified]` `r
 
 - **Solution**: first confirm the depth image's encoding and units (this chapter requires `32FC1` with units of meters); then check whether `camera_info` is the same calibration as the actual camera; finally check where `T_base^cam` comes from. This kind of error will not disappear by itself; you must localize the specific link.
 
-> **Next step:** 4.5 puts the models from the previous four chapters into the same pipeline and discusses optimization techniques such as zero-copy, fixed shapes, quantization, and offloading. **Note**: 4.5 likewise has no corresponding implementation on the real hardware; the whole chapter is forward-looking content. As with this chapter, when reading it, first separate "what exists now" from "what is to be done later".
+> **Route relationship:** first use [4.4](../4.4_Isaac_ROS_FoundationPose_and_Acceleration/README_en_US.md) to validate the ROS 2 runtime with the official Isaac ROS Mustard example; this chapter studies the native NVlabs implementation, its algorithm, and its independent acceptance. Evidence from one route cannot substitute for the other.

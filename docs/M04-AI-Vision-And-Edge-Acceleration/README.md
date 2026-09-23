@@ -11,9 +11,9 @@ TensorRT and wired into ROS 2.
 | 4.1 | YOLO object detection (training → ONNX → TensorRT → ROS 2) | `bev_detection` | **PASS** — verified on hardware | [中文](./4.1_YOLO_Object_Detection_and_TensorRT_Deployment/README_zh_CN.md) / [English](./4.1_YOLO_Object_Detection_and_TensorRT_Deployment/README_en_US.md) |
 | 4.2 | Multi-object tracking (ByteTrack) | `bev_tracking` | **PASS** — verified on hardware | [中文](./4.2_Multi-Object_Tracking/README_zh_CN.md) / [English](./4.2_Multi-Object_Tracking/README_en_US.md) |
 | 4.3 | Semantic segmentation + drivable area (SegFormer TensorRT) | `bev_segmentation` | **VERIFIED** — parity, geometry and live topics all measured | [中文](./4.3_Semantic_Segmentation_and_Drivable_Area_Analysis/README_zh_CN.md) / [English](./4.3_Semantic_Segmentation_and_Drivable_Area_Analysis/README_en_US.md) |
-| 4.4 | 6D pose estimation (FoundationPose + Orbbec Gemini 2) | `bev_pose` | **BLOCKED** — no backend, no camera | [中文](./4.4_6D_Pose_Estimation_with_FoundationPose/README_zh_CN.md) / [English](./4.4_6D_Pose_Estimation_with_FoundationPose/README_en_US.md) |
+| 4.4 | Isaac ROS FoundationPose 6D pose and acceleration | Isaac ROS 3.2 container | **PARTIAL** — setup and refine engine verified; no pose output yet | [中文](./4.4_Isaac_ROS_FoundationPose_and_Acceleration/README_zh_CN.md) / [English](./4.4_Isaac_ROS_FoundationPose_and_Acceleration/README_en_US.md) |
 | — | Shared infrastructure (demo orchestrator, web preview, interfaces) | `m4_demo_bringup`, `bev_interfaces` | — | — |
-| 4.5 | Isaac ROS / model optimization | — | out of scope | [中文](./4.5_Isaac_ROS_Acceleration_and_Model_Optimization/README_zh_CN.md) / [English](./4.5_Isaac_ROS_Acceleration_and_Model_Optimization/README_en_US.md) |
+| 4.5 | Native NVlabs FoundationPose 6D pose | legacy `bev_pose` scaffold | **BLOCKED** — native inference and physical RGB-D acceptance pending | [中文](./4.5_Native_FoundationPose_6D_Pose/README_zh_CN.md) / [English](./4.5_Native_FoundationPose_6D_Pose/README_en_US.md) |
 
 中英文教程（`README_en_US.md` / `README_zh_CN.md`）已按章节发布，见上表「教程」列。代码现在
 就可以构建和运行 —— 见下方 **代码 / Code**。
@@ -23,7 +23,7 @@ Full evidence table — what is verified, what is blocked, and the measurements 
 
 ## 代码 / Code
 
-- [M04 Code — chapter 4.1–4.4 source (YOLO TensorRT, ByteTrack, SegFormer, FoundationPose, web demo)](./code/README.md)
+- [M04 Code — chapter 4.1–4.5 source and Isaac ROS quickstart](./code/README.md)
 
 代码以 **Jetson 上的课程仓库为唯一可编辑源**，本目录是其发布快照。改动只从 Jetson 流向
 这里，不反向。`code/scripts/setup_workspace.sh` 把各章源码软链接成一个 colcon 工作区，
@@ -34,7 +34,7 @@ Full evidence table — what is verified, what is blocked, and the measurements 
 - NVIDIA Jetson AGX Orin 32GB (reComputer J501)
 - Seeed GMSL 1×4 camera board (MAX96724 deserializer × MAX96717 serializer) exposing the
   front camera as a V4L2 node (`/dev/video0`); native 1920×1536, driven at 1920×1080@30 here
-- Orbbec Gemini 2 RGB-D — chapter 4.4 only, **not currently attached**
+- Orbbec Gemini 2 RGB-D — physical pose acceptance for chapters 4.4/4.5, **not currently attached**
 
 ## 软件 / Software
 

@@ -1,6 +1,6 @@
 # M04 · Code (AI Vision and Edge Acceleration)
 
-Curated, git-safe source code for M04 chapters 4.1–4.4 plus the shared infrastructure
+Curated, git-safe source code for M04 chapters 4.1–4.5 plus the shared infrastructure
 they build on. This folder is the **published copy** referenced by the M04 chapters.
 
 **Edit one way only.** The canonical, editable source is the runtime repository on the
@@ -27,9 +27,11 @@ code/
   4.3-semantic-segmentation/           # chapter 4.3
     README.md
     ros2/bev_segmentation/             # ROS 2 ament_cmake package (C++ / TensorRT)
-  4.4-foundationpose/                  # chapter 4.4
+  4.4-foundationpose/                  # chapter 4.5 native NVlabs route (legacy path)
     README.md
     ros2/bev_pose/                     # ROS 2 ament_python package (FoundationPose)
+  4.4-isaac-ros-foundationpose/        # chapter 4.4 Isaac ROS runbook
+    README.md
   common/                              # shared infrastructure
     README.md
     ros2/bev_interfaces/               # FrameSet / SyncStats / SystemStatus messages
@@ -56,13 +58,16 @@ packages into `ros2_ws/src`; it is not the Jetson build entry.
 | `4.2-multi-object-tracking/` | Jetson | same module root, `4.2-multi-object-tracking/` |
 | `4.3-semantic-segmentation/` | Jetson | same module root, `4.3-semantic-segmentation/` |
 | `4.4-foundationpose/` | Jetson | same module root, `4.4-foundationpose/` |
+| `4.4-isaac-ros-foundationpose/` | Jetson | same module root, `4.4-isaac-ros-foundationpose/` |
 | `common/ros2/m4_demo_bringup/` | Jetson | same module root, `common/ros2/m4_demo_bringup/` |
 | `common/ros2/bev_interfaces/` | Jetson | `/home/seeed/workspace/ros2_bev/modules/common/ros2/bev_interfaces/` |
 | `models/m4/` | Jetson | same module root, `models/m4/` (tracked metadata only) |
 | `scripts/` | Jetson | same module root, `scripts/` |
 
-Captured from branch `main`, commit
-**`cd3b6698425eb301fc1b9809d81f5d96f16da2f1`**, on 2026-09-22. See
+The earlier broad snapshot came from branch `main` at
+`cd3b6698425eb301fc1b9809d81f5d96f16da2f1`; this M4.4/M4.5 update
+copies selected files from Jetson commit
+`7e945912a299ec36e0a335f508b2a45d53a54060` on 2026-09-23. See
 [`SOURCE_SNAPSHOT.md`](SOURCE_SNAPSHOT.md) for the exact mapping and course-only files.
 
 Jetson access: `ssh seeed@<Jetson IP>` (the working configuration used an SSH alias
@@ -237,7 +242,15 @@ raw buffers.
 
 Details: [`4.3-semantic-segmentation/README.md`](4.3-semantic-segmentation/README.md).
 
-## 4.4 — FoundationPose 6D object pose
+## 4.4 — Isaac ROS FoundationPose
+
+The official Isaac ROS 3.2 packages, Mustard quickstart data, FoundationPose
+ONNX models, FP32 refine engine and FP16 RT-DETR engine are present on Jetson.
+The score engine and first pose are still blocked. Use
+[`4.4-isaac-ros-foundationpose/README.md`](4.4-isaac-ros-foundationpose/README.md)
+and `scripts/m4/run_m4_4_isaacros_quickstart.sh` for this chapter.
+
+## 4.5 — Native NVlabs FoundationPose
 
 **BLOCKED — published as-is. Nothing in this chapter has been executed.**
 

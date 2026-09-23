@@ -1,12 +1,24 @@
-# 4.5 Isaac ROS Acceleration and Model Optimization in Practice
+# 4.4 Isaac ROS FoundationPose: 6D Pose and Acceleration
 
-**Status: PLANNED. There is no runnable implementation yet.** This chapter is an integration and acceptance design; it does not claim that Isaac ROS, NITROS, DLA, or INT8 has been deployed on Jetson A. See [`code/PROJECT_STATUS.md`](../code/PROJECT_STATUS.md) for the canonical status.
+**Status: PARTIAL (environment and model preparation); no valid 6D pose output yet.** Isaac ROS 3.2 FoundationPose is installed on Jetson, with the official Mustard rosbag, mesh, two ONNX models, and an FP32 refine TensorRT engine. The score engine failed at the official maximum profile even during an idle retry because the required tactic had too little available device memory; the RT-DETR engine is built, but official bag replay acceptance is still pending. See [`code/PROJECT_STATUS.md`](../code/PROJECT_STATUS.md) for evidence.
+
+### Official Mustard Example Progress
+
+M4.4 uses the NVIDIA Isaac ROS ROS 2 implementation of FoundationPose. It consumes synchronized, aligned RGB, depth, camera intrinsics, and an **object instance mask**, then publishes a 6D pose in the camera frame. The official `launch_fragments:=foundationpose` graph initializes the mask by converting a SyntheticaDETR/RT-DETR detection; this example input is not the semantic mask from M4.3. The native NVlabs/PyTorch route is now chapter [4.5](../4.5_Native_FoundationPose_6D_Pose/README_en_US.md).
+
+The M4.4 entry on Jetson `/home/seeed/workspace/ros2_bev` is `modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_4_isaacros_quickstart.sh`. It checks the separate Isaac ROS container, official assets, RT-DETR engine, and active M4.1/M4.3 inference processes; builds missing FoundationPose engines; launches the official fragment; loops the one-frame bag; and waits for one pose message. The script has not passed end-to-end acceptance, so the refine `trtexec` result is not a pose inference result.
+
+```bash
+modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_4_isaacros_quickstart.sh
+```
+
+The official bag contains one RGB, depth, and camera-info message, so it can accept a first pose but cannot establish FPS. The Orbbec Gemini 2 is not attached, so real RGB-D, TF, and `/perception/object_pose` project adaptation remain future gates. The multi-model/NITROS/quantization material below remains design guidance without local runtime measurements.
 
 ## Course Overview
 
-One model running does not establish multi-module performance. M4.1 and M4.2 are `PASS`, M4.3 is `VERIFIED`, and M4.4 remains `BLOCKED` by its runtime, weights, and RGB-D input. A proposed "detection → segmentation → tracking" pipeline would need fresh measurements of copies, memory contention, and per-frame kernel launch overhead. The current Hub switches among three modules; it does not validate concurrent Isaac ROS inference.
+One model running does not establish multi-module performance. M4.1 and M4.2 are `PASS`, and M4.4 still has no pose output. A proposed "detection → segmentation → tracking" pipeline would need fresh measurements of copies, memory contention, and per-frame kernel launch overhead. The current Hub switches among three modules; it does not validate concurrent Isaac ROS inference.
 
-The candidate path is to establish a reproducible multi-module baseline, then evaluate NITROS, fixed shapes, INT8, CUDA Graph, and DLA one at a time. Each choice needs independent correctness and performance evidence. This page defines an implementation order and acceptance design; there is no corresponding runnable Isaac ROS workspace, launch file, or optimization report yet.
+The candidate path is to establish a reproducible multi-module baseline, then evaluate NITROS, fixed shapes, INT8, CUDA Graph, and DLA one at a time. Each choice needs independent correctness and performance evidence. A separate Isaac ROS container and official FoundationPose example entry now exist, but pose output has not passed acceptance; the multi-model workspace, runnable multi-model launch, and optimization report remain future work.
 
 Based on version: https://nvidia-isaac-ros.github.io/v/release-3.2/getting_started/index.html
 
@@ -208,7 +220,7 @@ A percentile like p95 is not an average: sort the latencies of N frames and take
 
 ## Planned Experiment: Integrate Verified Modules into a Candidate NITROS Pipeline
 
-The commands and configuration below are a future implementation draft. This snapshot has no `m4_isaac_pipeline` package or runnable M4.5 launch. Environment compatibility, package implementation, and interface acceptance must come first.
+The multi-model commands and configuration below are a future implementation draft. This snapshot has no `m4_isaac_pipeline` package or runnable multi-model launch. Package implementation and interface acceptance must come first; the FoundationPose official example entry above is tracked separately.
 
 The five steps are arranged in dependency order, and each step produces something the next step can consume: environment → Engine → pipeline → optimization → report. Every step's readings must be archived, and the last step's report is the summary of those readings; if you skip a step's readings in the middle, you cannot later attribute the gains to a specific change.
 
@@ -419,7 +431,7 @@ The candidate design shares camera decoding in one process and feeds detection r
 | `/m4/detections` | `vision_msgs/Detection2DArray` | Detection post-processing / tracking node and latency probe |
 | `/m4/segmentation` | `sensor_msgs/Image` (color mask) | Segmentation post-processing / 4.3's traversable-area analysis |
 | `/m4/tracks` (planned name) | `vision_msgs/Detection2DArray`; the current topic is `/perception/tracks`, with the track ID in `Detection2D.id` and no velocity or tracker-state fields | `supervision.ByteTrack` tracker / later consumers |
-| `/m4/pose` (unimplemented) | No current message type is defined for this alias; M4.4's scaffold defines `/perception/object_pose` as its primary `geometry_msgs/PoseStamped` output | Design an adapter after real M4.4 inference exists |
+| `/m4/pose` (unimplemented) | No current message type is defined for this alias; the M4.5 native scaffold defines `/perception/object_pose` as a `geometry_msgs/PoseStamped` output | Design an adapter after the Isaac ROS pose output is observed |
 
 Only after implementing and validating `m4_isaac_pipeline` could one launch the unified pipeline and measure the three frequencies. The following commands are not runnable steps today:
 
@@ -444,7 +456,7 @@ ros2 topic hz /m4/tracks
 
 - Before folding the pose node into the same container, work out the memory first — the two sets of official pages do not give the same quantity, so do not blur them into one sentence: the **3.2 versioned page** is limited to the model conversion stage and states that at least **7.5 GB** of free GPU memory space is required; the **4.x latest page** speaks of the pipeline peak, about **7 GB**, with a recommended reservation of **≥8 GB**. This page is pinned to 3.x, so reserve 7.5 GB for the conversion stage and reference the 7 GB peak for the run stage. Jetson uses unified memory, so this usage must be budgeted together with camera buffers and other Engines.
 
-- M4.4's current scaffold defines `geometry_msgs/PoseStamped` as its primary output with `camera_front` as the TF parent. M4.4 remains `BLOCKED`; the message type in an Isaac ROS example is not the output of the existing node.
+- The M4.5 native scaffold defines `geometry_msgs/PoseStamped` with `camera_front` as its TF parent and remains `BLOCKED`. M4.4's official example has no observed pose output yet, so the native scaffold's type cannot be treated as the Isaac ROS node output.
 
 - When doing large-model inference inside the container, increase shared memory (start from `--shm-size=8g`), otherwise NITROS's in-process path may fall back to the ordinary path due to an allocation failure — and the fallback is silent: it still runs, and shows up only in the latency numbers.
 
@@ -534,7 +546,7 @@ The items below are unfinished; the numeric thresholds are design targets, not m
 
 ### Deliverables Checklist
 
-1. Isaac ROS workspace and build scripts: the packages used by 4.5, the launch files, and one reusable container startup command.
+1. Isaac ROS workspace and build scripts: packages for this chapter's future multi-model pipeline, launch files, and a reusable container startup command.
 
 2. Engines and build scripts: one FP16 and one INT8 each for detection and segmentation; one FP32 Engine for the pose model (official specification, no FP16 / INT8 quantization); the tracking node with its dependencies and configuration; plus the ONNX simplification script and the calibration-cache generation script.
 

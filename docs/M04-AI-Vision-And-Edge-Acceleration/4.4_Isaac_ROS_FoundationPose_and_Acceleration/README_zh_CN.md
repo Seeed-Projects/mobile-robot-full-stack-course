@@ -1,12 +1,24 @@
-# 4.5 Isaac ROS 加速与模型优化实战
+# 4.4 Isaac ROS FoundationPose：6D 位姿与加速
 
-**状态：PLANNED。当前没有可运行实现。** 本章是集成与验收设计，不代表 Isaac ROS、NITROS、DLA 或 INT8 已经在 Jetson A 上落地。完整状态以 [`code/PROJECT_STATUS.md`](../code/PROJECT_STATUS.md) 为准。
+**状态：PARTIAL（环境与模型准备），尚无有效 6D 位姿输出。** Jetson 上已安装 Isaac ROS 3.2 FoundationPose，取得官方 Mustard rosbag、网格与两个 ONNX，并构建出 FP32 refine TensorRT engine。score engine 在官方最大 profile 下即使空闲重试仍因可用显存不足失败；RT-DETR engine 已构建，但官方 bag 回放验收尚未完成。完整证据以 [`code/PROJECT_STATUS.md`](../code/PROJECT_STATUS.md) 为准。
+
+### 官方 Mustard 示例进度
+
+M4.4 使用 NVIDIA Isaac ROS 对 FoundationPose 算法的 ROS 2 实现，输入是同步、对齐的 RGB、深度、相机内参与**目标实例掩码**，输出为相机坐标系下的 6D 位姿。官方 `launch_fragments:=foundationpose` 快速图使用 SyntheticaDETR/RT-DETR 检测框转成二值 mask；这是示例的初始化方式，不等同于 M4.3 的语义分割 mask。原生 NVlabs/PyTorch 路线移到 [4.5](../4.5_Native_FoundationPose_6D_Pose/README_zh_CN.md)。
+
+在 Jetson `/home/seeed/workspace/ros2_bev`，M4.4 的新入口是 `modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_4_isaacros_quickstart.sh`。它检查独立 Isaac ROS 容器、官方资产、RT-DETR engine 和 M4.1/M4.3 推理进程，构建缺失的 FoundationPose engines，启动官方 fragment 并循环播放官方单帧 bag，等待一条 pose 消息。脚本尚未通过端到端验收；当前不能将 refine 的 `trtexec` 结果写成 pose 推理通过。
+
+```bash
+modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_4_isaacros_quickstart.sh
+```
+
+官方 bag 只有 RGB、深度与相机内参各一条消息，适合验收首帧 pose，不适合测帧率。当前没有 Orbbec Gemini 2 实物，因此真实 RGB-D、TF 与项目 `/perception/object_pose` 适配仍需后续验收。下文的多模型/NITROS/量化部分是后续优化设计，尚无运行数据。
 
 ## 课程概述
 
-单模型跑得动，不等于多模块能一起跑。目前 M4.1、M4.2 为 `PASS`，M4.3 为 `VERIFIED`，M4.4 因运行时、权重和 RGB-D 输入不齐仍为 `BLOCKED`。规划中的「检测 → 分割 → 跟踪」管线需要重新测量拷贝、显存争抢与每帧 kernel 启动开销；现有 Hub 三模块切换不能算 Isaac ROS 多模型并行验收。
+单模型跑得动，不等于多模块能一起跑。目前 M4.1、M4.2 为 `PASS`，M4.4 仍无 pose 输出。规划中的「检测 → 分割 → 跟踪」管线需要重新测量拷贝、显存争抢与每帧 kernel 启动开销；现有 Hub 三模块切换不能算 Isaac ROS 多模型并行验收。
 
-候选路线是先建立可复现的多模块基线，再评估 NITROS、固定输入形状、INT8、CUDA Graph 和 DLA 等选项。每一项都要有独立正确性与性能证据。本页给出实施顺序和验收设计；目前没有对应的 Isaac ROS 工作空间、可运行 launch 或优化报告。
+候选路线是先建立可复现的多模块基线，再评估 NITROS、固定输入形状、INT8、CUDA Graph 和 DLA 等选项。每一项都要有独立正确性与性能证据。当前已有独立 Isaac ROS 容器和官方 FoundationPose 示例入口，但没有通过 pose 输出验收；多模型工作空间、可运行的多模型 launch 与优化报告仍待实施。
 
 基于版本：https://nvidia-isaac-ros.github.io/v/release-3.2/getting_started/index.html
 
@@ -211,7 +223,7 @@ p95 这类分位数不是平均值：把 N 帧的延迟排序，取第 $k = \lce
 
 ## 计划实验：把已验证模块接入候选 NITROS 管线
 
-以下命令与配置仅为未来实施草案，当前快照没有 `m4_isaac_pipeline` 包或可运行的 4.5 launch。执行前需先完成环境兼容性、包实现和接口验收。
+以下多模型命令与配置仅为未来实施草案，当前快照没有 `m4_isaac_pipeline` 包或可运行的多模型 launch。执行前需先完成包实现和接口验收；本章上面的 FoundationPose 官方示例入口另行记录。
 
 五个步骤按依赖顺序排列，每一步都产出能被下一步消费的东西：环境 → Engine → 管线 → 优化 → 报告。每一步的读数都要留档，最后一步的报告就是这些读数的汇总；中间跳过某一步的读数，后面就无法把收益归因到具体的改动。
 
@@ -422,7 +434,7 @@ ls -lh m4_det_fp16.plan m4_det_int8.plan
 | `/m4/detections`   | `vision_msgs/Detection2DArray`                                                                                                                | 检测后处理 / 跟踪节点与延迟探针                                                                                                                                                            |
 | `/m4/segmentation` | `sensor_msgs/Image`（彩色掩膜）                                                                                                                     | 分割后处理 / 4.3 的可通行区域分析                                                                                                                                                         |
 | `/m4/tracks`（规划命名） | `vision_msgs/Detection2DArray`；当前实际话题是 `/perception/tracks`，track ID 放在 `Detection2D.id`，没有速度或跟踪器状态字段 | `supervision.ByteTrack` 跟踪节点 / 后续消费者 |
-| `/m4/pose`（未实现） | 不定义当前消息类型；M4.4 脚手架的主输出契约为 `/perception/object_pose`，`geometry_msgs/PoseStamped` | 等 M4.4 实际推理后再设计适配层 |
+| `/m4/pose`（未实现） | 不定义当前消息类型；M4.5 原生脚手架约定 `/perception/object_pose` 为 `geometry_msgs/PoseStamped` | 等 Isaac ROS 官方 pose 输出实测后再设计适配层 |
 
 未来实现并验证 `m4_isaac_pipeline` 后，才可启动统一管线并测三路频率；以下命令目前不能作为实操步骤：
 
@@ -447,7 +459,7 @@ ros2 topic hz /m4/tracks
 
 - 把姿态节点并进同一个容器前先算显存，两套官方页面给的不是同一个量，别混成一句：**3.2 版本化页**限定在模型转换阶段，写明 free GPU memory space 至少需要 **7.5 GB**；**4.x latest 页**说的是流水线峰值，约为 **7 GB**、建议预留 **≥8 GB**。本页钉在 3.x，转换阶段按 7.5 GB 留，运行阶段参考 7 GB 峰值。Jetson 是统一内存，这份占用要和相机缓冲、其他 Engine 一起算进预算。
 
-- M4.4 当前脚手架的主输出契约是 `geometry_msgs/PoseStamped` 与 `camera_front` 父 TF；它仍为 `BLOCKED`，不能把 Isaac ROS 示例的消息类型当成现有节点输出。
+- M4.5 原生脚手架约定 `geometry_msgs/PoseStamped` 与 `camera_front` 父 TF；它仍为 `BLOCKED`。M4.4 官方示例尚无 pose 输出，不能把原生脚手架消息类型当成 Isaac ROS 节点输出。
 
 - 容器内做大模型推理时把共享内存调大（`--shm-size=8g` 起步），否则 NITROS 的进程内路径可能因分配失败退回普通路径，而且退回是静默的——功能照跑，只会在延迟数字上体现。
 
@@ -537,7 +549,7 @@ rclpy.spin(LatencyProbe())
 
 ### 交付清单
 
-1. Isaac ROS 工作空间与构建脚本：4.5 用到的功能包、launch 文件、一份可复用的容器启动命令。
+1. Isaac ROS 工作空间与构建脚本：本章后续多模型管线用到的功能包、launch 文件、一份可复用的容器启动命令。
 
 2. Engine 与构建脚本：检测与分割各一份 FP16 与一份 INT8；姿态模型一份 FP32 Engine（官方口径，不做 FP16 / INT8 量化）；跟踪节点附其依赖与配置；另附 ONNX 简化脚本与校准缓存生成脚本。
 

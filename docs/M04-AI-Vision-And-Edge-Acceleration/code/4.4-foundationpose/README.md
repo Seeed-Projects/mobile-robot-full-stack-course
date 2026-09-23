@@ -1,4 +1,9 @@
-# 4.4 FoundationPose 6D Object Pose
+# M4.5 Native NVlabs FoundationPose 6D Object Pose
+
+The physical directory name and old `run_m4_4_demo.sh` entry are retained for
+compatibility. This is the unverified native/PyTorch scaffold, not the M4.4
+Isaac ROS official quickstart. See `../4.4-isaac-ros-foundationpose/README.md`
+for the Isaac ROS path and the canonical `../PROJECT_STATUS.md` for status.
 
 > All relative paths below are relative to the module root,
 > `modules/m04-ai-vision-and-edge-acceleration/`.

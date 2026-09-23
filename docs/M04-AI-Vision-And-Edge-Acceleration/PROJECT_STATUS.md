@@ -11,6 +11,6 @@ M4 的运行状态、测试数字、实机证据和阻塞项只有一个事实�
 M4.1 PASS
 M4.2 PASS
 M4.3 VERIFIED
-M4.4 BLOCKED
-M4.5 PLANNED
+M4.4 PARTIAL (Isaac ROS setup; no pose output)
+M4.5 BLOCKED (native NVlabs route)
 ```
