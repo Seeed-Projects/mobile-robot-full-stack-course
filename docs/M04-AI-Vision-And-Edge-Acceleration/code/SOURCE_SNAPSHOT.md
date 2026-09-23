@@ -4,7 +4,7 @@
 | --- | --- |
 | Source repository | Jetson `/home/seeed/workspace/ros2_bev` |
 | Source branch | `main` |
-| Source commit | `7e945912a299ec36e0a335f508b2a45d53a54060` for the M4.4/M4.5 files listed below |
+| Source commits | `7e945912a299ec36e0a335f508b2a45d53a54060` for M4.4/M4.5; `50e51361eb49d94bdd84e5e258a1962d9dcfa1d1` for the quickstart guard |
 | Snapshot date | 2026-09-23 |
 | Direction | A → C only; never copy course code back to the Jetson |
 
