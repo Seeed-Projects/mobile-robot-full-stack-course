@@ -56,11 +56,11 @@ T_base_object = T_base_camera * T_camera_object
 
 ### 1.2 Do Not Mix Three Kinds of Masks
 
-| Input | What it answers | Can it directly be the FoundationPose target mask? |
-| --- | --- | --- |
-| 2D detection box | Which image rectangle probably contains the object | No; it may contain background and other objects |
-| Semantic mask | Whether each pixel belongs to a class such as road or building | No; it does not separate instances of the same class |
-| Instance mask | Which pixels belong to this one target object | Yes; it selects target depth and appearance |
+| Input            | What it answers                                                | Can it directly be the FoundationPose target mask?   |
+| ---------------- | -------------------------------------------------------------- | ---------------------------------------------------- |
+| 2D detection box | Which image rectangle probably contains the object             | No; it may contain background and other objects      |
+| Semantic mask    | Whether each pixel belongs to a class such as road or building | No; it does not separate instances of the same class |
+| Instance mask    | Which pixels belong to this one target object                  | Yes; it selects target depth and appearance          |
 
 The road/scene semantic mask from 4.3 cannot replace this chapter's instance mask. The official quickstart first uses object detections and converts the target box into a binary object mask; a production system should use a more reliable instance-segmentation or object-tracking result.
 
@@ -129,7 +129,7 @@ The Isaac ROS Pose Estimation repository contains FoundationPose, DOPE, and Cent
 
 ![Isaac ROS FoundationPose input, inference, and output data flow](images/foundationpose_isaac_ros_graph.svg)
 
-Source: redrawn for this course from the NVIDIA Isaac ROS 3.2 FoundationPose launch/API contract. Official references are the [Isaac ROS FoundationPose documentation](https://nvidia-isaac-ros.github.io/v/release-3.2/repositories_and_packages/isaac_ros_pose_estimation/isaac_ros_foundationpose/index.html) and the [Pose Estimation repository](https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_pose_estimation/tree/release-3.2). It emphasizes this project's inputs, `refine/score`, tracking, and `/output` remapping; it is not a runtime screenshot.
+Source: redrawn from the NVIDIA Isaac ROS 3.2 FoundationPose launch/API contract. Official references are the [Isaac ROS FoundationPose documentation](https://nvidia-isaac-ros.github.io/v/release-3.2/repositories_and_packages/isaac_ros_pose_estimation/isaac_ros_foundationpose/index.html) and the [Pose Estimation repository](https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_pose_estimation/tree/release-3.2). It emphasizes the inputs, `refine/score`, tracking, and `/output` remapping; it is not a runtime screenshot.
 
 ![Official Isaac ROS FoundationPose pipeline](images/isaac_ros_foundationpose_pipeline.png)
 
@@ -149,14 +149,14 @@ RGB + depth + CameraInfo
 
 The typical FoundationPose node inputs and outputs are:
 
-| Direction | Topic (internal node name) | Type | Purpose |
-| --- | --- | --- | --- |
-| Input | `pose_estimation/image` | `sensor_msgs/Image` | Rectified color image |
-| Input | `pose_estimation/depth_image` | `sensor_msgs/Image` | Depth image |
-| Input | `pose_estimation/camera_info` | `sensor_msgs/CameraInfo` | Camera intrinsics |
-| Input | `pose_estimation/segmentation` | `sensor_msgs/Image` | Target instance mask |
-| Output | `pose_estimation/output` | `vision_msgs/Detection3DArray` | 3D object pose |
-| Output | `pose_estimation/pose_matrix_output` | `isaac_ros_tensor_list_interfaces/TensorList` | Pose matrix for next-frame tracking |
+| Direction | Topic (internal node name)           | Type                                          | Purpose                             |
+| --------- | ------------------------------------ | --------------------------------------------- | ----------------------------------- |
+| Input     | `pose_estimation/image`              | `sensor_msgs/Image`                           | Rectified color image               |
+| Input     | `pose_estimation/depth_image`        | `sensor_msgs/Image`                           | Depth image                         |
+| Input     | `pose_estimation/camera_info`        | `sensor_msgs/CameraInfo`                      | Camera intrinsics                   |
+| Input     | `pose_estimation/segmentation`       | `sensor_msgs/Image`                           | Target instance mask                |
+| Output    | `pose_estimation/output`             | `vision_msgs/Detection3DArray`                | 3D object pose                      |
+| Output    | `pose_estimation/pose_matrix_output` | `isaac_ros_tensor_list_interfaces/TensorList` | Pose matrix for next-frame tracking |
 
 This project's launch file remaps those internal ports to `rgb/image_rect_color`, `depth_image`, `rgb/camera_info`, `segmentation`, and `output`. The absolute topic observed during validation is therefore **`/output`**, not the full path shown in the documentation example. The verifier subscribes to `/output` and checks the frame ID, nonempty detection/result, finite translation, positive depth, and unit quaternion.
 
@@ -225,48 +225,29 @@ M44_MODE=official ./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m
 
 After `valid_pose`, the script keeps the graph and rosbag alive. The RViz Camera panel on the left shows the Mustard RGB image and the central 3D view shows the detection. This view loops a single-frame bag; it is not a live camera.
 
-![Mustard RViz result on Jetson: RGB image at left and 3D pose in the center](images/m4_4_mustard_rviz_physical.png)
-
-Source: this course's Jetson run `20260924-014511-25838-official`. The screenshot demonstrates visualization and message format only; it does not provide physical-camera frame rate or error.
-
-![Official Isaac ROS RealSense/RViz FoundationPose example](images/isaac_ros_foundationpose_rviz_realsense.png)
-
-Source: the RealSense example in the NVIDIA Isaac ROS 3.2 FoundationPose documentation. It illustrates the official visualization shape; this course's acceptance still uses the Mustard single-frame bag and local logs.
-
-### 5.4 How to Read One Measured Result
-
-The official run `20260923-112313-14976-official` recorded:
-
-| Field | Observed value | Interpretation |
-| --- | --- | --- |
-| `frame_id` | `tf_camera` | Pose is relative to this camera frame |
-| position, metres | `[-0.4350625575, 0.1339290440, 0.7972502112]` | `z` is about 0.797 m, in front of the camera |
-| quaternion, xyzw | `[0.7753970849, -0.3331845536, 0.3022323303, -0.4431738174]` | ROS storage order |
-| quaternion norm | `1.0` | Passes the unit-quaternion check |
-
-These values prove that the recorded input produced a well-formed pose through the official graph. They contain no ground-truth error and do not prove continuous tracking FPS.
+![FoundationPose input and pose visualization in RViz](images/c32b14ff43a82a78a4aeeffba3451ee29f87111f.gif)
 
 ## 6. Application Cases and Engineering Preconditions
 
-| Case | How the pose is used | Additional prerequisites |
-| --- | --- | --- |
-| Robotic grasping | Transform `T_camera_object` through TF into the base/end-effector frame and generate a grasp target | Object mesh, instance mask, camera extrinsic, and gripper calibration |
-| Mobile robot | Use object distance and direction relative to the camera for avoidance, approach, or interaction | Continuous RGB-D, stable tracking, and time synchronization |
-| AR/MR overlay | Place a virtual model at the real object's 3D pose | Low latency and consistent camera intrinsics/extrinsics and frames |
-| Inventory and inspection | Compare object position, orientation, or pose changes | Repeatable views, occlusion handling, and quality metrics |
+| Case                     | How the pose is used                                                                                | Additional prerequisites                                              |
+| ------------------------ | --------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Robotic grasping         | Transform `T_camera_object` through TF into the base/end-effector frame and generate a grasp target | Object mesh, instance mask, camera extrinsic, and gripper calibration |
+| Mobile robot             | Use object distance and direction relative to the camera for avoidance, approach, or interaction    | Continuous RGB-D, stable tracking, and time synchronization           |
+| AR/MR overlay            | Place a virtual model at the real object's 3D pose                                                  | Low latency and consistent camera intrinsics/extrinsics and frames    |
+| Inventory and inspection | Compare object position, orientation, or pose changes                                               | Repeatable views, occlusion handling, and quality metrics             |
 
 All of these cases share one boundary: FoundationPose estimates or tracks an object pose; detection, instance masking, camera calibration, TF, and task decisions remain other system modules. The paper also notes that false or missing external detections are a common bottleneck.
 
 ## 7. Acceptance Boundaries and Troubleshooting
 
-| Check | Current conclusion | Evidence or limitation |
-| --- | --- | --- |
-| Official FP32/252 score engine | Passed | Built with host TensorRT 10.3 and deserialized at container maximum shape 252 |
-| Official Mustard single-frame graph | Passed | Nonempty `Detection3DArray` on `/output`; verifier returned `valid_pose` |
-| FP32/42 adaptation graph | Passed separately | Independent engine, configuration, launch, and valid pose |
-| Official AGX Orin benchmark | About 1.54 FPS | Official Isaac ROS 3.2 release-3.2 720p benchmark, not a new local measurement |
-| Continuous physical-camera tracking | Not accepted | Orbbec Gemini 2 is not connected; the current bag has one frame |
-| Physical accuracy | Not accepted | No ground-truth physical RGB-D sequence, so ADD/ADD-S is not reported |
+| Check                               | Current conclusion | Evidence or limitation                                                         |
+| ----------------------------------- | ------------------ | ------------------------------------------------------------------------------ |
+| Official FP32/252 score engine      | Passed             | Built with host TensorRT 10.3 and deserialized at container maximum shape 252  |
+| Official Mustard single-frame graph | Passed             | Nonempty `Detection3DArray` on `/output`; verifier returned `valid_pose`       |
+| FP32/42 adaptation graph            | Passed separately  | Independent engine, configuration, launch, and valid pose                      |
+| Official AGX Orin benchmark         | About 1.54 FPS     | Official Isaac ROS 3.2 release-3.2 720p benchmark, not a new local measurement |
+| Continuous physical-camera tracking | Not accepted       | Orbbec Gemini 2 is not connected; the current bag has one frame                |
+| Physical accuracy                   | Not accepted       | No ground-truth physical RGB-D sequence, so ADD/ADD-S is not reported          |
 
 Common problems:
 
@@ -291,4 +272,3 @@ Answers: (1) They do not reliably identify the pixel set for this one object. (2
 - [NVIDIA Isaac ROS 3.2 FoundationPose documentation](https://nvidia-isaac-ros.github.io/v/release-3.2/repositories_and_packages/isaac_ros_pose_estimation/isaac_ros_foundationpose/index.html)
 - [NVIDIA-ISAAC-ROS/isaac_ros_pose_estimation release-3.2](https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_pose_estimation/tree/release-3.2)
 - [NVlabs/FoundationPose](https://github.com/NVlabs/FoundationPose)
-- The next chapter covers the native NVlabs route; its runtime evidence remains separate from this Isaac ROS evidence.

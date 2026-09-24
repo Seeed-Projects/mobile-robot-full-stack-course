@@ -127,7 +127,7 @@ Isaac ROS Pose Estimation 仓库包含 FoundationPose、DOPE 和 CenterPose 等�
 
 ![Isaac ROS FoundationPose 的输入、推理和输出数据流](images/foundationpose_isaac_ros_graph.svg)
 
-图源：本课程根据 NVIDIA Isaac ROS 3.2 FoundationPose 的 launch/API 契约重绘；官方参考为 [Isaac ROS FoundationPose 文档](https://nvidia-isaac-ros.github.io/v/release-3.2/repositories_and_packages/isaac_ros_pose_estimation/isaac_ros_foundationpose/index.html) 和 [Pose Estimation 仓库](https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_pose_estimation/tree/release-3.2)。它强调本项目的输入、`refine/score`、tracking 和 `/output` remap，不是运行时截图。
+图源：根据 NVIDIA Isaac ROS 3.2 FoundationPose 的 launch/API 契约重绘；官方参考为 [Isaac ROS FoundationPose 文档](https://nvidia-isaac-ros.github.io/v/release-3.2/repositories_and_packages/isaac_ros_pose_estimation/isaac_ros_foundationpose/index.html) 和 [Pose Estimation 仓库](https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_pose_estimation/tree/release-3.2)。它强调输入、`refine/score`、tracking 和 `/output` remap，不是运行时截图。
 
 ![Isaac ROS FoundationPose 官方 pipeline 图](images/isaac_ros_foundationpose_pipeline.png)
 
@@ -223,26 +223,7 @@ M44_MODE=official ./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m
 
 脚本在 `valid_pose` 后继续保持图和 rosbag，RViz 左侧 Camera 面板显示 Mustard RGB 图像，中心 3D 视图显示检测框。此画面来自单帧 bag 循环，不是实时相机。
 
-![Jetson 上的 Mustard RViz 结果：左侧为 RGB 图像，中心为 3D 位姿](images/m4_4_mustard_rviz_physical.png)
-
-图源：本课程 Jetson 实机记录 `20260924-014511-25838-official`。该截图只说明可视化链路和消息格式，不提供真实相机帧率或误差。
-
-![Isaac ROS 官方 RealSense/RViz FoundationPose 示例](images/isaac_ros_foundationpose_rviz_realsense.png)
-
-图源：NVIDIA Isaac ROS 3.2 FoundationPose 文档的 RealSense 示例。它用于说明官方图形化结果形态；本课程实际验收仍以 Mustard 单帧 bag 和本地日志为准。
-
-### 5.4 一条实测结果怎样读
-
-官方运行 `20260923-112313-14976-official` 的记录为：
-
-| 字段              | 实测值                                                          | 解释                  |
-| --------------- | ------------------------------------------------------------ | ------------------- |
-| `frame_id`      | `tf_camera`                                                  | 位姿相对于该相机帧           |
-| position，米      | `[-0.4350625575, 0.1339290440, 0.7972502112]`                | `z` 约 0.797 m，在相机前方 |
-| quaternion，xyzw | `[0.7753970849, -0.3331845536, 0.3022323303, -0.4431738174]` | ROS 存储顺序            |
-| quaternion norm | `1.0`                                                        | 通过单位四元数检查           |
-
-这组数字证明该次录制输入通过官方图产生了格式有效的位姿；它不包含真值误差，也不能证明连续 tracking FPS。
+![FoundationPose 在 RViz 中的输入与位姿可视化](images/c32b14ff43a82a78a4aeeffba3451ee29f87111f.gif)
 
 ## 六、应用案例和工程前提
 
@@ -289,4 +270,3 @@ M44_MODE=official ./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m
 - [NVIDIA Isaac ROS 3.2 FoundationPose 文档](https://nvidia-isaac-ros.github.io/v/release-3.2/repositories_and_packages/isaac_ros_pose_estimation/isaac_ros_foundationpose/index.html)
 - [NVIDIA-ISAAC-ROS/isaac_ros_pose_estimation release-3.2](https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_pose_estimation/tree/release-3.2)
 - [NVlabs/FoundationPose](https://github.com/NVlabs/FoundationPose)
-- 下一章是原生 NVlabs 路线；其运行证据与本章 Isaac ROS 证据分开记录。
