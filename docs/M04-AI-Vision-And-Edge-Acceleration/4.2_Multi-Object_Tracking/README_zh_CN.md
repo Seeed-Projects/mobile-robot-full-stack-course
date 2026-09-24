@@ -1,8 +1,6 @@
 # 4.2 多目标跟踪
 
-**状态：PASS。** Jetson A 已用 `supervision.ByteTrack`、`vision_msgs/Detection2DArray` 和 30 项 pytest 重新验证。完整证据与环境以 [`code/PROJECT_STATUS.md`](../code/PROJECT_STATUS.md) 为准。
-
-## 课程概述
+## 概述
 
 ![课程概述](./images/XCQhblwpeo0Zu1x2vOecGZLcnyb.gif)
 
@@ -37,18 +35,26 @@
 
 ### 硬件与软件清单
 
-- 平台：reComputer Robotics J5011（Jetson AGX Orin 32GB)
+- 平台：reComputer Robotics J501（Jetson AGX Orin 32GB）
 - JetPack 6.2.1
 - ROS 2 Humble
 - GMSL摄像头 / USB 摄像头
 
 ### 前置基础
 
-- 4.1：检测链路已跑通，`/perception/detections` 稳定输出。本章不重训检测模型，也不改检测结果。
+- 4.1：先理解检测结果的消息契约。一键脚本会启动检测与跟踪；只有单独启动跟踪节点时，才需预先提供 `/perception/detections` 输入。本章不重训检测模型。
 
 - [1.4 机器人软件中间件：ROS2 Humble 快速上手](https://seeedstudio.feishu.cn/docx/QdL7dbITroR6btxqesrcNJE9nib)：会用 `ros2 topic` 看话题与消息。本章不要求会写节点。
 
 - 线性代数基础：能读矩阵乘法、能接受「状态加上协方差」这种表示即可。本章不推导卡尔曼增益。
+
+### 实机运行预览
+
+在 Jetson 的 `/home/seeed/workspace/ros2_bev` 执行 `./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_2_demo.sh`，脚本会启动所需的检测与跟踪链路；不必先单独启动 4.1 demo。浏览器模式运行 `./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_web_hub.sh`，打开 `http://<Jetson-IP>:8080/m4/2` 并选择“4.2 跟踪”。确认 `/perception/tracks` 持续输出，再观察画面中的目标 ID。
+
+![Jetson 实机 M4.2 跟踪画面：本地视频输入，车辆检测框带轨迹 ID](./images/m4_runtime_m42_tracking.png)
+
+*图：2026-09-23 Jetson Hub 播放本地 `test_seg.mp4` 的跟踪示例。截图展示 ID 的显示方式；单帧截图本身不能证明跨帧 ID 连续性。*
 
 ## 先读懂：从一堆检测框到一条条轨迹
 
@@ -356,9 +362,9 @@ Track 3  ─────────────── Detection C
 | 参数                           | 实机取值 | 它在改什么                     | 现象                                                                                  |
 | ---------------------------- | ---- | ------------------------- | ----------------------------------------------------------------------------------- |
 | `track_activation_threshold` | 0.25 | **高分检测**的门槛，也是新轨迹激活所依赖的分数 | 调高：轨迹更干净、更稳，但漏掉弱目标；调低：弱目标也能起轨迹，但噪声和不稳定随之进来。它**不是**「参与跟踪的检测的最低置信度」——低于它的框仍可能参与第二阶段关联 |
-| `lost_track_buffer`          | 90   | 丢失轨迹的**缓冲基数**             | 调高：遮挡容忍变长，轨迹更不容易碎，代价是幽灵轨迹变久；调低：轨迹清得干净，但遮挡后容易换 ID。实际窗口还受 `frame_rate` 影响 |
+| `lost_track_buffer`          | 90   | 丢失轨迹的**缓冲基数**             | 调高：遮挡容忍变长，轨迹更不容易碎，代价是幽灵轨迹变久；调低：轨迹清得干净，但遮挡后容易换 ID。实际窗口还受 `frame_rate` 影响             |
 | `minimum_matching_threshold` | 0.8  | 第一阶段关联允许的**最大匹配代价**       | 调大：匹配更宽松，能接受重叠更差的配对，轨迹更不容易断；调小：更严格，目标快速移动或框重叠差时容易断成新 ID。它只管第一阶段，不是所有阶段共用的阈值         |
-| `frame_rate`                 | 30   | 与实际处理帧率对应的缩放因子            | 它参与丢失窗口的计算；输入吞吐变了而这里不改，运动预测与遮挡容忍窗口会偏离预期 |
+| `frame_rate`                 | 30   | 与实际处理帧率对应的缩放因子            | 它参与丢失窗口的计算；输入吞吐变了而这里不改，运动预测与遮挡容忍窗口会偏离预期                                             |
 | `minimum_consecutive_frames` | 1    | 轨迹连续匹配多少帧后才作为**稳定轨迹**对外使用 | 调大：抑制短暂误检产生的偶然轨迹，但新目标要等几帧才拿到稳定 ID                                                   |
 
 还有两个并不影响跟踪行为、但看日志时会遇到的参数：`tracker_type`（固定为 `bytetrack`，这是实机唯一的跟踪器）与 `publish_log_throttle_ms`（日志节流，1000 ms）。
@@ -383,7 +389,7 @@ max_time_lost = int(frame_rate / 30 × lost_track_buffer)
 
 ```bash
 cd /home/seeed/workspace/ros2_bev
-scripts/m4/run_m4_2_demo.sh
+./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_2_demo.sh
 ```
 
 脚本走课程硬件的 GMSL2 通路，自己拉起 `camera_adapter_node` 把上游图像转成跟踪节点期望的话题，再启动 `tracking_node` 与可视化节点。只想单跑跟踪节点的话，用 `tracking_demo.launch.py`，它的参数默认值已经把输入输出话题配好了。
@@ -414,7 +420,7 @@ ros2 topic echo /perception/tracks --once
 
 ```bash
 # 改参数后重启节点，对比同一段场景
-vim ros2_ws/src/bev_tracking/config/bytetrack.yaml
+vim modules/m04-ai-vision-and-edge-acceleration/4.2-multi-object-tracking/ros2/bev_tracking/config/bytetrack.yaml
 ```
 
 | 现象             | 先看哪个参数                                                            |
@@ -431,7 +437,7 @@ vim ros2_ws/src/bev_tracking/config/bytetrack.yaml
 
 ### 交付清单
 
-1. 一条跑起来的跟踪链路：`scripts/m4/run_m4_2_demo.sh` 正常启动，`/perception/tracks` 持续发布。
+1. 一条跑起来的跟踪链路：`./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_2_demo.sh` 正常启动，`/perception/tracks` 持续发布。
 
 2. 轨迹契约的验证记录：`ros2 topic info -v` 的类型与 QoS、`ros2 topic echo` 里带上 `id` 的检测框摘录。
 
@@ -484,4 +490,4 @@ vim ros2_ws/src/bev_tracking/config/bytetrack.yaml
 
 - **处理**：回到 4.1 确认空帧契约仍然成立：每帧都发，空帧发空数组。改检测节点时不要顺手加「空框提前 return」。
 
-> **下一步：**4.3 语义分割接管「每个像素能不能走」的问题。跟踪给出的 ID 和分割给出的可行驶区域在 4.5 会被放在同一条链路上，那时你会看到两者对时间戳的要求是一致的：都依赖检测与相机图像共享同一个 `header.stamp`。如果这一章里你把 ID 观察清楚了，4.5 的集成会顺很多。
+> **下一步：**4.3 为像素赋予语义类别，再映射出地面候选掩膜；它不能证明无碰撞空间。当前跟踪 ID 与分割掩膜是独立输出，后续集成需要显式对齐时间戳，不能把规划中的集成写成已完成。
