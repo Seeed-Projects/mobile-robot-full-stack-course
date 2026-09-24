@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!--
+  UDP-only Fast DDS profile for the host-side M4.4 overlay node.
+
+  The Isaac ROS container processes run as root and the hub processes as
+  seeed. With net=host+ipc=host the DDS discovery crosses the boundary, but
+  root-created /dev/shm/fastrtps_* segments cannot be attached by a
+  different user, and Fast DDS prefers SHM for local peers - so a plain
+  (SHM-enabled) host subscriber receives NOTHING from the container.
+  A UDP-only participant makes the container publisher fall back to UDP
+  unicast, which crosses the user boundary fine.
+
+  Fast DDS is 2.6.x here, so FASTDDS_BUILTIN_TRANSPORTS is not available;
+  use FASTRTPS_DEFAULT_PROFILES_FILE with this file instead.
+-->
+<profiles xmlns="http://www.eprosima.com/XMLSchemas/fastRTPS_Profiles">
+    <transport_descriptors>
+        <transport_descriptor>
+            <transport_id>udp_only_transport</transport_id>
+            <type>UDPv4</type>
+        </transport_descriptor>
+    </transport_descriptors>
+    <participant profile_name="udp_only_participant" is_default_profile="true">
+        <rtps>
+            <userTransports>
+                <transport_id>udp_only_transport</transport_id>
+            </userTransports>
+            <useBuiltinTransports>false</useBuiltinTransports>
+        </rtps>
+    </participant>
+</profiles>

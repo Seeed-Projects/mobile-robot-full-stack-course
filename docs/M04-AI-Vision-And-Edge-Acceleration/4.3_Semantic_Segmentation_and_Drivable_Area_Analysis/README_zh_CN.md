@@ -2,6 +2,22 @@
 
 ## 本章要解决什么
 
+### 课程代码入口
+
+本章命令都从你克隆的课程源码中的 M4 `code/` 目录运行：
+
+```bash
+export M4_CODE_ROOT="$HOME/mobile-robot-full-stack-course/docs/M04-AI-Vision-And-Edge-Acceleration/code"
+cd "$M4_CODE_ROOT"
+./scripts/setup_workspace.sh
+source /opt/ros/humble/setup.bash
+cd ros2_ws
+colcon build --symlink-install --packages-select \
+  bev_interfaces bev_detection bev_tracking bev_segmentation bev_pose m4_demo_bringup
+source install/setup.bash
+cd "$M4_CODE_ROOT"
+```
+
 目标检测给物体画框，语义分割则为图像中的**每个像素**预测类别。它能让我们看到道路、墙面、车辆分别占据哪些区域，也能把选定的类别映射为一张地面候选掩膜。类别预测回答“看起来是什么”，不能独自回答“机器人能否安全通过”。
 
 本章使用 Cityscapes 19 类的 SegFormer-B0，沿着输入图像、模型输出和类别映射讲清两路结果：`/perception/semantic_mask` 保存每个像素的类别 ID；`/perception/drivable_mask` 根据配置把选中的类别标成 255，其余标成 0。第二个话题沿用已有名称，但在理解和使用时应把它看作**地面候选**。
@@ -10,13 +26,13 @@
 
 ### 运行预览
 
-在 Jetson 的 `/home/seeed/workspace/ros2_bev` 目录运行以下命令，可独立查看分割结果：
+在 Jetson 的 `$M4_CODE_ROOT` 目录运行以下命令，可独立查看分割结果：
 
 ```bash
-./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_3_demo.sh
+./scripts/m4/run_m4_3_demo.sh
 ```
 
-需要在浏览器中切换模块时，改为运行 `./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_web_hub.sh`，打开 `http://<Jetson-IP>:8080/m4/3`。选择“4.3 分割”，可查看原图、语义图和地面候选视图。两种运行方式择一启动即可。
+需要在浏览器中切换模块时，改为运行 `./scripts/m4/run_m4_web_hub.sh`，打开 `http://<Jetson-IP>:8080/m4/3`。选择“4.3 分割”，可查看原图、语义图和地面候选视图。两种运行方式择一启动即可。
 
 ![Jetson Hub 中的 M4.3 语义分割和地面候选视图](./images/m4_runtime_m43_segmentation.png)
 
@@ -108,7 +124,7 @@
 独立运行时，在另一个已加载 ROS 2 环境的终端查看两路消息的头部：
 
 ```bash
-source /home/seeed/workspace/ros2_bev/install/setup.bash
+source "$M4_CODE_ROOT/ros2_ws/install/setup.bash"
 ros2 topic echo /perception/semantic_mask --once --field header
 ros2 topic echo /perception/drivable_mask --once --field header
 ```

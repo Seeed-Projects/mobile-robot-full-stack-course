@@ -16,6 +16,7 @@ from launch.substitutions import (
     FindPackageShare,
 )
 from launch_ros.actions import Node, PushRosNamespace
+import os
 
 
 def launch_setup(context, *args, **kwargs):
@@ -55,6 +56,7 @@ def launch_setup(context, *args, **kwargs):
                 'det3d_topic': '/perception/object_poses_3d',
                 'mesh_npz_path': LaunchConfiguration('mesh_npz_path'),
                 'mesh_obj': LaunchConfiguration('mesh_obj'),
+                'model_dir': os.path.join(os.environ.get('FOUNDATIONPOSE_DIR', ''), 'weights'),
                 'frame_id': LaunchConfiguration('frame_id'),
                 'camera_frame_id': 'camera_front',
             },
@@ -71,11 +73,11 @@ def generate_launch_description() -> LaunchDescription:
     return LaunchDescription([
         DeclareLaunchArgument(
             'mesh_npz_path',
-            default_value='/home/seeed/workspace/ros2_bev/modules/m04-ai-vision-and-edge-acceleration/models/m4/pose/processed/cup.npz',
+            default_value=os.path.join(os.environ.get('M4_CODE_ROOT', ''), 'models/m4/pose/processed/cup.npz'),
             description='Pre-computed mesh .npz produced by mesh_preprocessor.'),
         DeclareLaunchArgument(
             'mesh_obj',
-            default_value='/home/seeed/workspace/ros2_bev/modules/m04-ai-vision-and-edge-acceleration/models/m4/pose/obj_models/cup.obj',
+            default_value=os.path.join(os.environ.get('M4_CODE_ROOT', ''), 'models/m4/pose/obj_models/cup.obj'),
             description='Original OBJ (FoundationPose reads tex; the .npz covers geometry).'),
         DeclareLaunchArgument(
             'frame_id', default_value='cup',

@@ -2,6 +2,19 @@
 
 ## Chapter Goals
 
+### Course code entry point
+
+Start in the M4 `code/` directory from your cloned course source. The Isaac ROS container and model assets are configured separately; the course scripts run from this directory:
+
+```bash
+export M4_CODE_ROOT="$HOME/mobile-robot-full-stack-course/docs/M04-AI-Vision-And-Edge-Acceleration/code"
+export ISAAC_ROS_CONTAINER=m4-isaacros-foundationpose
+export ISAAC_ROS_HOST_ASSET_ROOT="$HOME/isaac_ros_assets"
+export HOST_MODEL_ROOT="$ISAAC_ROS_HOST_ASSET_ROOT/models/foundationpose"
+cd "$M4_CODE_ROOT"
+./scripts/setup_workspace.sh
+```
+
 2D detection answers “where is the object in the image?” and semantic segmentation answers “which class does each pixel belong to?” Robot grasping, avoidance, and spatial alignment also need the object's 3D position and orientation. This chapter uses FoundationPose in NVIDIA Isaac ROS 3.2 to explain that path:
 
 ```text
@@ -197,10 +210,10 @@ Forty-two candidates reduce memory and compute, but also narrow initial orientat
 
 ### 5.1 Official Single-Frame Acceptance
 
-On the Jetson, from `/home/seeed/workspace/ros2_bev`, run:
+On the Jetson, from `$M4_CODE_ROOT`, run:
 
 ```bash
-M44_MODE=official ./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_4_isaacros_quickstart.sh
+M44_MODE=official ./scripts/m4/run_m4_4_isaacros_quickstart.sh
 ```
 
 The runner checks the container, models, engines, and Mustard rosbag; if the official 252 engine is missing, it attempts a host-TensorRT build. It then starts the Isaac ROS graph, loops a bag containing one RGB, depth, and CameraInfo frame, and waits for a valid `Detection3DArray` on `/output`.
@@ -210,7 +223,7 @@ The runner checks the container, models, engines, and Mustard rosbag; if the off
 Run this only when comparing the resource-limited profile:
 
 ```bash
-M44_MODE=adapted ./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_4_isaacros_quickstart.sh
+M44_MODE=adapted ./scripts/m4/run_m4_4_isaacros_quickstart.sh
 ```
 
 The engine, configuration, and launch file must be used as one set. This is a separate adaptation demo and does not change the official 252 acceptance result.
@@ -220,7 +233,7 @@ The engine, configuration, and launch file must be used as one set. This is a se
 From a graphical terminal on the Jetson desktop, run:
 
 ```bash
-M44_MODE=official ./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_4_isaacros_visual.sh
+M44_MODE=official ./scripts/m4/run_m4_4_isaacros_visual.sh
 ```
 
 After `valid_pose`, the script keeps the graph and rosbag alive. The RViz Camera panel on the left shows the Mustard RGB image and the central 3D view shows the detection. This view loops a single-frame bag; it is not a live camera.

@@ -2,6 +2,22 @@
 
 ## What This Chapter Explains
 
+### Course code entry point
+
+Run this chapter from the M4 `code/` directory in your cloned course source:
+
+```bash
+export M4_CODE_ROOT="$HOME/mobile-robot-full-stack-course/docs/M04-AI-Vision-And-Edge-Acceleration/code"
+cd "$M4_CODE_ROOT"
+./scripts/setup_workspace.sh
+source /opt/ros/humble/setup.bash
+cd ros2_ws
+colcon build --symlink-install --packages-select \
+  bev_interfaces bev_detection bev_tracking bev_segmentation bev_pose m4_demo_bringup
+source install/setup.bash
+cd "$M4_CODE_ROOT"
+```
+
 Object detection draws boxes around objects. Semantic segmentation predicts a class for **every pixel** in an image. It shows which regions look like road, wall, or vehicle, and a class mapping can turn selected regions into a ground-candidate mask. A predicted class answers “what does this pixel resemble?” It does not, by itself, answer “can the robot cross here safely?”
 
 This chapter uses a SegFormer-B0 model with 19 Cityscapes classes to explain two outputs. `/perception/semantic_mask` stores a class ID for each pixel. `/perception/drivable_mask` writes 255 where the predicted class is selected by configuration and 0 elsewhere. The second topic keeps its existing name, but its useful interpretation is **ground candidate**.
@@ -10,13 +26,13 @@ By the end, you should be able to distinguish three segmentation tasks, read seg
 
 ### Runtime Preview
 
-From `/home/seeed/workspace/ros2_bev` on the Jetson, run the standalone segmentation demo:
+From `$M4_CODE_ROOT` on the Jetson, run the standalone segmentation demo:
 
 ```bash
-./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_3_demo.sh
+./scripts/m4/run_m4_3_demo.sh
 ```
 
-To switch modules in a browser, run `./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_web_hub.sh` instead, then open `http://<Jetson-IP>:8080/m4/3`. Select “4.3 Segmentation” to view the source image, semantic view, and ground-candidate view. Run one mode at a time.
+To switch modules in a browser, run `./scripts/m4/run_m4_web_hub.sh` instead, then open `http://<Jetson-IP>:8080/m4/3`. Select “4.3 Segmentation” to view the source image, semantic view, and ground-candidate view. Run one mode at a time.
 
 ![M4.3 semantic segmentation and ground-candidate view in the Jetson Hub](./images/m4_runtime_m43_segmentation.png)
 
@@ -108,7 +124,7 @@ The current model's class IDs come from Cityscapes. The setting `drivable_class_
 With the standalone demo running, use another terminal with the ROS 2 environment loaded to inspect sample headers from the two topics:
 
 ```bash
-source /home/seeed/workspace/ros2_bev/install/setup.bash
+source "$M4_CODE_ROOT/ros2_ws/install/setup.bash"
 ros2 topic echo /perception/semantic_mask --once --field header
 ros2 topic echo /perception/drivable_mask --once --field header
 ```

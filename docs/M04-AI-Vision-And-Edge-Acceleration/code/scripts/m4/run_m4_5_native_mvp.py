@@ -75,10 +75,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "--foundationpose-dir",
-        default=os.environ.get(
-            "FOUNDATIONPOSE_DIR",
-            "/home/seeed/workspace/third_party/FoundationPose",
-        ),
+        default=os.environ.get("FOUNDATIONPOSE_DIR", ""),
     )
     parser.add_argument("--scene", default="")
     parser.add_argument("--mesh", default="")
@@ -88,6 +85,8 @@ def main() -> int:
     parser.add_argument("--track-iterations", type=int, default=2)
     args = parser.parse_args()
 
+    if not args.foundationpose_dir:
+        raise SystemExit("FOUNDATIONPOSE_DIR is required; export it or pass --foundationpose-dir")
     fp_dir = Path(args.foundationpose_dir).expanduser().resolve()
     scene_dir = Path(args.scene or fp_dir / "demo_data/mustard0").expanduser().resolve()
     mesh_file = Path(

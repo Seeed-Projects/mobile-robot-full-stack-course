@@ -9,7 +9,7 @@
 # 跑完后 output/m4/4.1/snapshot.png 就是带 bbox 的可视化结果。
 #
 # 用法：
-#   bash /home/seeed/workspace/ros2_bev/modules/m04-ai-vision-and-edge-acceleration/scripts/m4/visualize_yolo.sh
+#   bash scripts/m4/visualize_yolo.sh
 #
 # 自定义：
 #   SAMPLE_DIR=/path/to/images bash scripts/m4/visualize_yolo.sh
@@ -71,7 +71,7 @@ set -u
 ok "ros2 + bev_detection sourced"
 
 # ---- LD_LIBRARY_PATH（CUDA + opencv 4.14 + TRT） ----
-export LD_LIBRARY_PATH="$WS_ROOT/install/bev_detection/lib:/home/seeed/src/opencv-4.14.0-cuda-build/lib:/usr/local/cuda-12.6/lib64:/usr/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH"
+export LD_LIBRARY_PATH="$WS_ROOT/install/bev_detection/lib:${OPENCV_CUDA_LIB:-}:/usr/local/cuda/lib64:/usr/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH"
 ok "LD_LIBRARY_PATH configured"
 
 # ---- 1. 启动 yolo_trt_node（后台） ----

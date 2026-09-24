@@ -84,17 +84,39 @@
           <div class="view-switch" role="group" aria-label="M4.3 visualization">
             <button type="button" data-view="original" data-i18n-zh="原始" data-i18n-en="Original">原始</button>
             <button type="button" data-view="semantic" data-i18n-zh="语义" data-i18n-en="Semantic">语义</button>
-            <button type="button" data-view="drivable" data-i18n-zh="可行驶" data-i18n-en="Drivable">可行驶</button>
+            <button type="button" data-view="drivable" data-i18n-zh="地面候选" data-i18n-en="Ground candidate">地面候选</button>
           </div>
           <div class="class-results" id="classResults" aria-label="top semantic classes"></div>
           <div class="drivable-result">
-            <span data-i18n-zh="可行驶区域" data-i18n-en="Drivable area">可行驶区域</span>
+            <span data-i18n-zh="地面候选（非安全通行区）" data-i18n-en="Ground candidate (not safe to traverse)">地面候选（非安全通行区）</span>
             <strong id="drivableRatio">—</strong>
+          </div>
+        </div>
+        <div class="pose-results" id="poseResults" hidden>
+          <div class="pose-stat">
+            <span data-i18n-zh="位姿状态" data-i18n-en="Pose status">位姿状态</span>
+            <strong id="poseStatus">—</strong>
+          </div>
+          <div class="pose-stat">
+            <span data-i18n-zh="位置 t (m)" data-i18n-en="Position t (m)">位置 t (m)</span>
+            <strong id="posePosition">—</strong>
+          </div>
+          <div class="pose-stat">
+            <span data-i18n-zh="四元数 q (xyzw)" data-i18n-en="Quaternion q (xyzw)">四元数 q (xyzw)</span>
+            <strong id="poseQuat">—</strong>
+          </div>
+          <div class="pose-stat">
+            <span>|q|</span>
+            <strong id="poseNorm">—</strong>
+          </div>
+          <div class="pose-stat">
+            <span data-i18n-zh="位姿频率" data-i18n-en="Pose rate">位姿频率</span>
+            <strong id="poseRate">—</strong>
           </div>
         </div>
       </div>
 
-      <div class="input-control-bar" aria-label="perception input controls">
+      <div class="input-control-bar" id="inputControlBar" aria-label="perception input controls">
         <div class="source-control">
           <div class="source-copy">
             <span class="eyebrow" data-i18n-zh="共享输入" data-i18n-en="Shared input">共享输入</span>
@@ -144,6 +166,12 @@
           <span data-i18n-zh="算法参数" data-i18n-en="Algorithm parameters">算法参数</span>
           </button>
         </div>
+      </div>
+
+      <div class="pose-input-note" id="poseInputNote" hidden>
+        <span class="eyebrow" data-i18n-zh="4.4 输入" data-i18n-en="M4.4 input">4.4 输入</span>
+        <span data-i18n-zh="Isaac ROS FoundationPose 官方示例 bag 回放（Mustard）——不使用共享相机或本地视频；物理 RGB-D 相机验收保持开放"
+              data-i18n-en="Isaac ROS FoundationPose official bag replay (Mustard) — no shared camera or local video; physical RGB-D acceptance remains open">Isaac ROS FoundationPose 官方示例 bag 回放（Mustard）——不使用共享相机或本地视频；物理 RGB-D 相机验收保持开放</span>
       </div>
     </section>
 

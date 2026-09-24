@@ -1,13 +1,12 @@
 # M04 · Code (AI Vision and Edge Acceleration)
 
 Curated, git-safe source code for M04 chapters 4.1–4.5 plus the shared infrastructure
-they build on. This folder is the **published copy** referenced by the M04 chapters.
+they build on. This folder is the **published copy** referenced by the M04 chapters
+and is also the learner's runnable checkout after cloning the course repository.
 
-**Edit one way only.** The canonical, editable source is the runtime repository on the
-Jetson (`/home/seeed/workspace/ros2_bev/`).
-Changes flow **Jetson → this folder**, never the reverse — otherwise the two trees drift
-and the published copy silently becomes a second, wrong answer. See
-[Provenance](#provenance) for the exact revision this snapshot came from.
+The Jetson tree was used as the validation source; the course `code/` tree is the
+portable teaching entry point. Scripts derive their paths from their own location,
+while external model assets are supplied through environment variables.
 
 All changes in this course project live under `docs/M04-AI-Vision-And-Edge-Acceleration/code/`.
 
@@ -16,8 +15,6 @@ All changes in this course project live under `docs/M04-AI-Vision-And-Edge-Accel
 ```text
 code/
   README.md
-  PROJECT_STATUS.md                    # canonical runtime status at snapshot time
-  SOURCE_SNAPSHOT.md                   # source commit and mapping
   4.1-yolo-object-detection/           # chapter 4.1
     README.md
     ros2/bev_detection/                # ROS 2 ament_cmake package (C++ / TensorRT)
@@ -27,7 +24,7 @@ code/
   4.3-semantic-segmentation/           # chapter 4.3
     README.md
     ros2/bev_segmentation/             # ROS 2 ament_cmake package (C++ / TensorRT)
-  4.4-foundationpose/                  # chapter 4.5 native NVlabs route (legacy path)
+  4.5-native-foundationpose/           # chapter 4.5 native NVlabs route
     README.md
     ros2/bev_pose/                     # ROS 2 ament_python package (FoundationPose)
   4.4-isaac-ros-foundationpose/        # chapter 4.4 Isaac ROS runbook
@@ -48,9 +45,9 @@ code/
     regression/                        # regression gates
 ```
 
-The Jetson tree is the only editable runtime source. In this standalone course copy,
-`scripts/setup_workspace.sh` is a course-only adapter that symlinks the published
-packages into `ros2_ws/src`; it is not the Jetson build entry.
+In this course copy, `scripts/setup_workspace.sh` symlinks the published packages into
+`ros2_ws/src`, and the same scripts can be run from the checkout after cloning. The
+Jetson path is kept only in the provenance table as the validation source.
 
 ## Provenance
 
@@ -59,7 +56,7 @@ packages into `ros2_ws/src`; it is not the Jetson build entry.
 | `4.1-yolo-object-detection/` | Jetson `<Jetson IP>` | `/home/seeed/workspace/ros2_bev/modules/m04-ai-vision-and-edge-acceleration/4.1-yolo-object-detection/` |
 | `4.2-multi-object-tracking/` | Jetson | same module root, `4.2-multi-object-tracking/` |
 | `4.3-semantic-segmentation/` | Jetson | same module root, `4.3-semantic-segmentation/` |
-| `4.4-foundationpose/` | Jetson | same module root, `4.4-foundationpose/` |
+| `4.5-native-foundationpose/` | Jetson | same module root, `4.4-foundationpose/` |
 | `4.4-isaac-ros-foundationpose/` | Jetson | same module root, `4.4-isaac-ros-foundationpose/` |
 | `common/ros2/m4_demo_bringup/` | Jetson | same module root, `common/ros2/m4_demo_bringup/` |
 | `common/ros2/bev_interfaces/` | Jetson | `/home/seeed/workspace/ros2_bev/modules/common/ros2/bev_interfaces/` |
@@ -69,8 +66,7 @@ packages into `ros2_ws/src`; it is not the Jetson build entry.
 The earlier broad snapshot came from branch `main` at
 `cd3b6698425eb301fc1b9809d81f5d96f16da2f1`; the latest M4.4 update
 copies selected files from Jetson commit
-`6683e08dca3edb7137494d7f84fccc93f5826623` on 2026-09-23. See
-[`SOURCE_SNAPSHOT.md`](SOURCE_SNAPSHOT.md) for the exact mapping and course-only files.
+`6683e08dca3edb7137494d7f84fccc93f5826623` on 2026-09-23.
 
 Jetson access: `ssh seeed@<Jetson IP>` (the working configuration used an SSH alias
 `j50-robotics`).
@@ -89,8 +85,8 @@ ssh seeed@<Jetson IP> \
   > /tmp/m4-source.tar
 ```
 
-Extract to a temporary directory, map the paths documented in
-`SOURCE_SNAPSHOT.md`, and inspect `git diff` before committing. Never copy this folder
+Extract to a temporary directory, map the paths to the course `code/` layout, and inspect
+`git diff` before committing. Never copy this folder
 back to the Jetson.
 
 ## Excluded from this copy
@@ -265,9 +261,9 @@ and a JSON timing report.
 bash scripts/m4/run_m4_5_native_mvp.sh --frames 8
 ```
 
-Read [`4.4-foundationpose/README.md`](4.4-foundationpose/README.md) for the
+Read [`4.5-native-foundationpose/README.md`](4.5-native-foundationpose/README.md) for the
 runtime layout, output files, ROS 2 topic contract and CAD-mesh path. The
-directory name is historical; this code belongs to Chapter 4.5.
+runtime layout, output files, ROS 2 topic contract and CAD-mesh path.
 
 ## Common — bev_interfaces + m4_demo_bringup
 
@@ -301,5 +297,4 @@ Details: [`common/README.md`](common/README.md).
 | Demo exits at preflight | a required model or binary is missing; the message names the exact path |
 | `m4_2_demo.launch.py` / `m4_3_demo.launch.py` raise `invalid condition expression` | known bug: `IfCondition('$(eval ...)')` is not valid ROS 2 launch syntax. The demos themselves work via `m4_all_demo.launch.py` (what `run_m4_web_hub.sh` uses) |
 
-Per-chapter status — what is verified, what is blocked, and the measurements behind both —
-is in [`../PROJECT_STATUS.md`](../PROJECT_STATUS.md).
+Per-chapter run instructions and prerequisites are documented in each chapter README.

@@ -2,6 +2,22 @@
 
 ## 概述
 
+### 课程代码入口
+
+先从你克隆的课程源码进入 M4 `code/` 目录，并完成一次工作区构建：
+
+```bash
+export M4_CODE_ROOT="$HOME/mobile-robot-full-stack-course/docs/M04-AI-Vision-And-Edge-Acceleration/code"
+cd "$M4_CODE_ROOT"
+./scripts/setup_workspace.sh
+source /opt/ros/humble/setup.bash
+cd ros2_ws
+colcon build --symlink-install --packages-select \
+  bev_interfaces bev_detection bev_tracking bev_segmentation bev_pose m4_demo_bringup
+source install/setup.bash
+cd "$M4_CODE_ROOT"
+```
+
 ![课程概述](./images/XCQhblwpeo0Zu1x2vOecGZLcnyb.gif)
 
 4.1 让模型在每一帧里画出了框，但框上没有名字：同一辆小车在第 10 帧和第 40 帧长得几乎一样，检测器不会告诉你它们是同一个目标。多目标跟踪（Multi-Object Tracking, MOT）补的就是这段身份连续性：它接收逐帧的检测框，输出带稳定 ID 的轨迹。
@@ -50,7 +66,7 @@
 
 ### 实机运行预览
 
-在 Jetson 的 `/home/seeed/workspace/ros2_bev` 执行 `./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_2_demo.sh`，脚本会启动所需的检测与跟踪链路；不必先单独启动 4.1 demo。浏览器模式运行 `./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_web_hub.sh`，打开 `http://<Jetson-IP>:8080/m4/2` 并选择“4.2 跟踪”。确认 `/perception/tracks` 持续输出，再观察画面中的目标 ID。
+在 Jetson 的 `$M4_CODE_ROOT` 执行 `./scripts/m4/run_m4_2_demo.sh`，脚本会启动所需的检测与跟踪链路；不必先单独启动 4.1 demo。浏览器模式运行 `./scripts/m4/run_m4_web_hub.sh`，打开 `http://<Jetson-IP>:8080/m4/2` 并选择“4.2 跟踪”。确认 `/perception/tracks` 持续输出，再观察画面中的目标 ID。
 
 ![Jetson 实机 M4.2 跟踪画面：本地视频输入，车辆检测框带轨迹 ID](./images/m4_runtime_m42_tracking.png)
 
@@ -381,15 +397,15 @@ max_time_lost = int(frame_rate / 30 × lost_track_buffer)
 
 ## 动手：把检测框接成一条轨迹话题
 
-三步。所有命令在 J501 上执行，工作目录是 `/home/seeed/workspace/ros2_bev`。前提是 4.1 的检测链路已经在跑，或者用仓库自带的 `mock_detection_publisher` 造检测流。
+三步。所有命令在 J501 上执行，工作目录是 `$M4_CODE_ROOT`。前提是 4.1 的检测链路已经在跑，或者用仓库自带的 `mock_detection_publisher` 造检测流。
 
 ### 步骤 5：启动跟踪链路
 
 把 4.1 的检测输出接成轨迹。最省事的方式是直接跑一键脚本：
 
 ```bash
-cd /home/seeed/workspace/ros2_bev
-./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_2_demo.sh
+cd "$M4_CODE_ROOT"
+./scripts/m4/run_m4_2_demo.sh
 ```
 
 脚本走课程硬件的 GMSL2 通路，自己拉起 `camera_adapter_node` 把上游图像转成跟踪节点期望的话题，再启动 `tracking_node` 与可视化节点。只想单跑跟踪节点的话，用 `tracking_demo.launch.py`，它的参数默认值已经把输入输出话题配好了。
@@ -420,7 +436,7 @@ ros2 topic echo /perception/tracks --once
 
 ```bash
 # 改参数后重启节点，对比同一段场景
-vim modules/m04-ai-vision-and-edge-acceleration/4.2-multi-object-tracking/ros2/bev_tracking/config/bytetrack.yaml
+vim 4.2-multi-object-tracking/ros2/bev_tracking/config/bytetrack.yaml
 ```
 
 | 现象             | 先看哪个参数                                                            |
@@ -437,7 +453,7 @@ vim modules/m04-ai-vision-and-edge-acceleration/4.2-multi-object-tracking/ros2/b
 
 ### 交付清单
 
-1. 一条跑起来的跟踪链路：`./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_2_demo.sh` 正常启动，`/perception/tracks` 持续发布。
+1. 一条跑起来的跟踪链路：`./scripts/m4/run_m4_2_demo.sh` 正常启动，`/perception/tracks` 持续发布。
 
 2. 轨迹契约的验证记录：`ros2 topic info -v` 的类型与 QoS、`ros2 topic echo` 里带上 `id` 的检测框摘录。
 

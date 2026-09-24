@@ -2,6 +2,19 @@
 
 ## 本章目标
 
+### 课程代码入口
+
+先从你克隆的课程源码进入 M4 `code/` 目录。Isaac ROS 容器和模型资产另行配置，课程脚本本身从该目录运行：
+
+```bash
+export M4_CODE_ROOT="$HOME/mobile-robot-full-stack-course/docs/M04-AI-Vision-And-Edge-Acceleration/code"
+export ISAAC_ROS_CONTAINER=m4-isaacros-foundationpose
+export ISAAC_ROS_HOST_ASSET_ROOT="$HOME/isaac_ros_assets"
+export HOST_MODEL_ROOT="$ISAAC_ROS_HOST_ASSET_ROOT/models/foundationpose"
+cd "$M4_CODE_ROOT"
+./scripts/setup_workspace.sh
+```
+
 2D 检测回答“物体在图像哪里”，语义分割回答“像素属于哪一类”；机器人抓取、避障和空间对齐还需要知道物体在三维空间中的位置和朝向。本章用 NVIDIA Isaac ROS 3.2 的 FoundationPose 说明这条链路：
 
 ```text
@@ -195,10 +208,10 @@ Isaac ROS 3.2 官方 quickstart 下载 NGC Mustard 资产、`refine_model.onnx` 
 
 ### 5.1 官方单帧验收
 
-在 Jetson 的 `/home/seeed/workspace/ros2_bev` 执行：
+在 Jetson 的 `$M4_CODE_ROOT` 执行：
 
 ```bash
-M44_MODE=official ./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_4_isaacros_quickstart.sh
+M44_MODE=official ./scripts/m4/run_m4_4_isaacros_quickstart.sh
 ```
 
 运行器会检查容器、模型、engine 和 Mustard rosbag；若官方 252 engine 不存在，会尝试用主机 TensorRT 构建。随后启动 Isaac ROS 图，循环播放只包含一帧 RGB、深度和 CameraInfo 的 bag，并等待 `/output` 上的有效 `Detection3DArray`。
@@ -208,7 +221,7 @@ M44_MODE=official ./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m
 只有在需要比较资源受限配置时运行：
 
 ```bash
-M44_MODE=adapted ./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_4_isaacros_quickstart.sh
+M44_MODE=adapted ./scripts/m4/run_m4_4_isaacros_quickstart.sh
 ```
 
 该模式的 engine、配置和 launch 必须成套使用。它是单独的适配演示，不改变官方 252 配置的验收结论。
@@ -218,7 +231,7 @@ M44_MODE=adapted ./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4
 在 Jetson 图形桌面的终端运行：
 
 ```bash
-M44_MODE=official ./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_4_isaacros_visual.sh
+M44_MODE=official ./scripts/m4/run_m4_4_isaacros_visual.sh
 ```
 
 脚本在 `valid_pose` 后继续保持图和 rosbag，RViz 左侧 Camera 面板显示 Mustard RGB 图像，中心 3D 视图显示检测框。此画面来自单帧 bag 循环，不是实时相机。

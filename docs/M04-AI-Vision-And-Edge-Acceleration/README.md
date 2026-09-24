@@ -1,5 +1,21 @@
 # M04 AI Vision and Edge Acceleration
 
+## 课程代码入口
+
+以下命令适用于课程仓库的克隆目录。把 `M4_CODE_ROOT` 改成你本机的实际路径，后续各章命令都从该目录运行：
+
+```bash
+export M4_CODE_ROOT="$HOME/mobile-robot-full-stack-course/docs/M04-AI-Vision-And-Edge-Acceleration/code"
+cd "$M4_CODE_ROOT"
+./scripts/setup_workspace.sh
+source /opt/ros/humble/setup.bash
+cd ros2_ws
+colcon build --symlink-install --packages-select \
+  bev_interfaces bev_detection bev_tracking bev_segmentation bev_pose m4_demo_bringup
+source install/setup.bash
+cd "$M4_CODE_ROOT"
+```
+
 M4 turns camera images into perception results a robot can act on. It follows M2, which
 covers camera capture, calibration and BEV stitching. Here the same images pass through
 detection, tracking, semantic segmentation and 6D object pose, with TensorRT and Isaac ROS

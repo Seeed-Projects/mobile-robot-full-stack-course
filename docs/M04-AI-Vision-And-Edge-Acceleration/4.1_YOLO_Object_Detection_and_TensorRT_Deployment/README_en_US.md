@@ -2,6 +2,22 @@
 
 ## Overview
 
+### Course code entry point
+
+Run the following commands from your cloned course source. Change `M4_CODE_ROOT` once to match your checkout:
+
+```bash
+export M4_CODE_ROOT="$HOME/mobile-robot-full-stack-course/docs/M04-AI-Vision-And-Edge-Acceleration/code"
+cd "$M4_CODE_ROOT"
+./scripts/setup_workspace.sh
+source /opt/ros/humble/setup.bash
+cd ros2_ws
+colcon build --symlink-install --packages-select \
+  bev_interfaces bev_detection bev_tracking bev_segmentation bev_pose m4_demo_bringup
+source install/setup.bash
+cd "$M4_CODE_ROOT"
+```
+
 ![Course Overview](./images/ZDIIbrRovoXY93x5OKAczK2NnNd.png)
 
 A camera can hand you a whole image of pixels, yet it does not tell you what is in the frame or where it is. Object detection answers exactly these two questions: what class each target belongs to, and where it sits in pixel coordinates. By the end of 2.4, you had a bird's-eye view that refreshes in real time; that image answers "how the ground runs", but it cannot answer "what is on the road". M4 starts from detection to add this layer, and this chapter takes the widely used YOLO object detector as its entry point.
@@ -46,7 +62,7 @@ A camera can hand you a whole image of pixels, yet it does not tell you what is 
 
 ### Runtime Preview
 
-On the Jetson, run `./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_1_demo.sh` from `/home/seeed/workspace/ros2_bev` to run detection standalone. To switch modules in a browser, run `./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_web_hub.sh`, open `http://<Jetson-IP>:8080/m4/1`, and select “4.1 Detection.” Both entries publish `/perception/detections`, so do not start two camera pipelines at the same time.
+On the Jetson, run `./scripts/m4/run_m4_1_demo.sh` from `$M4_CODE_ROOT` to run detection standalone. To switch modules in a browser, run `./scripts/m4/run_m4_web_hub.sh`, open `http://<Jetson-IP>:8080/m4/1`, and select “4.1 Detection.” Both entries publish `/perception/detections`, so do not start two camera pipelines at the same time.
 
 ![M4.1 running on the Jetson's physical indoor camera, with detection labels and scores](./images/m4_runtime_m41_detection.png)
 
@@ -217,18 +233,18 @@ With the full picture in view, the next step is to get the pipeline running and 
 
 ## Hands-On: Run the Detection Model into a ROS 2 Topic
 
-Four steps, each with a verifiable output. All commands are executed on the J501, and the working directory is `/home/seeed/workspace/ros2_bev`. Before running, first confirm that the power mode is MAXN, otherwise the numbers measured later are not comparable.
+Four steps, each with a verifiable output. All commands are executed on the J501, and the working directory is `$M4_CODE_ROOT`. Before running, first confirm that the power mode is MAXN, otherwise the numbers measured later are not comparable.
 
 ### Step 1: Confirm the Environment, Model Artifacts, and Nodes
 
 First confirm that the model, labels, and node are all ready, so that you do not later mistake an environment problem for an operational error.
 
 ```bash
-cd /home/seeed/workspace/ros2_bev
+cd "$M4_CODE_ROOT"
 
 # Model artifacts
-ls -l modules/m04-ai-vision-and-edge-acceleration/models/m4/detection/engines/yolo11n_fp16.engine
-ls -l modules/m04-ai-vision-and-edge-acceleration/models/m4/detection/labels/coco.names
+ls -l models/m4/detection/engines/yolo11n_fp16.engine
+ls -l models/m4/detection/labels/coco.names
 
 # Installed executable
 ls -l install/bev_detection/lib/bev_detection/yolo_trt_node
@@ -237,15 +253,15 @@ ls -l install/bev_detection/lib/bev_detection/yolo_trt_node
 python3 -c "import tensorrt as trt; print('trt', trt.__version__)"   # 10.3.0
 ```
 
-The engine, labels, and executable are all indispensable. The Jetson config at `modules/m04-ai-vision-and-edge-acceleration/4.1-yolo-object-detection/ros2/bev_detection/config/yolo.yaml` also declares `expected_trt_version: "10.3"`; if the version does not match, the engine must be rebuilt on the target device. The course snapshot under `code/ros2_ws` is a different packaging layout and cannot be applied directly to the Jetson runtime tree.
+The engine, labels, and executable are all indispensable. The config at `4.1-yolo-object-detection/ros2/bev_detection/config/yolo.yaml` also declares `expected_trt_version: "10.3"`; if the version does not match, rebuild the engine on the target device.
 
 ### Step 2: Launch the Existing Demo
 
 This step actually gets the detection pipeline running.
 
 ```bash
-cd /home/seeed/workspace/ros2_bev
-./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_1_demo.sh
+cd "$M4_CODE_ROOT"
+./scripts/m4/run_m4_1_demo.sh
 ```
 
 The script uses `CAMERA_SOURCE=csi` by default, reads `/dev/video0`, and publishes 1920×1080@30 images by default. It then feeds the images to `yolo_trt_node` and publishes the debug image on `/perception/demo/m4_1`.
@@ -271,7 +287,7 @@ Check them one by one:
 
 - The **timestamp and frame_id** match the source image rather than the current time. Put the `header.stamp` of `/perception/cameras/front/image` and `/perception/detections` side by side; the two should be identical;
 
-- **Empty frames publish messages too**: point the camera at a scene with no detectable targets and confirm that `/perception/detections` still publishes continuously, with `detections` an empty array. Unplugging the camera does not test this design, because its premise is "an input frame that completed inference". For a strict check, use `./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/test_empty_frame_contract.sh`;
+- **Empty frames publish messages too**: point the camera at a scene with no detectable targets and confirm that `/perception/detections` still publishes continuously, with `detections` an empty array. Unplugging the camera does not test this design, because its premise is "an input frame that completed inference". For a strict check, use `./scripts/m4/test_empty_frame_contract.sh`;
 
 - **The `id` field is empty**: `ros2 topic echo /perception/detections --field detections[0].id` should have no valid value. Filling it in is 4.2's job.
 
@@ -280,8 +296,8 @@ Check them one by one:
 What you finally need is a measurement that records the complete conditions, not a lone frame rate.
 
 ```bash
-cd /home/seeed/workspace/ros2_bev
-./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_1_benchmark.sh 30
+cd "$M4_CODE_ROOT"
+./scripts/m4/run_m4_1_benchmark.sh 30
 ```
 
 The script measures this pipeline's frame rate and latency with real camera input, and the results land in `output/m4/4.1`.

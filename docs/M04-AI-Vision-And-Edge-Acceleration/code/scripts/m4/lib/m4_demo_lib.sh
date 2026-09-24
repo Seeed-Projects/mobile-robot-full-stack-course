@@ -208,7 +208,7 @@ m4_setup_env() {
     set -u
 
     # Same LD_LIBRARY_PATH as the upstream benchmark / visualize scripts.
-    export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$M4_WS_ROOT/install/bev_detection/lib:/home/seeed/src/opencv-4.14.0-cuda-build/lib:/usr/local/cuda-12.6/lib64:/usr/lib/aarch64-linux-gnu"
+    export LD_LIBRARY_PATH="$M4_WS_ROOT/install/bev_detection/lib:${OPENCV_CUDA_LIB:-}/usr/local/cuda/lib64:/usr/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH"
     m4_ok "LD_LIBRARY_PATH configured"
 
     # Honour DISPLAY if the user has set it; never force a default.

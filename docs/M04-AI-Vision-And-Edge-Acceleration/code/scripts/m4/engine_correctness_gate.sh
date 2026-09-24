@@ -26,11 +26,7 @@ mkdir -p "$TEST_IMAGE_DIR" "$LOG_DIR"
 PIXEL_AGREEMENT_THRESHOLD="0.95"
 MIOU_THRESHOLD="0.85"
 
-if [[ -x "/home/seeed/miniconda3/envs/py310/bin/python" ]]; then
-    PYTHON="/home/seeed/miniconda3/envs/py310/bin/python"
-else
-    PYTHON="python3"
-fi
+PYTHON="${PYTHON:-python3}"
 
 # ---- preflight ----
 for f in "$ONNX" "$ENGINE"; do

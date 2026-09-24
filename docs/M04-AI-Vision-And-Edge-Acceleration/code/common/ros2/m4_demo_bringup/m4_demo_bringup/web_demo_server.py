@@ -155,6 +155,15 @@ HUB_TITLES = {
     "m4_1": "4.1 检测",
     "m4_2": "4.2 跟踪",
     "m4_3": "4.3 分割",
+    "m4_4": "4.4 位姿",
+}
+
+# Per-module startup grace (seconds) before topic_status flips a
+# never-seen topic from "starting" to "offline". M4.4 launches the Isaac ROS
+# FoundationPose container pipeline: engines load in ~30-60 s, and a first
+# run that has to build the score engine takes ~213 s.
+_MODULE_START_GRACE = {
+    "m4_4": 240.0,
 }
 
 HUB_TITLE = "M4 感知演示 — 统一预览"
@@ -206,9 +215,10 @@ class HealthState:
         "_topics",
         "_topic_last_seen",
         "_started_at",
+        "_slow_start",
     )
 
-    def __init__(self, topic_keys=()) -> None:
+    def __init__(self, topic_keys=(), slow_start: Optional[Dict[str, float]] = None) -> None:
         self.server_ready: bool = False
         self.ros_frame_ready: bool = False
         self.peer_ready: bool = False
@@ -216,6 +226,7 @@ class HealthState:
         self._topics: Dict[str, bool] = {k: False for k in topic_keys}
         self._topic_last_seen: Dict[str, float] = {}
         self._started_at = time.monotonic()
+        self._slow_start: Dict[str, float] = dict(slow_start or {})
 
     def set_server_ready(self) -> None:
         self.server_ready = True
@@ -245,14 +256,15 @@ class HealthState:
     def topic_status(self, key: str) -> dict:
         """Live module state, separate from the sticky health evidence."""
         now = time.monotonic()
+        grace = self._slow_start.get(key, 15.0)
         seen = self._topic_last_seen.get(key)
         if seen is None:
             elapsed = now - self._started_at
-            if elapsed <= 15.0:
+            if elapsed <= grace:
                 return {"status": "starting", "error": None, "last_frame_age_ms": None}
             return {
                 "status": "offline",
-                "error": f"no frames received from {key} within 15 seconds",
+                "error": f"no frames received from {key} within {grace:.0f} seconds",
                 "last_frame_age_ms": None,
             }
         age_ms = max(0.0, (now - seen) * 1000.0)
@@ -325,6 +337,9 @@ class RosImageSubscriber(Node):
         self._health = health
         self._executor: Optional[SingleThreadedExecutor] = None
         self._thread: Optional[threading.Thread] = None
+        self._executor_lock = threading.Lock()
+        self._subscription_renew_lock = threading.Lock()
+        self._executor_stopping = False
         self._subs = []
         # Per-module throughput telemetry. Written on the ROS executor thread
         # and read on the aiohttp thread; every update is a single dict-slot
@@ -338,9 +353,18 @@ class RosImageSubscriber(Node):
         self._input_last_seen: Dict[str, float] = {}
         self._input_publisher = None
         self._input_subscriptions = []
+        self._video_subscription = None
+        self._camera_topic = "/perception/inputs/camera"
+        self._video_topic = "/perception/inputs/video"
+        self._output_topic = "/perception/cameras/front/image"
+        self._loop_topic = "/perception/inputs/video_loop"
+        self._input_received = {"camera": 0, "video": 0}
+        self._input_forwarded = {"camera": 0, "video": 0}
         self._video_loop_count = 0
         self._segmentation_stats: Optional[dict] = None
         self._segmentation_stats_seen = 0.0
+        self._pose_stats: Optional[dict] = None
+        self._pose_stats_seen = 0.0
         self._tracker_reset_client = self.create_client(
             Trigger, "/tracking_node/reset_tracker")
 
@@ -372,6 +396,26 @@ class RosImageSubscriber(Node):
             )
             _log.info("subscribed %s -> %s (depth=1 best_effort)", key, topic)
 
+    def attach_pose_stats(self, topic: str = "/perception/demo/m4_4/stats") -> None:
+        """Subscribe to the M4.4 pose telemetry (JSON String).
+
+        Attached unconditionally in hub mode — also without
+        --managed-modules — so the regression server can assert the
+        /api/visualization/m4_4 endpoint with a synthetic publisher.
+        """
+        self._subs.append(
+            self.create_subscription(String, topic, self._on_pose_stats, self._qos()))
+        _log.info("subscribed to pose stats %s", topic)
+
+    def _on_pose_stats(self, msg: String) -> None:
+        try:
+            payload = json.loads(msg.data)
+            if isinstance(payload, dict):
+                self._pose_stats = payload
+                self._pose_stats_seen = time.monotonic()
+        except Exception:
+            _log.warning("ignored malformed m4_4 stats message")
+
     def attach_input_mux(
         self,
         camera_topic: str = "/perception/inputs/camera",
@@ -380,12 +424,18 @@ class RosImageSubscriber(Node):
         loop_topic: str = "/perception/inputs/video_loop",
     ) -> None:
         """Forward exactly one selected source to the stable perception topic."""
+        self._camera_topic = camera_topic
+        self._video_topic = video_topic
+        self._output_topic = output_topic
+        self._loop_topic = loop_topic
         qos = self._qos()
         self._input_publisher = self.create_publisher(Image, output_topic, qos)
         for source, topic in (("camera", camera_topic), ("video", video_topic)):
-            self._input_subscriptions.append(
-                self.create_subscription(
-                    Image, topic, partial(self._on_input, source=source), qos))
+            subscription = self.create_subscription(
+                Image, topic, partial(self._on_input, source=source), qos)
+            self._input_subscriptions.append(subscription)
+            if source == "video":
+                self._video_subscription = subscription
         self._input_subscriptions.append(
             self.create_subscription(UInt64, loop_topic, self._on_video_loop, qos))
         self._input_subscriptions.append(
@@ -398,9 +448,64 @@ class RosImageSubscriber(Node):
     def _on_input(self, msg: Image, *, source: str) -> None:
         with self._input_state_lock:
             self._input_last_seen[source] = time.monotonic()
+            self._input_received[source] += 1
             selected = source == self._input_source
         if selected and self._input_publisher is not None:
             self._input_publisher.publish(msg)
+            with self._input_state_lock:
+                self._input_forwarded[source] += 1
+
+    def renew_video_subscription(self, timeout: float = 3.0) -> None:
+        """Recreate the video reader on the ROS executor thread, not aiohttp's thread.
+
+        A fresh publisher can be visible to another ROS subscriber while the
+        Hub's long-lived endpoint receives nothing after repeated uploads.
+        Recreating this endpoint before each new publisher avoids retaining a
+        stale DDS match without disrupting the camera or WebRTC subscriptions.
+        """
+        with self._subscription_renew_lock:
+            with self._executor_lock:
+                executor = self._executor
+                stopping = self._executor_stopping
+                thread = getattr(self, "_thread", None)
+            if executor is None:
+                return  # Unit tests and the pre-start initialization path.
+            if stopping or thread is None or not thread.is_alive():
+                raise RuntimeError("ROS executor is not running; cannot renew video subscription")
+
+            done = threading.Event()
+            failure = []
+
+            def replace() -> None:
+                fresh = None
+                try:
+                    old = self._video_subscription
+                    fresh = self.create_subscription(
+                        Image, self._video_topic,
+                        partial(self._on_input, source="video"), self._qos())
+                    if old is not None:
+                        self.destroy_subscription(old)
+                        if old in self._input_subscriptions:
+                            self._input_subscriptions.remove(old)
+                    self._video_subscription = fresh
+                    self._input_subscriptions.append(fresh)
+                    _log.info("renewed Hub video subscription before publisher start")
+                except Exception as exc:
+                    if fresh is not None and fresh is not self._video_subscription:
+                        try:
+                            self.destroy_subscription(fresh)
+                        except Exception:
+                            pass
+                    failure.append(exc)
+                finally:
+                    done.set()
+
+            task = executor.create_task(replace)
+            if not done.wait(timeout):
+                task.cancel()
+                raise RuntimeError("Hub video subscription renewal timed out")
+            if failure:
+                raise RuntimeError(f"Hub video subscription renewal failed: {failure[0]}")
 
     def _on_video_loop(self, msg: UInt64) -> None:
         with self._input_state_lock:
@@ -424,6 +529,8 @@ class RosImageSubscriber(Node):
             raise ValueError("input source must be camera or video")
         with self._input_state_lock:
             self._input_last_seen.pop(source, None)
+            self._input_received[source] = 0
+            self._input_forwarded[source] = 0
             if source == "video":
                 self._video_loop_count = 0
 
@@ -441,6 +548,8 @@ class RosImageSubscriber(Node):
             source = self._input_source
             last_seen = dict(self._input_last_seen)
             loop_count = self._video_loop_count
+            received = dict(self._input_received)
+            forwarded = dict(self._input_forwarded)
         return {
             "source": source,
             "last_frame_age_ms": {
@@ -448,6 +557,9 @@ class RosImageSubscriber(Node):
                 for key, seen in last_seen.items()
             },
             "loop_count": loop_count,
+            "video_topic": self._video_topic,
+            "received": received,
+            "forwarded": forwarded,
         }
 
     def segmentation_stats(self) -> Optional[dict]:
@@ -456,6 +568,14 @@ class RosImageSubscriber(Node):
         payload = dict(self._segmentation_stats)
         payload["age_ms"] = round(
             max(0.0, (time.monotonic() - self._segmentation_stats_seen) * 1000.0), 1)
+        return payload
+
+    def pose_stats(self) -> Optional[dict]:
+        if self._pose_stats is None:
+            return None
+        payload = dict(self._pose_stats)
+        payload["age_ms"] = round(
+            max(0.0, (time.monotonic() - self._pose_stats_seen) * 1000.0), 1)
         return payload
 
     def reset_tracker(self) -> bool:
@@ -523,30 +643,43 @@ class RosImageSubscriber(Node):
         self._age_ms.clear()
 
     def start(self) -> None:
-        if self._executor is not None:
-            return
-        self._executor = SingleThreadedExecutor()
-        self._executor.add_node(self)
-        self._thread = threading.Thread(
-            target=self._executor.spin,
-            name="m4_web_ros_thread",
-            daemon=True,
-        )
-        self._thread.start()
+        with self._subscription_renew_lock:
+            with self._executor_lock:
+                if self._executor is not None:
+                    return
+                self._executor_stopping = False
+                executor = SingleThreadedExecutor()
+                executor.add_node(self)
+                thread = threading.Thread(
+                    target=executor.spin,
+                    name="m4_web_ros_thread",
+                    daemon=True,
+                )
+                self._executor = executor
+                self._thread = thread
+            thread.start()
         _log.info("ROS executor thread started")
 
     def stop(self) -> None:
-        try:
-            if self._executor is not None:
-                self._executor.shutdown()
-        except Exception:
-            pass
-        if self._thread is not None:
-            self._thread.join(timeout=2.0)
-        try:
-            self.destroy_node()
-        except Exception:
-            pass
+        with self._subscription_renew_lock:
+            with self._executor_lock:
+                executor = self._executor
+                thread = self._thread
+                self._executor_stopping = True
+            try:
+                if executor is not None:
+                    executor.shutdown(timeout_sec=2.0)
+            except Exception:
+                pass
+            if thread is not None:
+                thread.join(timeout=2.0)
+            try:
+                self.destroy_node()
+            except Exception:
+                pass
+            with self._executor_lock:
+                self._executor = None
+                self._thread = None
 
 
 # ---- Runtime controls ----------------------------------------------------
@@ -727,6 +860,38 @@ class ModuleRuntimeManager:
         "m4_3": ("false", "false", "true"),
     }
 
+    # Docker teardown (docker exec client dies -> quickstart deferred TERM
+    # trap -> container-side cleanup) needs longer than the 5 s default; a
+    # premature SIGKILL would leak the container launch + looping bag.
+    _STOP_GRACE = {
+        "m4_4": 20.0,
+    }
+
+    # M4.4 runs through the Isaac ROS FoundationPose container via a wrapper
+    # script (scripts/m4/m4_4_hub_module.sh) instead of a host ros2 launch.
+    _HUB_MODULE_SCRIPT_ENV = "M4_4_HUB_MODULE_SCRIPT"
+
+    def _module_command(self, key: str) -> Optional[list]:
+        """Command line that starts a module, or None if it cannot run here."""
+        if key in self._FLAGS:
+            detection, tracking, segmentation = self._FLAGS[key]
+            return [
+                "ros2", "launch", "m4_demo_bringup", "m4_all_demo.launch.py",
+                "camera_topic:=/perception/cameras/front/image",
+                "detections_topic:=/perception/detections",
+                "tracks_topic:=/perception/tracks",
+                f"enable_detection:={detection}",
+                f"enable_tracking:={tracking}",
+                f"enable_segmentation:={segmentation}",
+                f"segmentation_max_fps:={self._segmentation_fps}",
+                f"segmentation_view_mode:={self._segmentation_view}",
+            ]
+        if key == "m4_4":
+            script = os.environ.get(self._HUB_MODULE_SCRIPT_ENV, "")
+            if script and os.path.isfile(script):
+                return ["bash", script]
+        return None
+
     def __init__(
         self, health: HealthState, available: Dict[str, str], segmentation_fps: float,
         reset_telemetry: Optional[Callable[[], None]] = None,
@@ -761,6 +926,7 @@ class ModuleRuntimeManager:
         proc = self._proc
         if proc is None:
             return
+        grace = self._STOP_GRACE.get(self._active, 5.0)
         if proc.poll() is None:
             try:
                 # This server is itself started as a detached background job.
@@ -770,9 +936,11 @@ class ModuleRuntimeManager:
             except ProcessLookupError:
                 pass
             try:
-                await asyncio.wait_for(asyncio.to_thread(proc.wait), timeout=5.0)
+                await asyncio.wait_for(asyncio.to_thread(proc.wait), timeout=grace)
             except asyncio.TimeoutError:
-                _log.warning("module process group %s did not stop; sending SIGKILL", proc.pid)
+                _log.warning(
+                    "module process group %s did not stop within %.0fs; sending SIGKILL",
+                    proc.pid, grace)
                 try:
                     os.killpg(proc.pid, signal.SIGKILL)
                 except ProcessLookupError:
@@ -790,7 +958,8 @@ class ModuleRuntimeManager:
 
     async def activate(self, key: str) -> tuple[bool, str]:
         async with self._lock:
-            if key not in self._available or key not in self._FLAGS:
+            command = self._module_command(key) if key in self._available else None
+            if command is None:
                 return False, f"module {key!r} is unavailable"
             if self._active == key and self._proc is not None and self._proc.poll() is None:
                 return True, ""
@@ -799,18 +968,6 @@ class ModuleRuntimeManager:
             self._health.reset_topics()
             if self._reset_telemetry is not None:
                 self._reset_telemetry()
-            detection, tracking, segmentation = self._FLAGS[key]
-            command = [
-                "ros2", "launch", "m4_demo_bringup", "m4_all_demo.launch.py",
-                "camera_topic:=/perception/cameras/front/image",
-                "detections_topic:=/perception/detections",
-                "tracks_topic:=/perception/tracks",
-                f"enable_detection:={detection}",
-                f"enable_tracking:={tracking}",
-                f"enable_segmentation:={segmentation}",
-                f"segmentation_max_fps:={self._segmentation_fps}",
-                f"segmentation_view_mode:={self._segmentation_view}",
-            ]
             log_path = os.environ.get("M4_MODULE_RUNTIME_LOG", "/tmp/m4_module_runtime.log")
             try:
                 self._log_file = open(log_path, "a", encoding="utf-8")
@@ -916,6 +1073,7 @@ class VideoInputManager:
         if self._proc is not None and self._proc.poll() is None:
             return
         await self._stop_video_locked()
+        await asyncio.to_thread(self._ros_node.renew_video_subscription)
         self._ros_node.begin_input_session("video")
         log_path = os.environ.get("M4_VIDEO_INPUT_LOG", "/tmp/m4_video_input.log")
         self._log_file = open(log_path, "a", encoding="utf-8")
@@ -948,7 +1106,9 @@ class VideoInputManager:
             "-p", "target_width:=1920", "-p", "target_height:=1080",
             "-p", "max_fps:=30.0",
         ]
-        ws_root = os.environ.get("M4_WS_ROOT", "/home/seeed/workspace/ros2_bev")
+        ws_root = os.environ.get("M4_WS_ROOT", "")
+        if not ws_root:
+            raise RuntimeError("M4_WS_ROOT must point to the built ROS workspace")
         entry = os.path.join(
             ws_root, "install", "m4_demo_bringup", "lib", "m4_demo_bringup",
             "video_file_publisher")
@@ -1025,7 +1185,19 @@ class VideoInputManager:
                 if age is None:
                     status = "starting"
                     if time.monotonic() - self._started_at > 20.0:
-                        error = "video decoder produced no frames; reverted to camera"
+                        received = mux["received"].get("video", 0)
+                        forwarded = mux["forwarded"].get("video", 0)
+                        if self._proc.poll() is not None:
+                            error = "video publisher exited before producing frames; reverted to camera"
+                        elif received == 0:
+                            error = "Hub received no frames from the video publisher; reverted to camera"
+                        elif forwarded == 0:
+                            error = "Hub received video frames but forwarded none; reverted to camera"
+                        else:
+                            error = "video input produced no usable frames; reverted to camera"
+                        _log.error(
+                            "video first-frame timeout: publisher_pid=%s received=%s forwarded=%s topic=%s",
+                            self._proc.pid, mux["received"], mux["forwarded"], mux["video_topic"])
                         await self._fallback_to_camera_locked(error)
                         status = "error"
                 elif age > 3000.0:
@@ -1459,6 +1631,12 @@ def build_app(
             "results": stats,
         })
 
+    async def pose_visualization_state(_req: web.Request) -> web.Response:
+        stats = ros_node.pose_stats() if ros_node is not None else None
+        if module_manager is not None and not module_manager.is_active("m4_4"):
+            stats = None
+        return web.json_response({"results": stats})
+
     async def patch_visualization(req: web.Request) -> web.Response:
         if controls is None or module_manager is None:
             return web.json_response({"ok": False, "error": "visualization control unavailable"}, status=503)
@@ -1607,6 +1785,7 @@ def build_app(
     app.router.add_delete("/api/input/video", delete_video)
     app.router.add_get("/api/visualization/m4_3", visualization_state)
     app.router.add_patch("/api/visualization/m4_3", patch_visualization)
+    app.router.add_get("/api/visualization/m4_4", pose_visualization_state)
     app.router.add_get("/signaling", signaling)
     # Assets are referenced ABSOLUTELY (/static/...) from index.html.
     #
@@ -1687,7 +1866,7 @@ async def main_async(args: argparse.Namespace) -> int:
     if args.demo == "hub":
         topics = parse_topics(args.topics)
         unavailable_modules = parse_unavailable_modules(args.unavailable_modules)
-        health = HealthState(topic_keys=topics.keys())
+        health = HealthState(topic_keys=topics.keys(), slow_start=_MODULE_START_GRACE)
         # One latest-frame slot per module; the switchable proxy is what the
         # video backend reads, so a module switch never restarts the backend.
         slots = {key: LockFreeLatestFrameSlot(max_age_ms=1000) for key in topics}
@@ -1785,6 +1964,9 @@ async def main_async(args: argparse.Namespace) -> int:
     ros_node = RosImageSubscriber(slot_for_backend, health, node_name=node_name)
     if args.demo == "hub":
         ros_node.attach_many(topics)
+        # Pose telemetry is hub-mode-unconditional (not tied to
+        # --managed-modules) so the regression server can drive it too.
+        ros_node.attach_pose_stats()
         if args.managed_modules:
             ros_node.attach_input_mux()
     else:
@@ -1798,9 +1980,9 @@ async def main_async(args: argparse.Namespace) -> int:
         input_manager = VideoInputManager(
             ros_node,
             os.environ.get(
-                "M4_VIDEO_STORAGE_DIR", "/home/seeed/.local/share/m4-perception/input"),
+                "M4_VIDEO_STORAGE_DIR", str(Path.home() / ".local/share/m4-perception/input")),
             os.environ.get(
-                "M4_VIDEO_STATE_PATH", "/home/seeed/.config/m4-perception/video_input.json"),
+                "M4_VIDEO_STATE_PATH", str(Path.home() / ".config/m4-perception/video_input.json")),
         )
         await input_manager.initialize()
 

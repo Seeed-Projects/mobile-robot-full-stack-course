@@ -25,12 +25,8 @@ CHECKPOINT="nvidia/segformer-b0-finetuned-cityscapes-512-1024"
 # An explicit HF_ENDPOINT from the caller always wins.
 export HF_ENDPOINT="${HF_ENDPOINT:-https://hf-mirror.com}"
 
-# Use conda py310 env (export-only) if available; otherwise system python3.
-if [[ -x "/home/seeed/miniconda3/envs/py310/bin/python" ]]; then
-    PYTHON="/home/seeed/miniconda3/envs/py310/bin/python"
-else
-    PYTHON="python3"
-fi
+# Use the caller-selected export environment, or system python3.
+PYTHON="${PYTHON:-python3}"
 
 echo "[export_segformer] python:    $($PYTHON --version 2>&1)"
 echo "[export_segformer] endpoint:  $HF_ENDPOINT"

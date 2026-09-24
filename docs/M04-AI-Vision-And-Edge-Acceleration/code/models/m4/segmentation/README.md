@@ -28,7 +28,7 @@ redistribution. Reproduce them on the target rather than copying them.
 ## How to produce
 
 ```bash
-cd modules/m04-ai-vision-and-edge-acceleration
+cd "$M4_CODE_ROOT"
 export HF_ENDPOINT=https://hf-mirror.com   # huggingface.co is unreachable from this Jetson
 ./scripts/m4/export_segformer.sh           # checkpoint -> ONNX
 ./scripts/m4/build_segformer_engine.sh     # ONNX -> FP16 engine

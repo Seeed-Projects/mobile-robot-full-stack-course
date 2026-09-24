@@ -2,6 +2,18 @@
 
 ## Chapter Goals
 
+### Course code entry point
+
+Run this chapter from your cloned course source; point the external FoundationPose checkout to your own path:
+
+```bash
+export M4_CODE_ROOT="$HOME/mobile-robot-full-stack-course/docs/M04-AI-Vision-And-Edge-Acceleration/code"
+export FOUNDATIONPOSE_DIR="$HOME/third_party/FoundationPose"
+export PYTHON=python3
+cd "$M4_CODE_ROOT"
+./scripts/setup_workspace.sh
+```
+
 This chapter uses NVlabs/PyTorch FoundationPose directly to convert RGB-D images, camera intrinsics, an instance mask, and the CAD mesh of a known object into its 6D pose in the camera frame. The course retains the `bev_pose` ROS 2 wrapper and also provides an easier-to-reproduce standalone MVP so that you can understand the algorithm before connecting ROS topics.
 
 After completing this chapter, you should be able to:
@@ -104,7 +116,7 @@ a1b694b83e633c2cb6115b9063d940a687759392
 The MVP uses the following layout:
 
 ```text
-/home/seeed/workspace/third_party/FoundationPose/
+$FOUNDATIONPOSE_DIR/
 ├── demo_data/mustard0/
 ├── weights/2023-10-28-18-33-37/model_best.pth
 ├── weights/2024-01-11-20-02-45/model_best.pth
@@ -118,7 +130,7 @@ The refiner and scorer load their respective `config.yml` and `model_best.pth` f
 Course scripts are in `code/scripts/m4/`. Run the following from the M4 module root on the Jetson:
 
 ```bash
-cd /home/seeed/workspace/ros2_bev/modules/m04-ai-vision-and-edge-acceleration
+cd "$M4_CODE_ROOT"
 
 # Compatibility entry point; forwards to the MVP runner
 bash scripts/m4/phase0_foundationpose_verify.sh --frames 8

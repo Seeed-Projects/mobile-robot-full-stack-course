@@ -532,6 +532,52 @@ h3 {
   border-left: 1px solid var(--border);
 }
 
+.pose-results {
+  min-width: 0;
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 16px;
+}
+
+.pose-stat {
+  min-width: 0;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding-left: 16px;
+  border-left: 1px solid var(--border);
+}
+
+.pose-stat:first-child { border-left: 0; padding-left: 0; }
+
+.pose-stat span {
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.pose-stat strong {
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pose-input-note {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 12px 24px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 12px;
+}
+
+.pose-input-note .eyebrow { white-space: nowrap; }
+
 .state-label {
   display: inline-block;
   margin: 2px 0 0 8px;

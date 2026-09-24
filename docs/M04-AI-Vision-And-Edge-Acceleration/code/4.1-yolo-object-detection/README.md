@@ -1,7 +1,6 @@
 # 4.1 YOLO Object Detection (TensorRT)
 
-> All relative paths below are relative to the module root,
-> `modules/m04-ai-vision-and-edge-acceleration/`.
+> All relative paths below are relative to the course M4 `code/` directory.
 
 Training -> ONNX -> TensorRT engine -> ROS 2 detection topic, at ~30 Hz on Orin.
 

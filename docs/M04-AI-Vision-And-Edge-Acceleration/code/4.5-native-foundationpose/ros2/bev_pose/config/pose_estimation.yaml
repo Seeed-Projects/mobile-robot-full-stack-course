@@ -18,7 +18,8 @@
 
 foundationpose_node:
   ros__parameters:
-    model_dir: "/home/seeed/FoundationPose/weights"
+    # The launch file supplies FOUNDATIONPOSE_DIR/weights.
+    model_dir: ""
     refiner_iterations: 5
     score_threshold: 0.3
     device: "cuda:0"
@@ -40,8 +41,9 @@ foundationpose_node:
     score_topic: "/perception/foundationpose/stats"
 
     # Geometry (overridden by launch file)
-    mesh_npz_path: "/home/seeed/workspace/ros2_bev/modules/m04-ai-vision-and-edge-acceleration/models/m4/pose/processed/cup.npz"
-    mesh_obj: "/home/seeed/workspace/ros2_bev/modules/m04-ai-vision-and-edge-acceleration/models/m4/pose/obj_models/cup.obj"
+    # The launch file supplies paths relative to M4_CODE_ROOT.
+    mesh_npz_path: ""
+    mesh_obj: ""
     frame_id: "cup"
     camera_frame_id: "camera_front"
 

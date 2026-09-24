@@ -2,6 +2,22 @@
 
 ## 概述
 
+### 课程代码入口
+
+以下命令从你克隆的课程源码运行；`M4_CODE_ROOT` 只需要按自己的目录修改一次：
+
+```bash
+export M4_CODE_ROOT="$HOME/mobile-robot-full-stack-course/docs/M04-AI-Vision-And-Edge-Acceleration/code"
+cd "$M4_CODE_ROOT"
+./scripts/setup_workspace.sh
+source /opt/ros/humble/setup.bash
+cd ros2_ws
+colcon build --symlink-install --packages-select \
+  bev_interfaces bev_detection bev_tracking bev_segmentation bev_pose m4_demo_bringup
+source install/setup.bash
+cd "$M4_CODE_ROOT"
+```
+
 ![课程概述](./images/ZDIIbrRovoXY93x5OKAczK2NnNd.png)
 
 相机能给你一整幅像素，却不告诉你画面里有什么、在哪一块。目标检测要回答的就是这两件事：每个目标的类别是什么，它在像素坐标里的位置在哪。2.4 结束时，你手上有一张能实时刷新的鸟瞰图；那张图回答的是「地面怎么走」，回答不了「路上有什么」。M4 从检测开始补上这一层，本章将以常用的 YOLO 目标检测算法作为切入点。
@@ -40,7 +56,7 @@
 
 ### 实机运行预览
 
-在 Jetson 的 `/home/seeed/workspace/ros2_bev` 执行 `./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_1_demo.sh` 可独立运行检测；需要在浏览器中切换模块时，运行 `./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_web_hub.sh`，打开 `http://<Jetson-IP>:8080/m4/1` 并选择“4.1 检测”。两个入口都会发布 `/perception/detections`，不要同时启动两套相机管线。
+在 Jetson 的 `$M4_CODE_ROOT` 执行 `./scripts/m4/run_m4_1_demo.sh` 可独立运行检测；需要在浏览器中切换模块时，运行 `./scripts/m4/run_m4_web_hub.sh`，打开 `http://<Jetson-IP>:8080/m4/1` 并选择“4.1 检测”。两个入口都会发布 `/perception/detections`，不要同时启动两套相机管线。
 
 ![Jetson 实机 M4.1 检测画面：室内物理相机，框上显示类别和置信度](./images/m4_runtime_m41_detection.png)
 
@@ -205,18 +221,18 @@ NMS 是按类别做的，所以两个类别重叠的目标会被同时保留；�
 
 ## 动手：把检测模型跑成一条 ROS 2 话题
 
-四步，每步都有可验证的产出。所有命令在 J501 上执行，工作目录是 `/home/seeed/workspace/ros2_bev`。跑之前先确认功耗模式是 MAXN，否则后面测出来的读数不具可比性。
+四步，每步都有可验证的产出。所有命令在 J501 上执行，工作目录是 `$M4_CODE_ROOT`。跑之前先确认功耗模式是 MAXN，否则后面测出来的读数不具可比性。
 
 ### 步骤 1：确认环境、模型产物与节点
 
 先确认模型、标签和节点都已就绪，免得后面把环境问题误判成操作错误。
 
 ```bash
-cd /home/seeed/workspace/ros2_bev
+cd "$M4_CODE_ROOT"
 
 # 模型产物
-ls -l modules/m04-ai-vision-and-edge-acceleration/models/m4/detection/engines/yolo11n_fp16.engine
-ls -l modules/m04-ai-vision-and-edge-acceleration/models/m4/detection/labels/coco.names
+ls -l models/m4/detection/engines/yolo11n_fp16.engine
+ls -l models/m4/detection/labels/coco.names
 
 # 可执行文件
 ls -l install/bev_detection/lib/bev_detection/yolo_trt_node
@@ -225,15 +241,15 @@ ls -l install/bev_detection/lib/bev_detection/yolo_trt_node
 python3 -c "import tensorrt as trt; print('trt', trt.__version__)"   # 10.3.0
 ```
 
-engine、labels、可执行文件三者缺一不可。`modules/m04-ai-vision-and-edge-acceleration/4.1-yolo-object-detection/ros2/bev_detection/config/yolo.yaml` 还声明了 `expected_trt_version: "10.3"`；版本不一致时，须在目标设备上重新构建 engine。课程快照里的 `code/ros2_ws` 是另一套打包目录，不能直接套用到 Jetson 运行树。
+engine、labels、可执行文件三者缺一不可。`4.1-yolo-object-detection/ros2/bev_detection/config/yolo.yaml` 还声明了 `expected_trt_version: "10.3"`；版本不一致时，须在目标设备上重新构建 engine。
 
 ### 步骤 2：启动现有 demo
 
 这一步把检测链路真正跑起来。
 
 ```bash
-cd /home/seeed/workspace/ros2_bev
-./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_1_demo.sh
+cd "$M4_CODE_ROOT"
+./scripts/m4/run_m4_1_demo.sh
 ```
 
 脚本默认走 `CAMERA_SOURCE=csi`，从 `/dev/video0` 取流，默认发布分辨率为 1920×1080@30，再把图像喂给 `yolo_trt_node`。调试图像输出到 `/perception/demo/m4_1`。
@@ -256,7 +272,7 @@ ros2 topic echo /perception/detections --once
 - **消息类型**是 `vision_msgs/msg/Detection2DArray`；
 - **QoS** 是 `BEST_EFFORT` / `KEEP_LAST`（深度 10）/ `VOLATILE`，对应订阅端的 `SensorDataQoS`；
 - **时间戳与 frame_id** 与源图像一致，而不是当前时刻。把 `/perception/cameras/front/image` 和 `/perception/detections` 的 `header.stamp` 放在一起看，两者应当相同；
-- **空帧也发消息**：让相机对着没有可检测目标的场景，确认 `/perception/detections` 仍持续发布、`detections` 为空数组。注意别用「拔掉相机」来测——这条设计的前提是「完成了推理的输入帧」，没有输入帧就测不到它。严格验证可运行 `./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/test_empty_frame_contract.sh`；
+- **空帧也发消息**：让相机对着没有可检测目标的场景，确认 `/perception/detections` 仍持续发布、`detections` 为空数组。注意别用「拔掉相机」来测——这条设计的前提是「完成了推理的输入帧」，没有输入帧就测不到它。严格验证可运行 `./scripts/m4/test_empty_frame_contract.sh`；
 - **`id` 字段为空**：`ros2 topic echo /perception/detections --field detections[0].id` 应当没有有效值。填上它是 4.2 的事。
 
 ### 步骤 4：性能测量方法
@@ -264,8 +280,8 @@ ros2 topic echo /perception/detections --once
 最后要拿到的是一份记录了完整条件的测量，而不是一个孤零零的帧率。
 
 ```bash
-cd /home/seeed/workspace/ros2_bev
-./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_1_benchmark.sh 30
+cd "$M4_CODE_ROOT"
+./scripts/m4/run_m4_1_benchmark.sh 30
 ```
 
 脚本用真实相机输入测这条链路的帧率与延迟，结果落在 `output/m4/4.1`。

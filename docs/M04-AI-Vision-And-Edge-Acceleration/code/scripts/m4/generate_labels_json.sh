@@ -20,11 +20,7 @@ CHECKPOINT="nvidia/segformer-b0-finetuned-cityscapes-512-1024"
 # An explicit HF_ENDPOINT from the caller always wins.
 export HF_ENDPOINT="${HF_ENDPOINT:-https://hf-mirror.com}"
 
-if [[ -x "/home/seeed/miniconda3/envs/py310/bin/python" ]]; then
-    PYTHON="/home/seeed/miniconda3/envs/py310/bin/python"
-else
-    PYTHON="python3"
-fi
+PYTHON="${PYTHON:-python3}"
 
 mkdir -p "$OUT_DIR"
 

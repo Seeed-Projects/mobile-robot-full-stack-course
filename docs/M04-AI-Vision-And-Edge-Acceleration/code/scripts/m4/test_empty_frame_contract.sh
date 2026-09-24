@@ -41,7 +41,7 @@ source install/setup.bash
 set -u
 
 # Required libs (opencv-cuda, CUDA, TensorRT)
-export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$WS_ROOT/install/bev_detection/lib:/home/seeed/src/opencv-4.14.0-cuda-build/lib:/usr/local/cuda-12.6/lib64:/usr/lib/aarch64-linux-gnu"
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$WS_ROOT/install/bev_detection/lib:${OPENCV_CUDA_LIB:-}:/usr/local/cuda/lib64:/usr/lib/aarch64-linux-gnu"
 
 COUNT_FILE="$OUT/empty_frame_count.txt"
 rm -f "$COUNT_FILE"

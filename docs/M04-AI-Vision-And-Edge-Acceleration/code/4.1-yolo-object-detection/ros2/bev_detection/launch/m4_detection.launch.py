@@ -18,6 +18,7 @@ from launch.actions import DeclareLaunchArgument, LogInfo
 from launch.conditions import IfCondition
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+import os
 from ament_index_python.packages import get_package_share_directory
 
 
@@ -46,7 +47,7 @@ def generate_launch_description():
                            description='Start system monitor'),
 
         DeclareLaunchArgument('yolo_model_path',
-                           default_value='/home/seeed/workspace/ros2_bev/modules/m04-ai-vision-and-edge-acceleration/models/m4/detection/engines/yolo11n_fp16.engine',
+                           default_value=os.path.join(os.environ.get('M4_CODE_ROOT', ''), 'models/m4/detection/engines/yolo11n_fp16.engine'),
                            description='YOLO TensorRT engine path'),
         DeclareLaunchArgument('yolo_image_topic',
                            default_value='/perception/cameras/front/image',
@@ -88,7 +89,7 @@ def generate_launch_description():
             condition=IfCondition(use_yolo),
             parameters=[{
                 'model_path': yolo_model_path,
-                'class_names_path': '/home/seeed/workspace/ros2_bev/modules/m04-ai-vision-and-edge-acceleration/models/m4/detection/labels/coco.names',
+                'class_names_path': os.path.join(os.environ.get('M4_CODE_ROOT', ''), 'models/m4/detection/labels/coco.names'),
                 'image_topic': yolo_image_topic,
                 'detections_topic': '/perception/detections',
                 'debug_image_topic': '/perception/debug/detection_image',
@@ -110,9 +111,9 @@ def generate_launch_description():
             output='screen',
             condition=IfCondition(use_bev),
             parameters=[{
-                'engine_path': '/home/seeed/workspace/ros2_bev/modules/m02-vision-foundations/2.4-bev-avm/models/engines/bevdet_one_lt_d_r50_256x704_fp16_trt10.3_sm87.engine',
-                'onnx_path': '/home/seeed/workspace/ros2_bev/modules/m02-vision-foundations/2.4-bev-avm/models/onnx/bevdet_one_lt_d.onnx',
-                'model_config': '/home/seeed/workspace/ros2_bev/modules/m02-vision-foundations/2.4-bev-avm/ros2/bevdet_vendor/cfgs/bevdet_lt_depth.yaml',
+                'engine_path': os.environ.get('BEVDET_ENGINE_PATH', ''),
+                'onnx_path': os.environ.get('BEVDET_ONNX_PATH', ''),
+                'model_config': os.environ.get('BEVDET_CONFIG_PATH', ''),
                 'precision': 'fp16',
                 'score_threshold': 0.25,
                 'expected_trt_version': '10.3',

@@ -2,19 +2,21 @@
 """Headless regression for the M4 unified web HUB server.
 
 Does NOT require physical GMSL. Publishes synthetic bgr8 frames on all
-three demo overlay topics and starts `m4_web_demo_server --demo hub`.
+four demo overlay topics (plus the M4.4 pose stats topic) and starts
+`m4_web_demo_server --demo hub`.
 
 Acceptance per cycle:
-  1. synthetic publishers alive on /perception/demo/m4_{1,2,3}
+  1. synthetic publishers alive on /perception/demo/m4_{1,2,3,4}
   2. hub server binds ONE port and answers /healthz with
      server_ready=true, ros_frame_ready=true
-  3. /healthz reports per-module `topics` readiness (all three true)
-  4. /api/demos lists the three modules in declaration order
+  3. /healthz reports per-module `topics` readiness (all four true)
+  4. /api/demos lists the four modules in declaration order
   5. the served page is the HUB page (`data-hub="1"`) and has no
      unresolved {{TEMPLATE}} placeholders
   6. a `select` signaling message switches /healthz `active`
   7. an unknown module is rejected without killing the connection
-  8. SIGTERM frees the port within 5s and leaves no orphan
+  8. /api/visualization/m4_4 serves the pose telemetry contract
+  9. SIGTERM frees the port within 5s and leaves no orphan
 
 Usage:
   python3 m4_web_hub_regression.py [--port 8091] [--log-dir /tmp/x]
@@ -61,12 +63,16 @@ import numpy as np  # noqa: E402
 from rclpy.node import Node  # noqa: E402
 from rclpy.qos import QoSHistoryPolicy, QoSProfile, QoSReliabilityPolicy  # noqa: E402
 from sensor_msgs.msg import Image  # noqa: E402
+from std_msgs.msg import String  # noqa: E402
 
 DEMO_TOPICS = {
     "m4_1": "/perception/demo/m4_1",
     "m4_2": "/perception/demo/m4_2",
     "m4_3": "/perception/demo/m4_3",
+    "m4_4": "/perception/demo/m4_4",
 }
+
+POSE_STATS_TOPIC = "/perception/demo/m4_4/stats"
 
 _failures: list[str] = []
 
@@ -92,12 +98,14 @@ class MultiPublisher(Node):
             key: self.create_publisher(Image, topic, qos)
             for key, topic in DEMO_TOPICS.items()
         }
+        self._stats_pub = self.create_publisher(String, POSE_STATS_TOPIC, qos)
         self._frame_id = 0
 
     def publish_once(self) -> None:
         h, w = 360, 640
         # Distinct colour per module so a mis-switch is visible in the UI.
-        colours = {"m4_1": (30, 30, 200), "m4_2": (30, 200, 30), "m4_3": (200, 60, 30)}
+        colours = {"m4_1": (30, 30, 200), "m4_2": (30, 200, 30),
+                   "m4_3": (200, 60, 30), "m4_4": (200, 30, 200)}
         for key, pub in self._pubs.items():
             img = np.zeros((h, w, 3), dtype=np.uint8)
             img[:, :] = colours[key]
@@ -113,6 +121,20 @@ class MultiPublisher(Node):
             msg.step = w * 3
             msg.data = img.tobytes()
             pub.publish(msg)
+        stats = String()
+        stats.data = json.dumps({
+            "status": "valid_pose",
+            "position_m": [0.1, 0.2, 0.8],
+            "quaternion_xyzw": [0.0, 0.0, 0.0, 1.0],
+            "quaternion_norm": 1.0,
+            "score": 0.5,
+            "class_id": "",
+            "frame_id": "tf_camera",
+            "pose_age_ms": 120,
+            "pose_rate_hz": 2.0,
+            "draw_count": self._frame_id,
+        })
+        self._stats_pub.publish(stats)
         self._frame_id += 1
 
 
@@ -317,11 +339,11 @@ def main() -> int:
         check(wait_health(port, "ros_frame_ready", True, 20.0),
               "hub ros_frame_ready within 20s (any module)")
         check(wait_topics_ready(port, DEMO_TOPICS.keys(), 20.0),
-              "all three modules report per-topic readiness")
+              "all four modules report per-topic readiness")
 
         hz = http_json(f"http://127.0.0.1:{port}/healthz")
         check(hz.get("active") == "m4_1", "default active module is m4_1")
-        check(isinstance(hz.get("topics"), dict) and len(hz["topics"]) == 3,
+        check(isinstance(hz.get("topics"), dict) and len(hz["topics"]) == 4,
               "/healthz exposes per-module topics map")
 
         listing = http_json(f"http://127.0.0.1:{port}/api/demos")
@@ -431,11 +453,38 @@ def main() -> int:
                   f"select m4_3 acknowledged: {reply}")
             hz2 = http_json(f"http://127.0.0.1:{port}/healthz")
             check(hz2.get("active") == "m4_3", "/healthz active switched to m4_3")
+            reply44 = select_over_ws(port, "m4_4")
+            check(reply44 is not None and reply44.get("type") == "selected"
+                  and reply44.get("demo") == "m4_4",
+                  f"select m4_4 acknowledged: {reply44}")
+            hz2b = http_json(f"http://127.0.0.1:{port}/healthz")
+            check(hz2b.get("active") == "m4_4", "/healthz active switched to m4_4")
             bad = select_over_ws(port, "m4_99")
             check(bad is not None and bad.get("type") == "error",
                   f"unknown module rejected without dropping the socket: {bad}")
             hz3 = http_json(f"http://127.0.0.1:{port}/healthz")
-            check(hz3.get("active") == "m4_3", "rejected switch left active unchanged")
+            check(hz3.get("active") == "m4_4", "rejected switch left active unchanged")
+
+        # ---- M4.4 pose telemetry contract -------------------------------
+        # The stats subscription is hub-mode-unconditional, so the synthetic
+        # publisher feeds /api/visualization/m4_4 even without
+        # --managed-modules (the regression server never sets it).
+        pose = http_json(f"http://127.0.0.1:{port}/api/visualization/m4_4")
+        results = pose.get("results") if isinstance(pose, dict) else None
+        check(isinstance(results, dict) and results.get("status") == "valid_pose",
+              f"/api/visualization/m4_4 serves pose status: {results}")
+        check(isinstance(results, dict) and
+              isinstance(results.get("position_m"), list) and
+              len(results["position_m"]) == 3,
+              "pose results carry a 3-element position_m")
+        check(isinstance(results, dict) and
+              isinstance(results.get("quaternion_xyzw"), list) and
+              len(results["quaternion_xyzw"]) == 4,
+              "pose results carry a 4-element quaternion_xyzw")
+        check(html is not None and 'id="poseResults"' in html,
+              "served page carries the pose results strip")
+        check(app_js is not None and "/api/visualization/m4_4" in app_js,
+              "app.js wires the pose telemetry endpoint")
 
         # ---- shutdown behaviour ----------------------------------------
         proc.send_signal(signal.SIGTERM)

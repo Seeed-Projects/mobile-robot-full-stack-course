@@ -5,8 +5,9 @@ yolo_trt_node:
   ros__parameters:
 
     # Model
-    model_path: "/home/seeed/workspace/ros2_bev/modules/m04-ai-vision-and-edge-acceleration/models/m4/detection/engines/yolo11n_fp16.engine"
-    class_names_path: "/home/seeed/workspace/ros2_bev/modules/m04-ai-vision-and-edge-acceleration/models/m4/detection/labels/coco.names"
+    # The launch file supplies paths relative to M4_CODE_ROOT.
+    model_path: ""
+    class_names_path: ""
 
     # ROS Topics
     image_topic: "/perception/cameras/front/image"

@@ -2,26 +2,31 @@
 set -euo pipefail
 
 # official: NVIDIA FP32/252 graph; adapted: project-owned FP32/42 graph.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+M4_CODE_ROOT="${M4_CODE_ROOT:-$(cd "$SCRIPT_DIR/../.." && pwd)}"
 M44_MODE="${M44_MODE:-official}"
 CONTAINER="${ISAAC_ROS_CONTAINER:-m4-isaacros-foundationpose}"
 ASSET_ROOT="${ISAAC_ROS_ASSET_ROOT:-/workspaces/isaac_ros-dev/isaac_ros_assets/isaac_ros_foundationpose}"
 MODEL_ROOT="${FOUNDATIONPOSE_MODEL_ROOT:-/workspaces/isaac_ros-dev/isaac_ros_assets/models/foundationpose}"
 TRTEXEC="${TRTEXEC:-/usr/src/tensorrt/bin/trtexec}"
 HOST_TRTEXEC="${HOST_TRTEXEC:-/usr/src/tensorrt/bin/trtexec}"
-HOST_MODEL_ROOT="${HOST_MODEL_ROOT:-/home/seeed/workspace/isaac_ros_assets/models/foundationpose}"
+HOST_MODEL_ROOT="${HOST_MODEL_ROOT:-${ISAAC_ROS_HOST_ASSET_ROOT:+$ISAAC_ROS_HOST_ASSET_ROOT/models/foundationpose}}"
 RTDETR_ENGINE="${RTDETR_ENGINE:-/workspaces/isaac_ros-dev/isaac_ros_assets/models/synthetica_detr/sdetr_grasp.plan}"
 POSE_TOPIC="${POSE_TOPIC:-/output}"
 M44_POSE_TIMEOUT="${M44_POSE_TIMEOUT:-240}"
+# 0 exits after the first verified pose; N>0 keeps the launch and looping bag
+# alive for N extra seconds; -1 holds them until SIGTERM (web-hub mode).
 M44_VIEW_SECONDS="${M44_VIEW_SECONDS:-0}"
 M44_RUN_TOKEN="${M44_RUN_TOKEN:-quickstart-$$}"
-M44_SOURCE_ROOT="${M44_SOURCE_ROOT:-/workspaces/ros2_bev/modules/m04-ai-vision-and-edge-acceleration}"
+M44_SOURCE_ROOT="/tmp/m44-course-source-${M44_RUN_TOKEN}"
 
 case "$M44_MODE" in
   official|adapted) ;;
   *) echo "ERROR: M44_MODE must be official or adapted." >&2; exit 2 ;;
 esac
 case "$M44_VIEW_SECONDS" in
-  ''|*[!0-9]*) echo 'ERROR: M44_VIEW_SECONDS must be a nonnegative integer.' >&2; exit 2 ;;
+  -1) ;;
+  ''|*[!0-9]*) echo 'ERROR: M44_VIEW_SECONDS must be -1 or a nonnegative integer.' >&2; exit 2 ;;
 esac
 case "$M44_RUN_TOKEN" in
   ''|*[!a-zA-Z0-9_-]*) echo 'ERROR: invalid M44_RUN_TOKEN.' >&2; exit 2 ;;
@@ -30,6 +35,22 @@ if ! command -v docker >/dev/null || ! docker inspect "$CONTAINER" >/dev/null 2>
   echo "ERROR: Isaac ROS container '$CONTAINER' is not available." >&2
   exit 2
 fi
+for required_source in \
+  "$M4_CODE_ROOT/scripts/m4/verify_m4_4_pose.py" \
+  "$M4_CODE_ROOT/4.4-isaac-ros-foundationpose/config/foundationpose_42.yaml" \
+  "$M4_CODE_ROOT/4.4-isaac-ros-foundationpose/launch/m4_4_foundationpose_42.launch.py"; do
+  if [ ! -f "$required_source" ]; then
+    echo "ERROR: course source file is missing: $required_source" >&2
+    exit 4
+  fi
+done
+docker exec "$CONTAINER" rm -rf "$M44_SOURCE_ROOT"
+docker exec "$CONTAINER" mkdir -p "$M44_SOURCE_ROOT"
+tar -C "$M4_CODE_ROOT" -cf - \
+  scripts/m4/verify_m4_4_pose.py \
+  4.4-isaac-ros-foundationpose/config/foundationpose_42.yaml \
+  4.4-isaac-ros-foundationpose/launch/m4_4_foundationpose_42.launch.py \
+  | docker exec -i "$CONTAINER" tar -xf - -C "$M44_SOURCE_ROOT"
 for active_node in '/install/bev_detection/lib/bev_detection/yolo_trt_node' '/install/bev_segmentation/lib/bev_segmentation/segmentation_node'; do
   if pgrep -f "$active_node" >/dev/null; then
     echo "ERROR: shared Hub inference node '$active_node' is active. Stop its run through the owning Hub before using the GPU." >&2
@@ -78,7 +99,11 @@ trap 'exit 143' TERM
 
 # On this Jetson the official 252-profile build fits when trtexec runs on the
 # host; the same TensorRT 10.3 build exhausted device memory in the container.
-if [ "$M44_MODE" = official ] && [ ! -s "$HOST_MODEL_ROOT/score_trt_engine.plan" ]; then
+if [ "$M44_MODE" = official ] && [ ! -s "${HOST_MODEL_ROOT:-}/score_trt_engine.plan" ]; then
+  if [ -z "$HOST_MODEL_ROOT" ]; then
+    echo 'ERROR: set HOST_MODEL_ROOT or ISAAC_ROS_HOST_ASSET_ROOT before building the official score engine.' >&2
+    exit 4
+  fi
   if [ ! -x "$HOST_TRTEXEC" ] || [ ! -f "$HOST_MODEL_ROOT/score_model.onnx" ] || ! sudo -n true; then
     echo 'ERROR: host TensorRT, score ONNX, or passwordless sudo is unavailable.' >&2
     exit 4
@@ -210,7 +235,10 @@ if ! python3 "$M44_SOURCE_ROOT/scripts/m4/verify_m4_4_pose.py" \
   exit 8
 fi
 echo "M4.4 logs: $launch_log $bag_log $pose_log"
-if [ "$M44_VIEW_SECONDS" -gt 0 ]; then
+if [ "$M44_VIEW_SECONDS" -eq -1 ]; then
+  echo "M4.4 hub hold: launch and looping bag stay up until SIGTERM (token=$M44_RUN_TOKEN)"
+  while :; do sleep 3600; done
+elif [ "$M44_VIEW_SECONDS" -gt 0 ]; then
   echo "M4.4 viewer hold: keeping launch and looping bag for ${M44_VIEW_SECONDS}s"
   sleep "$M44_VIEW_SECONDS"
 fi

@@ -1,15 +1,15 @@
 # M4.5 Native NVlabs FoundationPose
 
-The physical directory keeps its historical `4.4-foundationpose` name, but it
-implements Chapter 4.5: the native NVlabs/PyTorch FoundationPose route. Chapter
-4.4 uses the separate `4.4-isaac-ros-foundationpose` directory and Isaac ROS.
+This directory implements Chapter 4.5: the native NVlabs/PyTorch FoundationPose
+route. Chapter 4.4 uses the separate `4.4-isaac-ros-foundationpose` directory and
+Isaac ROS.
 
 ## Minimum MVP
 
 The release MVP runs the official recorded Mustard RGB-D sequence without ROS:
 
 ```bash
-cd /home/seeed/workspace/ros2_bev/modules/m04-ai-vision-and-edge-acceleration
+cd "$M4_CODE_ROOT"
 bash scripts/m4/run_m4_5_native_mvp.sh --frames 8
 ```
 
@@ -40,7 +40,7 @@ reference). All exported 4x4 matrices contained finite values.
 The verified checkout layout is:
 
 ```text
-/home/seeed/workspace/third_party/FoundationPose/
+$FOUNDATIONPOSE_DIR/
 ├── demo_data/mustard0/
 ├── weights/2023-10-28-18-33-37/{config.yml,model_best.pth}
 ├── weights/2024-01-11-20-02-45/{config.yml,model_best.pth}
@@ -48,9 +48,8 @@ The verified checkout layout is:
 ```
 
 The course targets commit
-`a1b694b83e633c2cb6115b9063d940a687759392`. The Python entry point defaults
-to `/home/seeed/miniconda3/envs/py310/bin/python` and can be overridden with
-`PYTHON=/path/to/python`. The shell entry point sets `PYTHONNOUSERSITE=1` to
+`a1b694b83e633c2cb6115b9063d940a687759392`. Select the Python entry point with
+`PYTHON` (for example, `python3`). The shell entry point sets `PYTHONNOUSERSITE=1` to
 keep binary dependencies on the tested conda NumPy stack. The Python runner
 contains a narrow analytic 3x3 inverse compatibility path for JetPack 6.2.1's
 CUDA 12.6 cuSOLVER; it does not modify the upstream checkout.

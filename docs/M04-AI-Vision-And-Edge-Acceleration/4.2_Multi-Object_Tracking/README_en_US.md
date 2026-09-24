@@ -2,6 +2,22 @@
 
 ## Overview
 
+### Course code entry point
+
+Start in the M4 `code/` directory from your cloned course source and build the workspace once:
+
+```bash
+export M4_CODE_ROOT="$HOME/mobile-robot-full-stack-course/docs/M04-AI-Vision-And-Edge-Acceleration/code"
+cd "$M4_CODE_ROOT"
+./scripts/setup_workspace.sh
+source /opt/ros/humble/setup.bash
+cd ros2_ws
+colcon build --symlink-install --packages-select \
+  bev_interfaces bev_detection bev_tracking bev_segmentation bev_pose m4_demo_bringup
+source install/setup.bash
+cd "$M4_CODE_ROOT"
+```
+
 ![Course Overview](./images/XCQhblwpeo0Zu1x2vOecGZLcnyb.gif)
 
 4.1 got the model to draw boxes in every frame, but the boxes have no names: the same little car looks almost identical in frame 10 and frame 40, and the detector will not tell you they are the same target. Multi-Object Tracking (MOT) fills in exactly this gap of identity continuity: it takes in per-frame detection boxes and outputs tracks with stable IDs.
@@ -50,7 +66,7 @@ The input to tracking is 4.1's detection results, so detection quality directly 
 
 ### Runtime Preview
 
-From `/home/seeed/workspace/ros2_bev` on the Jetson, run `./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_2_demo.sh`; the script starts the detection and tracking pipeline it needs, so there is no need to launch the 4.1 demo separately. For browser mode, run `./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_web_hub.sh`, open `http://<Jetson-IP>:8080/m4/2`, and select “4.2 Tracking.” Confirm that `/perception/tracks` keeps publishing, then observe the target IDs on screen.
+From `$M4_CODE_ROOT` on the Jetson, run `./scripts/m4/run_m4_2_demo.sh`; the script starts the detection and tracking pipeline it needs, so there is no need to launch the 4.1 demo separately. For browser mode, run `./scripts/m4/run_m4_web_hub.sh`, open `http://<Jetson-IP>:8080/m4/2`, and select “4.2 Tracking.” Confirm that `/perception/tracks` keeps publishing, then observe the target IDs on screen.
 
 ![M4.2 tracking preview from a local video on the Jetson, with IDs on vehicle boxes](./images/m4_runtime_m42_tracking.png)
 
@@ -382,15 +398,15 @@ The comment in `config/bytetrack.yaml` states that `frame_rate` corresponds to t
 
 ## Hands-On: Wire Detection Boxes into a Track Topic
 
-Three steps. All commands run on the J501 from `/home/seeed/workspace/ros2_bev`. The prerequisite is that the 4.1 detection pipeline is already running, or that you use the repository's `mock_detection_publisher` to produce a detection stream.
+Three steps. All commands run on the J501 from `$M4_CODE_ROOT`. The prerequisite is that the 4.1 detection pipeline is already running, or that you use the repository's `mock_detection_publisher` to produce a detection stream.
 
 ### Step 5: Launch the Tracking Pipeline
 
 Wire 4.1's detection output into tracks. The least effort is to run the one-click script directly:
 
 ```bash
-cd /home/seeed/workspace/ros2_bev
-./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_2_demo.sh
+cd "$M4_CODE_ROOT"
+./scripts/m4/run_m4_2_demo.sh
 ```
 
 The script follows the course hardware's GMSL2 path, starts `camera_adapter_node` itself to convert the upstream images into the topic the tracking node expects, then starts `tracking_node` and the visualizer. To run the tracking node alone, use `tracking_demo.launch.py`, whose parameter defaults already configure the input and output topics.
@@ -421,7 +437,7 @@ Run the same scene, observe the following symptoms, then locate the problem by t
 
 ```bash
 # Restart after changing a parameter, then compare the same scene
-vim modules/m04-ai-vision-and-edge-acceleration/4.2-multi-object-tracking/ros2/bev_tracking/config/bytetrack.yaml
+vim 4.2-multi-object-tracking/ros2/bev_tracking/config/bytetrack.yaml
 ```
 
 | Symptom                                                            | Which parameter to look at first                                                                                                              |
@@ -438,7 +454,7 @@ Changing `lost_track_buffer` is the most intuitive experiment: the current setti
 
 ### Deliverables Checklist
 
-1. A running tracking pipeline: `./modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_2_demo.sh` starts normally, and `/perception/tracks` keeps publishing.
+1. A running tracking pipeline: `./scripts/m4/run_m4_2_demo.sh` starts normally, and `/perception/tracks` keeps publishing.
 
 2. A verification record of the track contract: the type and QoS from `ros2 topic info -v`, and an excerpt of detection boxes carrying an `id` from `ros2 topic echo`.
 

@@ -99,8 +99,8 @@ if(BUILD_TESTING)
   #   - CUDA 12.6 runtime libs
   #   - TensorRT 10.3 libs (system path)
   set(BEV_DET_TEST_LIBRARY_DIRS
-    "/home/seeed/src/opencv-4.14.0-cuda-build/lib"
-    "/usr/local/cuda-12.6/lib64"
+    "$ENV{OPENCV_CUDA_LIB}"
+    "/usr/local/cuda/lib64"
     "/usr/lib/aarch64-linux-gnu"
   )
 

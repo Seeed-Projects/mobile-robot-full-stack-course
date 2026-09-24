@@ -53,7 +53,7 @@ if [ -d "$WS_ROOT/install/bev_pose" ]; then
     set +u; source "$WS_ROOT/install/setup.bash"; set -u
 else
     echo "[preprocess_mesh] using source-tree bev_pose"
-    export PYTHONPATH="$WS_ROOT/modules/m04-ai-vision-and-edge-acceleration/4.4-foundationpose/ros2/bev_pose:${PYTHONPATH:-}"
+    export PYTHONPATH="$M4_ROOT/4.5-native-foundationpose/ros2/bev_pose:${PYTHONPATH:-}"
 fi
 
 python3 -m bev_pose.mesh_preprocessor \

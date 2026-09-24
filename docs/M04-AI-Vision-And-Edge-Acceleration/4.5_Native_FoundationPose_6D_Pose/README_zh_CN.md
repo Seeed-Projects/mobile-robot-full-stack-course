@@ -2,6 +2,18 @@
 
 ## 本章目标
 
+### 课程代码入口
+
+本章从你克隆的课程源码运行，FoundationPose 外部仓库通过环境变量指定：
+
+```bash
+export M4_CODE_ROOT="$HOME/mobile-robot-full-stack-course/docs/M04-AI-Vision-And-Edge-Acceleration/code"
+export FOUNDATIONPOSE_DIR="$HOME/third_party/FoundationPose"
+export PYTHON=python3
+cd "$M4_CODE_ROOT"
+./scripts/setup_workspace.sh
+```
+
 本章直接使用 NVlabs/PyTorch FoundationPose，把一个已知物体的 RGB-D 图像、相机内参、实例掩膜和 CAD 网格转换成物体在相机坐标系中的 6D 位姿。课程代码保留 `bev_pose` ROS 2 封装，同时提供一个更容易复现的 standalone MVP，用来先理解算法，再接入 ROS 话题。
 
 完成本章后，你应能：
@@ -104,7 +116,7 @@ a1b694b83e633c2cb6115b9063d940a687759392
 MVP 使用以下目录：
 
 ```text
-/home/seeed/workspace/third_party/FoundationPose/
+$FOUNDATIONPOSE_DIR/
 ├── demo_data/mustard0/
 ├── weights/2023-10-28-18-33-37/model_best.pth
 ├── weights/2024-01-11-20-02-45/model_best.pth
@@ -118,7 +130,7 @@ MVP 使用以下目录：
 课程代码位于 `code/scripts/m4/`。在 Jetson 的 M4 模块根目录执行：
 
 ```bash
-cd /home/seeed/workspace/ros2_bev/modules/m04-ai-vision-and-edge-acceleration
+cd "$M4_CODE_ROOT"
 
 # 语法兼容入口，实际转发到 MVP runner
 bash scripts/m4/phase0_foundationpose_verify.sh --frames 8

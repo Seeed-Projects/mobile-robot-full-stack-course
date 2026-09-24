@@ -1,7 +1,6 @@
 # 4.2 Multi-Object Tracking (ByteTrack)
 
-> All relative paths below are relative to the module root,
-> `modules/m04-ai-vision-and-edge-acceleration/`.
+> All relative paths below are relative to the course M4 `code/` directory.
 
 Concepts: MOT association (ByteTrack / DeepSORT / Bot-SORT). Implemented here with
 **ByteTrack** from the `supervision` library.

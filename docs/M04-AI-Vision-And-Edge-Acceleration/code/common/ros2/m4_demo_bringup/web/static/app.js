@@ -48,6 +48,14 @@ const activeInputFileEl = document.getElementById("activeInputFile");
 const segmentationResultsEl = document.getElementById("segmentationResults");
 const classResultsEl = document.getElementById("classResults");
 const drivableRatioEl = document.getElementById("drivableRatio");
+const poseResultsEl = document.getElementById("poseResults");
+const poseStatusEl = document.getElementById("poseStatus");
+const posePositionEl = document.getElementById("posePosition");
+const poseQuatEl = document.getElementById("poseQuat");
+const poseNormEl = document.getElementById("poseNorm");
+const poseRateEl = document.getElementById("poseRate");
+const inputControlBarEl = document.getElementById("inputControlBar");
+const poseInputNoteEl = document.getElementById("poseInputNote");
 const fsBtn = document.getElementById("fs");
 const shotBtn = document.getElementById("shot");
 const drawerEl = document.getElementById("drawer");
@@ -162,6 +170,7 @@ let reconnectDelay = 1000;
 let reconnectSuppressed = false;
 let inputState = null;
 let visualizationState = { view: "semantic", options: [], results: null };
+let poseState = { results: null };
 let inputBusy = false;
 let visualizationBusy = false;
 let lastInputError = "";
@@ -549,12 +558,54 @@ function renderVisualization() {
   drivableRatioEl.textContent = `${(Number(results.drivable_ratio || 0) * 100).toFixed(1)}%`;
 }
 
+function renderPosePanel() {
+  const visible = selectedKey === "m4_4";
+  poseResultsEl.hidden = !visible;
+  // The shared input bar (camera / local video / undistortion / detection
+  // parameters) belongs to 4.1-4.3; M4.4 replays the official example bag
+  // inside the Isaac ROS container, so none of those controls apply.
+  if (inputControlBarEl) inputControlBarEl.hidden = visible;
+  if (poseInputNoteEl) poseInputNoteEl.hidden = !visible;
+  const results = poseState.results;
+  if (!visible || !results) {
+    poseStatusEl.textContent = "—";
+    posePositionEl.textContent = "—";
+    poseQuatEl.textContent = "—";
+    poseNormEl.textContent = "—";
+    poseRateEl.textContent = "—";
+    return;
+  }
+  const statusWords = {
+    waiting_pose: tr("等待位姿", "waiting for pose"),
+    valid_pose: tr("有效位姿", "valid pose"),
+    pose_stale: tr("位姿过期", "pose stale"),
+  };
+  poseStatusEl.textContent = statusWords[results.status] || results.status || "—";
+  if (Array.isArray(results.position_m) && results.position_m.length === 3) {
+    posePositionEl.textContent = results.position_m.map((v) => Number(v).toFixed(3)).join(", ");
+  } else {
+    posePositionEl.textContent = "—";
+  }
+  if (Array.isArray(results.quaternion_xyzw) && results.quaternion_xyzw.length === 4) {
+    poseQuatEl.textContent = results.quaternion_xyzw.map((v) => Number(v).toFixed(3)).join(", ");
+  } else {
+    poseQuatEl.textContent = "—";
+  }
+  poseNormEl.textContent = Number.isFinite(Number(results.quaternion_norm))
+    ? Number(results.quaternion_norm).toFixed(4)
+    : "—";
+  poseRateEl.textContent = Number.isFinite(Number(results.pose_rate_hz))
+    ? `${Number(results.pose_rate_hz).toFixed(1)} Hz`
+    : "—";
+}
+
 function renderAll() {
   renderSidebar();
   renderPipelineInfo();
   renderDrawer();
   renderInputState();
   renderVisualization();
+  renderPosePanel();
 }
 
 /* ---- module list polling ------------------------------------------------- */
@@ -1247,6 +1298,16 @@ async function refreshVisualization() {
   } catch (_) { /* M4.3 controls are optional on a standalone legacy server */ }
 }
 
+async function refreshPose() {
+  try {
+    const response = await fetch("/api/visualization/m4_4", { cache: "no-store" });
+    if (!response.ok) return;
+    const data = await response.json();
+    poseState = { results: data.results || null };
+    renderPosePanel();
+  } catch (_) { /* the pose endpoint is optional on older servers */ }
+}
+
 async function setVisualizationView(view) {
   if (visualizationBusy || visualizationState.view === view) return;
   visualizationBusy = true;
@@ -1405,5 +1466,7 @@ refreshSettings();
 setInterval(refreshSettings, 2000);
 refreshInputState();
 refreshVisualization();
+refreshPose();
 setInterval(refreshInputState, 2000);
 setInterval(refreshVisualization, 2000);
+setInterval(refreshPose, 2000);

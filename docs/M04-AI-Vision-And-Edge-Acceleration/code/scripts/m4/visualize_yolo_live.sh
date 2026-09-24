@@ -220,7 +220,7 @@ cd "$WS_ROOT"
 source install/setup.bash
 set -u
 ok "ros2 + bev_detection sourced"
-export LD_LIBRARY_PATH="$WS_ROOT/install/bev_detection/lib:/home/seeed/src/opencv-4.14.0-cuda-build/lib:/usr/local/cuda-12.6/lib64:/usr/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH"
+export LD_LIBRARY_PATH="$WS_ROOT/install/bev_detection/lib:${OPENCV_CUDA_LIB:-}:/usr/local/cuda/lib64:/usr/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH"
 ok "LD_LIBRARY_PATH configured"
 
 if [ ! -f "$ENGINE" ]; then

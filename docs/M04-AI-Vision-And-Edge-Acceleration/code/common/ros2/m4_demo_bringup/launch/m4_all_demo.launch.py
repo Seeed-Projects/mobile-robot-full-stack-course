@@ -159,7 +159,7 @@ def generate_launch_description() -> LaunchDescription:
             description='Tracker output with ids'),
         DeclareLaunchArgument(
             'yolo_model_path',
-            default_value='/home/seeed/workspace/ros2_bev/modules/m04-ai-vision-and-edge-acceleration/models/m4/detection/engines/yolo11n_fp16.engine',
+            default_value=os.path.join(os.environ.get('M4_CODE_ROOT', ''), 'models/m4/detection/engines/yolo11n_fp16.engine'),
             description='YOLO TensorRT engine path'),
         DeclareLaunchArgument(
             'enable_detection', default_value='true',

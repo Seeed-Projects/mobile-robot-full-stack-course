@@ -51,8 +51,8 @@ m4_lib_init "$DEMO_NAME"
 : "${DURATION:=0}"
 : "${ORBBEC_SERIAL:=}"
 : "${ORBBEC_USB_PORT:=}"
-: "${MESH_NPZ_PATH:=/home/seeed/workspace/ros2_bev/modules/m04-ai-vision-and-edge-acceleration/models/m4/pose/processed/cup.npz}"
-: "${MESH_OBJ:=/home/seeed/workspace/ros2_bev/modules/m04-ai-vision-and-edge-acceleration/models/m4/pose/obj_models/cup.obj}"
+: "${MESH_NPZ_PATH:=$M4_ROOT/models/m4/pose/processed/cup.npz}"
+: "${MESH_OBJ:=$M4_ROOT/models/m4/pose/obj_models/cup.obj}"
 : "${FRAME_ID:=cup}"
 
 export CAMERA_SOURCE CAMERA_DEVICE CAMERA_WIDTH CAMERA_HEIGHT CAMERA_FPS \

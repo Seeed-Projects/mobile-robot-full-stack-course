@@ -14,7 +14,7 @@ from typing import Any
 
 
 SETTINGS_PATH_ENV = "M4_RUNTIME_SETTINGS_PATH"
-DEFAULT_SETTINGS_PATH = Path("/home/seeed/.config/m4-perception/runtime_settings.json")
+DEFAULT_SETTINGS_PATH = Path(os.environ.get("M4_RUNTIME_SETTINGS_PATH", Path.home() / ".config/m4-perception/runtime_settings.json"))
 VERSION = 1
 
 DEFAULTS: dict[str, Any] = {

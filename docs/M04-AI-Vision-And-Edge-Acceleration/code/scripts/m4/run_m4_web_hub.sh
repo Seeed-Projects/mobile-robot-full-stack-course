@@ -32,6 +32,9 @@
 #   WEB_PORT (8080) · WEB_HOST (0.0.0.0) · WEB_BACKEND (h264|auto|mjpeg|vp8) · WEB_ACTIVE (m4_1)
 #   WEB_MJPEG_SIDE_CHANNEL=1 enables the crisp fallback beside H.264 (extra CPU)
 #   ENABLE_TRACKING=1 · ENABLE_SEGMENTATION=auto|0|1
+#   ENABLE_POSE={auto|0|1} · M4_POSE_CONTAINER (m4-isaacros-foundationpose)
+#     4.4 is bag-replay visualization from the Isaac ROS FoundationPose
+#     container; auto enables it whenever that container is running.
 
 set -u
 
@@ -57,9 +60,12 @@ m4_lib_init "$DEMO_NAME"
 : "${DURATION:=0}"
 : "${ENABLE_TRACKING:=1}"
 : "${ENABLE_SEGMENTATION:=auto}"
+: "${ENABLE_POSE:=auto}"
+: "${M4_POSE_CONTAINER:=m4-isaacros-foundationpose}"
+: "${FOUNDATIONPOSE_HOST_MODEL_ROOT:=/home/seeed/workspace/isaac_ros_assets/models/foundationpose}"
 : "${SEGMENTATION_MAX_FPS:=10.0}"
 : "${M4_WEB_ACTIVE:=m4_1}"
-: "${M4_RUNTIME_SETTINGS_PATH:=/home/seeed/.config/m4-perception/runtime_settings.json}"
+: "${M4_RUNTIME_SETTINGS_PATH:=${HOME}/.config/m4-perception/runtime_settings.json}"
 : "${M4_IMAGE_TOPIC:=/perception/inputs/camera}"
 
 export CAMERA_SOURCE CAMERA_DEVICE CAMERA_WIDTH CAMERA_HEIGHT CAMERA_CAPTURE_WIDTH CAMERA_CAPTURE_HEIGHT CAMERA_FPS VIEWER DURATION \
@@ -113,6 +119,23 @@ case "$ENABLE_SEGMENTATION" in
     *) m4_die "ENABLE_SEGMENTATION must be auto|0|1 (got: $ENABLE_SEGMENTATION)" ;;
 esac
 
+# Resolve pose enablement: auto = only when the Isaac ROS FoundationPose
+# container is running. The 4.4 tab is bag-replay visualization; a stopped
+# container only disables the module (the physical RGB-D gate stays open).
+POSE_REASON=""
+case "$ENABLE_POSE" in
+    auto)
+        if command -v docker >/dev/null 2>&1 && docker inspect "$M4_POSE_CONTAINER" >/dev/null 2>&1; then
+            ENABLE_POSE=1
+        else
+            ENABLE_POSE=0
+            POSE_REASON="Isaac ROS container '$M4_POSE_CONTAINER' is not running"
+        fi
+        ;;
+    0|1) ;;
+    *) m4_die "ENABLE_POSE must be auto|0|1 (got: $ENABLE_POSE)" ;;
+esac
+
 # ---- preflight -----------------------------------------------------------
 m4_section "Preflight"
 
@@ -153,6 +176,26 @@ else
     m4_warn "  the 4.3 tab will show as not-ready; 4.1/4.2 are unaffected"
 fi
 
+# The 4.4 wrapper + installed launch are part of this module's code; a stale
+# build is the same footgun as the hub launch above. The TensorRT engines are
+# data, not code: a missing one only slows the first 4.4 start.
+M4_4_MODULE_SCRIPT="$M4_CODE_ROOT/scripts/m4/m4_4_hub_module.sh"
+if [ "$ENABLE_POSE" = "1" ]; then
+    for p in "$M4_4_MODULE_SCRIPT" \
+             "$M4_WS_ROOT/install/m4_demo_bringup/share/m4_demo_bringup/launch/m4_4_web.launch.py"; do
+        [ -e "$p" ] || m4_die "ENABLE_POSE=1 but missing: $p"
+    done
+    m4_ok "pose artifacts present (container=$M4_POSE_CONTAINER)"
+    if [ ! -s "$FOUNDATIONPOSE_HOST_MODEL_ROOT/score_trt_engine.plan" ]; then
+        m4_warn "score engine not built yet; the first 4.4 start will build it (~213 s)"
+    fi
+else
+    m4_warn "M4.4 pose DISABLED for this run"
+    [ -n "$POSE_REASON" ] && m4_warn "  reason: $POSE_REASON"
+    m4_warn "  the 4.4 tab will show as not-ready; 4.1/4.2/4.3 are unaffected"
+fi
+export M4_4_HUB_MODULE_SCRIPT="$M4_4_MODULE_SCRIPT"
+
 # Read-only camera/environment report (also the whole of --check).
 m4_section "Environment"
 m4_note "camera source=$CAMERA_SOURCE device=$CAMERA_DEVICE native=${CAMERA_CAPTURE_WIDTH}x${CAMERA_CAPTURE_HEIGHT} published=${CAMERA_WIDTH}x${CAMERA_HEIGHT}@${CAMERA_FPS}"
@@ -179,19 +222,25 @@ m4_note "web: port=$M4_WEB_PORT host=$M4_WEB_HOST backend=$M4_WEB_BACKEND"
 
 if [ "$CHECK_ONLY" = "1" ]; then
     m4_section "--check complete (no side effects)"
-    m4_note "tracking=$( [ "$ENABLE_TRACKING" = 1 ] && echo enabled || echo disabled ) segmentation=$( [ "$ENABLE_SEGMENTATION" = 1 ] && echo enabled || echo disabled )"
+    m4_note "tracking=$( [ "$ENABLE_TRACKING" = 1 ] && echo enabled || echo disabled ) segmentation=$( [ "$ENABLE_SEGMENTATION" = 1 ] && echo enabled || echo disabled ) pose=$( [ "$ENABLE_POSE" = 1 ] && echo enabled || echo disabled )"
     exit 0
 fi
 
 # ---- plan ----------------------------------------------------------------
 TOPICS_SPEC="m4_1=/perception/demo/m4_1"
-UNAVAILABLE_SPEC=""
+UNAVAILABLE_LIST=()
 [ "$ENABLE_TRACKING" = "1" ] && TOPICS_SPEC="$TOPICS_SPEC,m4_2=/perception/demo/m4_2"
 if [ "$ENABLE_SEGMENTATION" = "1" ]; then
     TOPICS_SPEC="$TOPICS_SPEC,m4_3=/perception/demo/m4_3"
 else
-    UNAVAILABLE_SPEC="m4_3=${SEG_REASON:-segmentation disabled by ENABLE_SEGMENTATION=0}"
+    UNAVAILABLE_LIST+=("m4_3=${SEG_REASON:-segmentation disabled by ENABLE_SEGMENTATION=0}")
 fi
+if [ "$ENABLE_POSE" = "1" ]; then
+    TOPICS_SPEC="$TOPICS_SPEC,m4_4=/perception/demo/m4_4"
+else
+    UNAVAILABLE_LIST+=("m4_4=${POSE_REASON:-pose disabled by ENABLE_POSE=0}")
+fi
+UNAVAILABLE_SPEC="$(IFS=,; echo "${UNAVAILABLE_LIST[*]}")"
 
 if [ "$M4_DRY_RUN" = "1" ]; then
     cat <<EOF
@@ -206,7 +255,8 @@ if [ "$M4_DRY_RUN" = "1" ]; then
   7. Ctrl-C → SIGINT camera/web/module PGIDs, 5s grace, SIGKILL survivors
 
 [DRY-RUN] topics: $TOPICS_SPEC
-[DRY-RUN] tracking=$ENABLE_TRACKING segmentation=$ENABLE_SEGMENTATION
+[DRY-RUN] unavailable: ${UNAVAILABLE_SPEC:-none}
+[DRY-RUN] tracking=$ENABLE_TRACKING segmentation=$ENABLE_SEGMENTATION pose=$ENABLE_POSE
 EOF
     exit 0
 fi
@@ -307,7 +357,8 @@ case "$M4_WEB_ACTIVE" in
     m4_1) m4_wait_for_stage "/perception/demo/m4_1" 15.0 "initial 4.1 overlay" || true ;;
     m4_2) m4_wait_for_stage "/perception/demo/m4_2" 15.0 "initial 4.2 overlay" || true ;;
     m4_3) m4_wait_for_stage "/perception/demo/m4_3" 20.0 "initial 4.3 overlay" || true ;;
-    *) m4_die "M4_WEB_ACTIVE must be m4_1, m4_2 or m4_3 (got: $M4_WEB_ACTIVE)" ;;
+    m4_4) m4_wait_for_stage "/perception/demo/m4_4" 150.0 "initial 4.4 overlay" || true ;;
+    *) m4_die "M4_WEB_ACTIVE must be m4_1, m4_2, m4_3 or m4_4 (got: $M4_WEB_ACTIVE)" ;;
 esac
 
 # ---- status + wait -------------------------------------------------------
