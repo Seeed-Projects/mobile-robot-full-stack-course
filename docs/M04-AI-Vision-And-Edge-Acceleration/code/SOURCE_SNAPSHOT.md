@@ -5,8 +5,8 @@
 | Source repository | Jetson `/home/seeed/workspace/ros2_bev` |
 | Source branch | `main` |
 | Source commits | `6683e08dca3edb7137494d7f84fccc93f5826623` for current M4.4 official Mustard status and runner; `6b83f5b959e487a36addada0462c00131d86e993` for the earlier adapted M4.4 files; `7e945912a299ec36e0a335f508b2a45d53a54060` for the older M4.5 snapshot |
-| Snapshot date | 2026-09-23 |
-| Direction | A → C only; never copy course code back to the Jetson |
+| Snapshot date | 2026-09-24 |
+| Direction | Jetson runtime source to course snapshot |
 
 ## Path mapping
 
@@ -16,37 +16,23 @@
 | `modules/m04-ai-vision-and-edge-acceleration/4.2-multi-object-tracking/` | `code/4.2-multi-object-tracking/` |
 | `modules/m04-ai-vision-and-edge-acceleration/4.3-semantic-segmentation/` | `code/4.3-semantic-segmentation/` |
 | `modules/m04-ai-vision-and-edge-acceleration/4.4-foundationpose/` | `code/4.4-foundationpose/` |
-| `modules/m04-ai-vision-and-edge-acceleration/4.4-isaac-ros-foundationpose/{README.md,config/foundationpose_42.yaml,launch/m4_4_foundationpose_42.launch.py}` | `code/4.4-isaac-ros-foundationpose/` at matching paths |
-| `modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_4_isaacros_quickstart.sh` | `code/scripts/m4/run_m4_4_isaacros_quickstart.sh` |
-| `modules/m04-ai-vision-and-edge-acceleration/scripts/m4/verify_m4_4_pose.py` | `code/scripts/m4/verify_m4_4_pose.py` |
-| `modules/m04-ai-vision-and-edge-acceleration/common/ros2/m4_demo_bringup/` | `code/common/ros2/m4_demo_bringup/` |
-| `modules/common/ros2/bev_interfaces/` | `code/common/ros2/bev_interfaces/` |
-| `modules/m04-ai-vision-and-edge-acceleration/models/m4/` | `code/models/m4/` |
-| `modules/m04-ai-vision-and-edge-acceleration/scripts/{m4,regression}/` | `code/scripts/{m4,regression}/` |
+| `modules/m04-ai-vision-and-edge-acceleration/4.4-isaac-ros-foundationpose/` | `code/4.4-isaac-ros-foundationpose/` |
+| `modules/m04-ai-vision-and-edge-acceleration/scripts/m4/` | `code/scripts/m4/` |
 | `modules/m04-ai-vision-and-edge-acceleration/PROJECT_STATUS.md` | `code/PROJECT_STATUS.md` |
 
 `code/README.md`, this file, `code/common/README.md`, `code/.gitignore`, and
-`code/scripts/setup_workspace.sh` are course packaging files. In particular,
-`setup_workspace.sh` creates the standalone course `ros2_ws`; the Jetson runtime
-does not use it and builds directly with `scripts/build.sh --base-paths modules`.
+`code/scripts/setup_workspace.sh` are course packaging files. Runtime output,
+model binaries, build trees, caches and machine-local configuration are not
+included in the course snapshot.
 
-## Verified status at this commit
+## M4.5 MVP addition
 
-- M4.1: **PASS**
-- M4.2: **PASS**
-- M4.3: see the canonical status file; this M4.4/M4.5 sync does not update its source
-- M4.4 Isaac ROS FoundationPose: **PARTIAL** overall; official FP32/252 and separate FP32/42 Mustard runs produced valid `Detection3DArray` poses, while physical RGB-D remains open
-- M4.5 native NVlabs FoundationPose: **BLOCKED**
+The 2026-09-24 snapshot adds the native Chapter 4.5 standalone entry points:
 
-The current M4.4 status, runbook and runner were copied from `6683e08`; the
-42-profile config, launch and verifier remain identical to `6b83f5b`. Other paths in
-this course code tree retain their earlier snapshot provenance; this update
-does not copy concurrent M4.1/M4.3 work.
+- `scripts/m4/run_m4_5_native_mvp.py`
+- `scripts/m4/run_m4_5_native_mvp.sh`
+- `scripts/m4/phase0_foundationpose_verify.sh` as a compatibility wrapper
 
-Detailed commands, evidence and blockers are in [`PROJECT_STATUS.md`](PROJECT_STATUS.md).
-
-## Exclusions
-
-The snapshot intentionally excludes build/install/log/output trees, caches,
-model binaries, CAD binaries, machine-local configuration, credentials,
-internal Agent handoff files and product requirement drafts.
+The runner uses the pinned NVlabs FoundationPose checkout and official recorded
+Mustard RGB-D sequence, saving pose matrices, annotated frames and a JSON timing
+report under `output/m4/m45_native_mvp/` on the Jetson.

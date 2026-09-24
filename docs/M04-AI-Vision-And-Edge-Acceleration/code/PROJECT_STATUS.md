@@ -3,7 +3,8 @@
 This is the only runtime-status source of truth for M4. Course pages and
 handoff notes may summarize it, but must link here for evidence and numbers.
 
-Last verified: **2026-09-23** on Seeed reComputer Robotics J501, AGX Orin
+Last verified: **2026-09-24** for M4.4 visualization; other module evidence is
+from 2026-09-23. Platform: Seeed reComputer Robotics J501, AGX Orin
 32 GB, JetPack 6.2.1 / L4T R36.4.4, CUDA 12.6, TensorRT 10.3 and ROS 2
 Humble.
 
@@ -15,7 +16,7 @@ Allowed states: `PASS`, `VERIFIED`, `PARTIAL`, `BLOCKED`, `PLANNED`.
 | M4.2 ByteTrack | **PASS** | 30 pytest tests pass; physical camera tracking previously measured at about 30 FPS | None for the documented scope |
 | M4.3 SegFormer TensorRT | **PARTIAL** | Bilinear preprocessing and logits restoration are implemented; CUDA and CPU paths agree; 8/8 CTests and the engine gate pass; Hub semantic output averaged about 11.3 FPS after optimization | Hub preview was 6.7–10.4 FPS in a 30-second page-rate sample, so stable 10 FPS is not accepted; ADE20K indoor candidate remains unevaluated and Cityscapes stays default |
 | M4.4 Isaac ROS FoundationPose | **PARTIAL** | Official FP32/252 Mustard graph and separate FP32/42 adaptation both produced valid `Detection3DArray` poses on `/output` | Orbbec Gemini 2 is unavailable, so physical RGB-D acceptance remains open |
-| M4.5 NVlabs FoundationPose | **BLOCKED** | Legacy `bev_pose` scaffold installs; no successful inference exists | Native runtime, weights, supported RGB-D driver and physical camera remain incomplete |
+| M4.5 NVlabs FoundationPose | **PARTIAL** | Native standalone MVP completed 8-frame Mustard register/tracking run with finite poses, annotated frames and timing report | This MVP uses the official recorded sequence; live RGB-D camera integration is a later extension |
 | Shared Hub / video input | **PARTIAL** | Video repair is committed; build, 3 Hub regression cycles and 9 video state tests pass; a fresh three-upload run reached `playing` each time | The final run used a synthetic camera and did not exercise a physical-camera session or injected stall |
 
 ## M4.1 — YOLO11n TensorRT
@@ -131,6 +132,26 @@ Allowed states: `PASS`, `VERIFIED`, `PARTIAL`, `BLOCKED`, `PLANNED`.
   `[0.7753970849, -0.3331845536, 0.3022323303, -0.4431738174]`, norm
   `1.0`; the verifier returned `valid_pose`, with no rejected messages. The
   launch, bag and pose logs have this run ID under `m4_4_logs/`.
+- **Visualization follow-up (2026-09-24):** the user's grid-only RViz view had
+  the Camera dock hidden, and the acceptance runner stopped playback as soon
+  as `valid_pose` arrived. The visual runner now opens RViz, focuses the 3D
+  view near the recorded Mustard pose, and holds the official graph and looping
+  bag for 120 seconds by default. The GNOME desktop icon
+  `/home/seeed/Desktop/m4_4_mustard_demo.desktop` calls it with a 300-second
+  hold. On the physical 1024x600 Jetson display, launching that icon through
+  the graphical session produced a visible Mustard RGB frame in RViz's Camera
+  dock and a red 3D detection. Run `20260924-014511-25838-official` returned
+  `valid_pose`; `/output` had one publisher and one RViz subscriber, and
+  `/rgb/image_rect_color` had one publisher and four subscribers during the
+  hold. The separate local viewer image `m44-foundationpose-viewer:local`
+  (image ID `5e56c210b462`) was made from the installed Isaac ROS container
+  so RViz could access NVIDIA's display through the local X11 socket. Sending
+  an interrupt to the launcher's process group removed its viewer container,
+  launch, rosbag and component container. A separate `M44_VIEW_SECONDS=3`
+  normal-exit run (`20260924-014935-27114-official`) returned `valid_pose`
+  and also left none of those live processes. A second visual launch is
+  rejected with exit 3 while its per-user lock is held. This visualization does not change
+  the single-frame evidence limit or M4.4's `PARTIAL` physical-camera status.
 - **Next gate:** the one-frame bag cannot establish FPS or physical-camera
   performance. The user confirmed that Orbbec Gemini 2 is not currently
   available; physical RGB-D, camera calibration/alignment and an object
@@ -138,13 +159,28 @@ Allowed states: `PASS`, `VERIFIED`, `PARTIAL`, `BLOCKED`, `PLANNED`.
 
 ## M4.5 — NVlabs FoundationPose
 
-- **Status:** `BLOCKED`; native `bev_pose` has no accepted inference.
+- **Status:** `PARTIAL`; the standalone native FoundationPose MVP completed an
+  8-frame official Mustard sequence on 2026-09-24.
+- **Runtime evidence:** frame 0 used `register` with the 252-candidate global
+  grid and frames 1–7 used `track_one`. All eight 4x4 pose matrices were finite.
+  The run wrote `report.json`, per-frame matrices and annotated first/last
+  frames under `output/m4/m45_native_mvp/` and printed
+  `M45_NATIVE_MVP_OK`.
+- **Measured timing:** first-frame registration took 11050.90 ms. Tracking took
+  89.37–237.11 ms per frame, averaging about 120.43 ms; the report's 8.30 FPS
+  is a tracking-only reference and not a full camera-pipeline frame rate.
+- **Runtime:** pinned NVlabs commit
+  `a1b694b83e633c2cb6115b9063d940a687759392`, Python 3.10, PyTorch 2.11,
+  PyTorch3D 0.7.9, nvdiffrast 0.4.0 and the compiled `mycpp` extension.
+- **JetPack compatibility:** the runner disables user-site packages and uses a
+  local analytic inverse for the 3x3 crop/camera matrices because the current
+  PyTorch wheel requests two cuSOLVER symbols newer than JetPack 6.2.1's CUDA
+  12.6 library. The upstream FoundationPose checkout is unchanged.
 - **Legacy physical paths:** `4.4-foundationpose/`, `run_m4_4_demo.sh` and
   `m4_4_demo.launch.py` still identify the original scaffold. They are not the
   M4.4 Isaac ROS entry and must not be used as evidence for it.
-- **Missing:** validated NVlabs runtime/weights, supported RGB-D driver and
-  attached Orbbec Gemini 2. Native acceptance remains separate from the
-  Isaac ROS quickstart.
+- **Scope:** this release uses the official recorded RGB-D sequence. ROS 2
+  wrapping and a live RGB-D camera remain follow-up integration work.
 
 ## Shared Hub and input control
 

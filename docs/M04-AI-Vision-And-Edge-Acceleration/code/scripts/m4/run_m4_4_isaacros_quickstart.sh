@@ -12,11 +12,19 @@ HOST_MODEL_ROOT="${HOST_MODEL_ROOT:-/home/seeed/workspace/isaac_ros_assets/model
 RTDETR_ENGINE="${RTDETR_ENGINE:-/workspaces/isaac_ros-dev/isaac_ros_assets/models/synthetica_detr/sdetr_grasp.plan}"
 POSE_TOPIC="${POSE_TOPIC:-/output}"
 M44_POSE_TIMEOUT="${M44_POSE_TIMEOUT:-240}"
+M44_VIEW_SECONDS="${M44_VIEW_SECONDS:-0}"
+M44_RUN_TOKEN="${M44_RUN_TOKEN:-quickstart-$$}"
 M44_SOURCE_ROOT="${M44_SOURCE_ROOT:-/workspaces/ros2_bev/modules/m04-ai-vision-and-edge-acceleration}"
 
 case "$M44_MODE" in
   official|adapted) ;;
   *) echo "ERROR: M44_MODE must be official or adapted." >&2; exit 2 ;;
+esac
+case "$M44_VIEW_SECONDS" in
+  ''|*[!0-9]*) echo 'ERROR: M44_VIEW_SECONDS must be a nonnegative integer.' >&2; exit 2 ;;
+esac
+case "$M44_RUN_TOKEN" in
+  ''|*[!a-zA-Z0-9_-]*) echo 'ERROR: invalid M44_RUN_TOKEN.' >&2; exit 2 ;;
 esac
 if ! command -v docker >/dev/null || ! docker inspect "$CONTAINER" >/dev/null 2>&1; then
   echo "ERROR: Isaac ROS container '$CONTAINER' is not available." >&2
@@ -36,6 +44,37 @@ if [ "$M44_MODE" = adapted ]; then
   docker exec "$CONTAINER" test -f "$M44_SOURCE_ROOT/4.4-isaac-ros-foundationpose/config/foundationpose_42.yaml" || exit 4
   docker exec "$CONTAINER" test -f "$M44_SOURCE_ROOT/4.4-isaac-ros-foundationpose/launch/m4_4_foundationpose_42.launch.py" || exit 4
 fi
+
+# docker exec may leave the container-side shell running if the desktop
+# terminal closes. This state file names only the processes started by this run.
+stop_owned_run() {
+  docker exec -e M44_RUN_TOKEN="$M44_RUN_TOKEN" "$CONTAINER" bash -lc '
+    state_file="/tmp/m44-run-$M44_RUN_TOKEN.state"
+    test -f "$state_file" || exit 0
+    mapfile -t owned < "$state_file"
+    inner_pid="${owned[0]:-}"
+    launch_pid="${owned[1]:-}"
+    bag_pid="${owned[2]:-}"
+    for pid in "$bag_pid" "$launch_pid"; do
+      if [[ "$pid" =~ ^[0-9]+$ ]]; then kill -TERM -- "-$pid" 2>/dev/null || true; fi
+    done
+    if [[ "$inner_pid" =~ ^[0-9]+$ ]]; then
+      pkill -TERM -P "$inner_pid" 2>/dev/null || true
+      kill -TERM "$inner_pid" 2>/dev/null || true
+    fi
+    sleep 2
+    for pid in "$bag_pid" "$launch_pid"; do
+      if [[ "$pid" =~ ^[0-9]+$ ]] && kill -0 -- "-$pid" 2>/dev/null; then
+        kill -KILL -- "-$pid" 2>/dev/null || true
+      fi
+    done
+    rm -f "$state_file"
+  ' >/dev/null 2>&1 || true
+}
+trap stop_owned_run EXIT
+trap 'exit 129' HUP
+trap 'exit 130' INT
+trap 'exit 143' TERM
 
 # On this Jetson the official 252-profile build fits when trtexec runs on the
 # host; the same TensorRT 10.3 build exhausted device memory in the container.
@@ -64,6 +103,8 @@ docker exec -i -e M44_MODE="$M44_MODE" -e ASSET_ROOT="$ASSET_ROOT" \
   -e MODEL_ROOT="$MODEL_ROOT" -e TRTEXEC="$TRTEXEC" \
   -e RTDETR_ENGINE="$RTDETR_ENGINE" -e POSE_TOPIC="$POSE_TOPIC" \
   -e M44_POSE_TIMEOUT="$M44_POSE_TIMEOUT" \
+  -e M44_VIEW_SECONDS="$M44_VIEW_SECONDS" \
+  -e M44_RUN_TOKEN="$M44_RUN_TOKEN" \
   -e M44_SOURCE_ROOT="$M44_SOURCE_ROOT" "$CONTAINER" bash -s <<'INNER'
 set -Eeo pipefail
 source /opt/ros/humble/setup.bash
@@ -76,6 +117,11 @@ bag_log="$log_root/$run_id-bag.log"
 pose_log="$log_root/$run_id-pose.json"
 launch_pid=
 bag_pid=
+state_file="/tmp/m44-run-$M44_RUN_TOKEN.state"
+write_state() {
+  printf '%s\n%s\n%s\n' "$$" "$launch_pid" "$bag_pid" >"$state_file"
+}
+write_state
 cleanup() {
   for pid in "$bag_pid" "$launch_pid"; do
     if [ -n "$pid" ]; then kill -TERM -- "-$pid" 2>/dev/null || true; fi
@@ -87,8 +133,10 @@ cleanup() {
     fi
   done
   wait 2>/dev/null || true
+  rm -f "$state_file"
 }
 trap cleanup EXIT
+trap 'exit 129' HUP
 trap 'exit 130' INT
 trap 'exit 143' TERM
 
@@ -145,6 +193,7 @@ else
 fi
 setsid ros2 launch "${launch_target[@]}" "${launch_args[@]}" >"$launch_log" 2>&1 &
 launch_pid=$!
+write_state
 sleep 20
 if ! kill -0 "$launch_pid" 2>/dev/null; then
   tail -n 100 "$launch_log" >&2
@@ -152,6 +201,7 @@ if ! kill -0 "$launch_pid" 2>/dev/null; then
 fi
 setsid ros2 bag play "$ASSET_ROOT/quickstart.bag" --loop >"$bag_log" 2>&1 &
 bag_pid=$!
+write_state
 if ! python3 "$M44_SOURCE_ROOT/scripts/m4/verify_m4_4_pose.py" \
     --topic "$POSE_TOPIC" --timeout "$M44_POSE_TIMEOUT" | tee "$pose_log"; then
   echo "ERROR: no valid Detection3DArray pose; logs: $launch_log $bag_log" >&2
@@ -160,4 +210,8 @@ if ! python3 "$M44_SOURCE_ROOT/scripts/m4/verify_m4_4_pose.py" \
   exit 8
 fi
 echo "M4.4 logs: $launch_log $bag_log $pose_log"
+if [ "$M44_VIEW_SECONDS" -gt 0 ]; then
+  echo "M4.4 viewer hold: keeping launch and looping bag for ${M44_VIEW_SECONDS}s"
+  sleep "$M44_VIEW_SECONDS"
+fi
 INNER

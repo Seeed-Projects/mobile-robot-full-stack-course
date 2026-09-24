@@ -56,6 +56,34 @@ is `/output`; the FoundationPose node logs that remapping. The official run
 `/home/seeed/workspace/isaac_ros_assets/m4_4_logs/`. The earlier adapted
 run `20260923-100715-14266-adapted` remains separately recorded there.
 
+## View the Mustard image and pose
+
+From a **graphical terminal on the Jetson desktop** (a local display or remote
+desktop session), use the visual runner:
+
+```bash
+cd /home/seeed/workspace/ros2_bev
+M44_MODE=official modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_4_isaacros_visual.sh
+```
+
+This reuses the official quickstart and keeps its graph and looping bag active
+for 120 seconds after `valid_pose`. RViz opens with its 3D view focused on the
+recorded Mustard position. The RGB frame is in RViz's left **Camera** dock;
+click the arrow at the far left if the dock is hidden, then drag the Camera
+dock border upward to make the frame larger. Set `M44_VIEW_SECONDS=300` for a
+longer inspection. On this Jetson, the desktop icon
+`/home/seeed/Desktop/m4_4_mustard_demo.desktop` runs the same script with a
+300-second viewing period. Its source is `m4_4_mustard_demo.desktop` in this
+directory. The viewer runs in a temporary container made from the installed
+Isaac ROS container (`m44-foundationpose-viewer:local`) and mounts the host X11
+socket directly; this avoids a physical-display GLX stall seen with the earlier
+TCP display bridge. The runner removes the viewer container on exit, and the
+quickstart stops its own launch and bag process groups, including when the
+launching terminal is interrupted. A second launch while the viewer is active
+is rejected. It requires a desktop `DISPLAY` and X11
+authorization. A plain SSH shell with no desktop cannot display the window.
+A single-frame bag is still not live video.
+
 ## Physical integration gate
 
 The single-frame bag cannot establish frame rate, accuracy over multiple
@@ -67,3 +95,50 @@ accepted yet.
 
 Versioned documentation:
 https://nvidia-isaac-ros.github.io/v/release-3.2/repositories_and_packages/isaac_ros_pose_estimation/isaac_ros_foundationpose/index.html
+
+## Technical path
+
+FoundationPose consumes an RGB image, aligned depth, `CameraInfo`, and a
+single-object instance mask. It generates global pose hypotheses, refines
+them with a TensorRT refine engine, ranks them with a TensorRT score engine,
+and publishes a `vision_msgs/Detection3DArray`. The refine and score stages
+are different models: tracking can reuse the previous pose and mainly run
+refinement, while first-frame estimation must search and score hypotheses.
+
+The official ROS inputs are `pose_estimation/image`,
+`pose_estimation/depth_image`, `pose_estimation/camera_info`, and
+`pose_estimation/segmentation`. This project's launch remaps them to
+`rgb/image_rect_color`, `depth_image`, `rgb/camera_info`, and `segmentation`;
+the observed absolute output is `/output`. A 4.3 semantic class mask is not a
+replacement for the target instance mask.
+
+## Jetson resource and performance notes
+
+Isaac ROS 3.2 documents FP32 TensorRT engines for FoundationPose on TensorRT
+10.3+ because of FP16 precision loss, and calls for about 7.5 GB of free GPU
+memory during conversion. The official score profile is min/opt/max
+`1/1/252`; the separate project adaptation is `1/1/42` and uses a narrower
+orientation sampling grid. Do not connect the 42-profile plan to the default
+252-candidate graph.
+
+The official Isaac ROS 3.2 AGX Orin 720p benchmark is about 1.54 FPS for pose
+estimation. The official README reports tracking above 120 FPS on Jetson Orin;
+these numbers describe different stages and are not a physical-camera result
+from this project. This Jetson has a valid single-frame Mustard pose, but no
+Orbbec Gemini 2, continuous sequence, ground truth, or accepted physical FPS.
+
+## Applications and limits
+
+The output can feed grasping, mobile-robot approach/avoidance, AR/MR overlay,
+or inventory/inspection. Each consumer still needs calibrated camera
+extrinsics, TF conversion, a reliable instance mask, and a task-specific
+quality gate. A nonempty message with a unit quaternion proves message
+validity, not pose accuracy. The canonical status remains `PARTIAL` in
+`../PROJECT_STATUS.md`.
+
+## Source references
+
+- [FoundationPose paper, arXiv:2312.08344](https://arxiv.org/html/2312.08344)
+- [Isaac ROS 3.2 FoundationPose documentation](https://nvidia-isaac-ros.github.io/v/release-3.2/repositories_and_packages/isaac_ros_pose_estimation/isaac_ros_foundationpose/index.html)
+- [NVIDIA-ISAAC-ROS/isaac_ros_pose_estimation release-3.2](https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_pose_estimation/tree/release-3.2)
+- [NVlabs/FoundationPose](https://github.com/NVlabs/FoundationPose)

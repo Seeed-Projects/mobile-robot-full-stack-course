@@ -1,344 +1,239 @@
-# 4.5 原生 NVlabs FoundationPose：6D 位姿估计
+# 4.5 原生 NVlabs FoundationPose：从 RGB-D 到 6D 位姿
 
-**状态：BLOCKED。** 本章保留原生 NVlabs/PyTorch 的 `bev_pose` 实验路线。物理代码路径仍是 `code/4.4-foundationpose/`，旧 `run_m4_4_demo.sh` 与共享 Hub 入口仍指向该脚手架，不是 [4.4 Isaac ROS 官方示例](../4.4_Isaac_ROS_FoundationPose_and_Acceleration/README_zh_CN.md)。原生运行时、权重和真实 RGB-D 输入尚未齐备，也没有接受过姿态推理结果。完整阻塞项以 [`code/PROJECT_STATUS.md`](../code/PROJECT_STATUS.md) 为准。
+## 本章目标
 
-下面的内容是**实现契约与验收入口**，不是可运行实验。「跑不通」在这一章是预期状态，不是你的操作错误。
+本章直接使用 NVlabs/PyTorch FoundationPose，把一个已知物体的 RGB-D 图像、相机内参、实例掩膜和 CAD 网格转换成物体在相机坐标系中的 6D 位姿。课程代码保留 `bev_pose` ROS 2 封装，同时提供一个更容易复现的 standalone MVP，用来先理解算法，再接入 ROS 话题。
 
-## 课程概述
+完成本章后，你应能：
 
-4.1 到 4.3 解决的都是二维问题：画面里有什么、它是第几号目标、每个像素属于哪一类。抓取要回答的是另一个问题：**这个物体在三维空间里的位置与朝向是什么**。
+- 用平移、旋转、齐次矩阵和四元数解释 6D 位姿。
+- 说明 RGB、depth、CameraInfo、实例掩膜和 CAD mesh 的分工。
+- 区分 FoundationPose 的 `register` 首帧初始化与 `track_one` 后续跟踪。
+- 在 Jetson 上准备 NVlabs 仓库、权重、CUDA 扩展和 Mustard 示例数据。
+- 运行最小 MVP，读取 `report.json` 和首末帧位姿图。
+- 看懂 `bev_pose` 如何把模型结果发布为 `PoseStamped`、`Detection3DArray` 和 TF。
 
-检测给出「往哪儿看」，姿态估计给出「怎么放爪」。中间还差两步：检测框要先变成掩码，FoundationPose 不吃矩形框；姿态估计算出的量还要从相机坐标系换算到机器人基坐标系，这一步由 TF 链完成。
+## 1. 6D 位姿基础
 
-本章的原理部分是本模块里最扎实的一段，因为实机用的算法就是这里讲的 FoundationPose。动手部分要如实说明的是：这套链路在实机上还差三样东西才能跑起来。
+刚体的 6D 位姿由三维平移和三维旋转组成：
 
-### 先知道：这节课会带你完成什么
+```text
+t = (x, y, z)
+R = 3×3 rotation matrix
+T_cam_obj = [[R, t], [0, 0, 0, 1]]
+```
 
-| 阶段 | 你会理解什么 | 最终能做什么 |
+物体坐标系中的点 `p_obj` 经过位姿变换后位于相机坐标系：
+
+```text
+p_cam = R · p_obj + t
+```
+
+ROS 2 通常用 `geometry_msgs/Pose` 表示位姿，其中旋转使用 `x,y,z,w` 顺序的四元数。四元数应保持有限且归一化；`q` 与 `-q` 表示同一个旋转。位姿消息的 `header.frame_id` 同样重要：相机坐标系中的位置必须通过 TF 和相机外参转换后，才能用于机器人基座或机械臂规划。
+
+### 检测框、语义掩膜和实例掩膜
+
+| 输入 | 表示什么 | FoundationPose 中的用途 |
 | --- | --- | --- |
-| 读懂 | 6D 姿态的 6 个自由度分别是什么，为什么要用四元数而不是矩阵做回归目标 | 读懂任意一份姿态输出的字段含义 |
-| 看透 | FoundationPose 的三段机制：假设生成、细化、选择 | 说清它为什么不需要外部网络猜初始姿态 |
-| 辨清 | 与 DOPE 这类关键点方案的分工 | 按「有没有 CAD、能不能接受秒级初始化」选路线 |
-| 验收 | 这一章还差什么才能跑，以及按什么标准判断「能跑了」 | 列出依赖、权重、相机三项前置，并定义升级条件 |
+| 检测框 | 目标在图像中的矩形范围 | 提供搜索区域或初始化提示 |
+| 语义掩膜 | 每个像素属于哪一类 | 说明“这是路面/墙/桌子”等类别 |
+| 实例掩膜 | 某一个具体物体的像素 | 从深度中提取目标点，作为 `register` 的 `ob_mask` |
 
-### 学完后，你能做到什么
+4.3 的道路语义掩膜不能直接作为一个路由器或瓶子的实例掩膜。目标实例掩膜应尽量只覆盖一个物体，并且与 RGB、depth 使用相同的分辨率和坐标对齐关系。
 
-- 说清 6D 姿态的 6 个自由度，以及齐次变换、四元数、轴角各自的适用位置。
+### RGB、深度和 CameraInfo 的分工
 
-- 说清相机坐标系、物体坐标系、机器人基坐标系三者在管线里的角色，以及 TF 链连乘的关系。
+- RGB 提供纹理和外观，用于网络比较观测图像与渲染模型。
+- depth 提供每个像素的距离，使二维区域能够恢复为三维点。
+- `CameraInfo.K` 提供焦距和主点，决定像素如何反投影到相机坐标系。
+- CAD mesh 提供物体的几何尺寸、表面法线和可渲染模型。
 
-- 说出 6D 姿态估计的四类技术路线各自依赖什么先验、代价在哪。
+没有深度，系统很难从单个二维区域直接确定尺度和距离；没有内参，深度点无法正确变换到相机坐标系；没有实例掩膜，背景和邻近物体会干扰注册。
 
-- 复述 FoundationPose 的三段机制，并说清「扩散模型不参与推理」这个常被误读的点。
+## 2. FoundationPose 的算法流程
 
-- 说出姿态误差的四个来源（对称、遮挡、截断、深度噪声）各自的典型表现。
+FoundationPose 将“物体模型”和“当前观测”放进同一个几何与学习混合的流程中。论文同时讨论了 model-based 和 model-free 两种输入方式：model-based 使用已知 CAD/mesh，model-free 可以从参考图像建立物体表示。本课程的 MVP 使用 model-based 路线，目标 mesh 是已准备好的 `textured_simple.obj`。
 
-- 列出 `bev_pose` 从骨架到可运行还差的三项前置，以及它们各自怎么验证。
+![FoundationPose 论文 Figure 2：姿态假设、细化、评分与跟踪](../4.4_Isaac_ROS_FoundationPose_and_Acceleration/images/foundationpose_paper_pipeline.png)
 
-### 硬件与软件清单
+*图：FoundationPose 的统一估计与跟踪流程。来源：[FoundationPose 论文，arXiv 2312.08344](https://arxiv.org/abs/2312.08344)，Figure 2。首帧从全局姿态候选开始，后续帧从上一帧姿态开始。*
 
-| ![硬件与软件清单](./images/Yv51b1b5UonaTMxQqS0ca0ORnzh.png) | ![硬件与软件清单](./images/Orz9bmlgMo0a9LxVD2TcpbqIntb.png) | ![硬件与软件清单](./images/T6m7b6KHbokACSxomW6cAm3snWf.png) |
-| --- | --- | --- |
-| reCImputer mini J501  + GMSL拓展板 |   | GMSL摄像头 / USB 摄像头 |
+### 首帧 `register`
 
-| 类别 | 说明 |
+`register` 接收：
+
+```text
+RGB + aligned depth + camera K + object instance mask + mesh
+```
+
+核心步骤可以概括为：
+
+1. 根据实例掩膜和深度估计目标的大致三维中心。
+2. 在 icosphere 采样的多个视角和面内旋转上生成姿态假设。
+3. refine 网络比较渲染模型与真实 RGB-D 观测，迭代更新平移和旋转。
+4. score 网络为候选姿态打分并排序，选出当前帧结果。
+
+因此，检测框只是二维提示，最终输出是一个包含尺度、距离和朝向的 `T_cam_obj`。
+
+### 后续 `track_one`
+
+跟踪阶段不再从完整的全局姿态网格开始，而是使用上一帧的姿态作为热启动，重点做局部更新。首帧注册通常需要更多候选和更多 refine 迭代，后续 tracking 的计算量更小。课程脚本分别记录 `register_ms` 和 `track_ms`，避免把两个阶段混成一个帧率。
+
+官方接口可在 [NVlabs `estimater.py`](https://github.com/NVlabs/FoundationPose/blob/main/estimater.py) 和 [官方 `run_demo.py`](https://github.com/NVlabs/FoundationPose/blob/main/run_demo.py) 中核对：
+
+```python
+pose = est.register(K=K, rgb=rgb, depth=depth, ob_mask=mask, iteration=5)
+pose = est.track_one(rgb=rgb, depth=depth, K=K, iteration=2)
+```
+
+### 常见误差来源
+
+- 物体有对称结构时，多个旋转可能产生相近的外观。
+- 目标被遮挡或掩膜包含背景时，候选排序更容易出错。
+- RGB/depth 没有对齐、深度单位错误或 CameraInfo 不匹配时，会出现系统性的三维偏移。
+- CAD mesh 的单位或姿态与真实物体不一致时，位姿方向可能看似合理，但距离和尺寸会整体错误。
+
+## 3. Jetson MVP 环境
+
+当前课程目标平台是 Seeed reComputer Robotics J501，Jetson AGX Orin 32 GB，JetPack 6.2.1 / L4T R36.4.4，CUDA 12.6，Python 3.10。NVlabs 仓库固定在课程验证过的 commit：
+
+```text
+a1b694b83e633c2cb6115b9063d940a687759392
+```
+
+MVP 使用以下目录：
+
+```text
+/home/seeed/workspace/third_party/FoundationPose/
+├── demo_data/mustard0/
+├── weights/2023-10-28-18-33-37/model_best.pth
+├── weights/2024-01-11-20-02-45/model_best.pth
+└── mycpp/build/mycpp*.so
+```
+
+其中 refiner 和 scorer 分别从各自的 `config.yml` 和 `model_best.pth` 加载。`mycpp` 用于姿态候选聚类；`nvdiffrast` 用于 GPU 光栅化；PyTorch 负责网络推理和张量计算。
+
+## 4. 运行最小 MVP
+
+课程代码位于 `code/scripts/m4/`。在 Jetson 的 M4 模块根目录执行：
+
+```bash
+cd /home/seeed/workspace/ros2_bev/modules/m04-ai-vision-and-edge-acceleration
+
+# 语法兼容入口，实际转发到 MVP runner
+bash scripts/m4/phase0_foundationpose_verify.sh --frames 8
+
+# 推荐入口
+bash scripts/m4/run_m4_5_native_mvp.sh --frames 8
+```
+
+脚本默认使用 NVlabs 官方 Mustard 录制序列，执行一次 `register`，再执行若干次 `track_one`。输出目录为：
+
+```text
+output/m4/m45_native_mvp/
+├── report.json
+├── pose_0000.txt
+├── pose_0001.txt
+├── ...
+├── frame_0000_pose.png
+├── frame_0007_pose.png
+└── debug/
+```
+
+`report.json` 的关键字段如下：
+
+| 字段 | 含义 |
 | --- | --- |
-| 计算平台 | reComputer J501（Jetson AGX Orin 32GB，MAXN 模式）；JetPack 6.2.1（L4T 36.4.4）、Ubuntu 22.04、CUDA 12.6、TensorRT 10.3.x、ROS 2 Humble |
-| 相机 | Orbbec Gemini 2（USB3，主动双目红外，集成 6 轴 IMU，支持硬件 D2C 对齐；与 2.2 / 4.3 同款）。**本章是模块里第一次真正消费深度**：需要彩色、深度、`camera_info` 三路都对齐 |
-| 算法栈 | **NVlabs/FoundationPose**（PyTorch + nvdiffrast），由 `bev_pose` 包独立封装 |
-| 模型与权重 | `model_dir` 指向 `/home/seeed/FoundationPose/weights`，**当前不存在** |
-| 依赖 | `torch`、`trimesh`、`nvdiffrast`，**当前均未安装** |
-| 网格输入 | 一份 `.obj` 网格，经 `mesh_preprocessor.py` 预计算成 `.npz`（参数 `mesh_npz_path`），或直接给 NVlabs 源网格（参数 `mesh_obj`） |
+| `register_ms` | 首帧全局姿态初始化耗时 |
+| `track_ms` | 每个后续帧的跟踪耗时列表 |
+| `track_fps` | 仅由 tracking 阶段平均耗时换算的参考值 |
+| `first_pose` / `last_pose` | 首帧和末帧的 4×4 相机到物体变换 |
 
-### 前置基础
+MVP 的价值在于把算法生命周期和输出证据固定下来：先看注册如何从候选中选择姿态，再看 tracking 如何沿用上一帧结果。
 
-- 4.1 / 4.3：检测链路与掩膜接口已理解。本章用检测框演化的掩码作为输入之一。
+### Jetson Mustard 运行结果
 
-- [2.2 深度相机与 3D 视觉感知](https://seeedstudio.feishu.cn/docx/Jj53dSSudoKyEdxk6jHcYnMHnOc)：深度图与彩色图的 D2C 对齐。
+在 J501 / AGX Orin 32 GB、JetPack 6.2.1、CUDA 12.6 上，使用官方 `mustard0` RGB-D 序列运行 8 帧，结果如下：
 
-- [2.1 GMSL2 ：车载级多相机接入](https://seeedstudio.feishu.cn/docx/Takhd7wo5oPx3mx0ljhcfyxDnEe)：确认图像通路。
-
-- 会用 `ros2 run tf2_tools view_frames` 看 TF 树。
-
-- 线性代数基础：能读矩阵乘法、能接受旋转矩阵与四元数是同一个旋转的两种记法即可。
-
-## 先读懂：从检测框到物体位姿
-
-### 为什么需要 6D 姿态：从「在哪里」到「怎么抓」
-
-检测回答的是二维定位问题：物体在画面里占了哪一块像素。这个答案对抓取不够用，因为图像里的位置不携带深度，也不携带朝向。6D 姿态估计（6D Pose Estimation）回答的是三维刚体定位问题：物体在某个坐标系下的三维位置（3D 平移 $t$）与三维朝向（3D 旋转 $R$）。位置 3 个自由度、朝向 3 个自由度，合起来 6 个自由度，这就是「6D」的来源。
-
-把这两问拼起来，就得到本章的主线：检测给出「往哪儿看」，姿态估计给出「怎么放爪」。
-
-### 姿态的表示：R、t、齐次变换、四元数、轴角
-
-旋转只有 3 个自由度，却可以有 4 种以上写法，选择哪一种取决于你要拿它做什么：直接参与坐标变换，还是送给神经网络回归。先看位置与朝向如何合成一个量。
-
-平移与旋转可以合成一个 4×4 齐次变换矩阵，作用是把物体坐标系下的一点 $p_{obj}$ 变到相机坐标系：
-
-$T_{cam}^{obj} = \begin{bmatrix} R & t \\ 0 & 1 \end{bmatrix}, \qquad p_{cam} = R\,p_{obj} + t$
-
-$R$ 是 3×3 旋转矩阵，$t$ 是 3×1 平移向量，第四行固定为 $[0\ 0\ 0\ 1]$。这样写的代价是 4×4 里塞了 16 个数，而自由度只有 6 个。好处是一次矩阵乘法就同时完成旋转与平移，多次变换可以直接连乘。
-
-四种旋转表示各自的适用位置如下：
-
-| 表示 | 参数与约束 | 它的代价 | 适合用在哪 |
-| --- | --- | --- | --- |
-| 旋转矩阵 $R$ | 9 个数，满足 $R^{T}R = I$ 与 $\det(R) = 1$，实际 3 自由度 | 参数冗余，直接回归出的矩阵一般不满足正交性，需再做正交化 | 坐标变换、TF 广播、误差计算；不直接送去做回归目标 |
-| 四元数 $q = [w, x, y, z]$ | 4 个数，1 个单位长度约束，3 自由度 | 符号歧义：$q$ 与 $-q$ 表示同一旋转，训练时需做符号对齐 | 网络回归目标；ROS 消息、TF 与 `geometry_msgs/Quaternion` 的默认存储形式 |
-| 轴角 $r = \theta n$ | 单位轴 $n$ 加角度 $\theta$，合写为 3 维向量，3 自由度 | $\theta$ 接近 $\pi$ 时方向翻转，回归不连续 | 表达误差、做插值中间量；不单独作为大范围回归目标 |
-| 6D 连续表示 | 回归旋转矩阵的**前两列**共 6 个数，再用 Gram-Schmidt 正交化还原 $R$ | 需要一次正交化后处理 | 背景知识：深度学习旋转回归的主流选择，本章不涉及 |
-
-四元数虽然紧凑，但比较两个姿态时要注意：$q$ 与 $-q$ 是同一个旋转，直接相减会把它们算成 180° 误差。夹角误差取 $\theta = 2\arccos\big(|\langle q_1, q_2\rangle|\big)$ 即可 —— 先取内积的绝对值，符号歧义就消失了；实现时对内积做一次 clamp，避免浮点误差越界。
-
-$R$ 与四元数是同一个旋转的两种记法，不是两个不同的量：前者用于坐标变换，后者用于网络回归与 ROS 消息。
-
-### 坐标系约定：相机系、物体系、基座标
-
-同一句「物体在 (0.4, 0.1, 0.6)」，换个坐标系就是完全不同的意思。本章管线里固定出现三个坐标系，先把它们各自的角色分清，后面调试姿态漂移时才有一个可指认的参照。
-
-| 坐标系 | 原点与轴的定义 | 在本章管线里的角色 |
-| --- | --- | --- |
-| 相机坐标系 | 光心为原点，$x$ 向右、$y$ 向下、$z$ 沿光轴向前 | RGB-D 数据与内参 $K$ 所在坐标系；姿态估计与跟踪都在这里做投影与渲染 |
-| 物体坐标系 | 由你提供的网格文件定义，原点与轴向就是网格自身的坐标系 | 姿态估计结果的「被描述对象」；$T_{cam}^{obj}$ 就是把物体系变到相机系的那个变换 |
-| 机器人基坐标系 | 车体或机械臂底座，课程沿用 `base_link` | 规划抓取时使用的坐标系；由 TF 链把相机系下的姿态换算过来 |
-
-三者的连接方式是 TF 链连乘：$T_{base}^{obj} = T_{base}^{cam} \cdot T_{cam}^{obj}$。这条链一旦有一环缺失或时间戳过期，RViz2 里表现为物体 TF 飘到画面外或不再刷新，而不是数字略有偏差。所以排查姿态问题时，第一步永远是 `ros2 run tf2_tools view_frames`，看链上有没有断环。
-
-$T_{base}^{cam}$ 不是标定一次就永远成立的量。相机装在机械臂末端时它由手眼标定给出（Eye-in-hand），相机固定在外部时由外参给出。把姿态直接接到 MoveIt2 之前，先确认这一环是已标定的实数，而不是临时拼的近似值。
-
-**一句话记忆：**姿态估计输出的是「物体相对相机」的变换；抓取需要的是「物体相对基座」的变换。两者的差别就是一个 $T_{base}^{cam}$，它由标定与 TF 提供，不由模型预测。
-
-### 方法分类：四类路线与各自的代价
-
-6D 姿态估计的方法可以按「依赖什么先验、在哪一步求解」分成四类。选型不取决于哪一类更新，而取决于你手上有没有网格或参考图、物体是否对称、遮挡有多重、能不能接受秒级延迟。
-
-| 路线 | 代表方法 | 依赖的先验 | 主要代价与失效场景 |
-| --- | --- | --- | --- |
-| 模板匹配 | LINEMOD 及其改进 | CAD 模型：离线渲染多视角模板与法向、深度梯度特征 | 模板库体积大、初始化慢；对严重遮挡与杂乱背景敏感；纹理缺失物体几乎无特征可匹配 |
-| 直接回归 | PoseCNN、CenterSnap | 覆盖目标类别的训练数据；CenterSnap 额外需要深度 | 对训练集外的物体泛化差；对称物体的旋转歧义会让回归目标自相矛盾；精度量级在厘米级 |
-| 关键点 + PnP | DOPE、PVNet | CAD 模型用于生成关键点标注与合成训练数据 | 关键点被遮挡即失效；PnP 对关键点中的离群点敏感；类别固定，新物体需重训 |
-| 位姿细化 + 姿态选择 | FoundationPose | 论文支持两种设置：给纹理 CAD 模型（model-based），或给约 16 张参考图（model-free） | 需要初始姿态；一步细化能走的距离有限，初值偏太远会收敛到错误局部极小；单物体估计是秒级而非实时 |
-
-前三条路线的共同点是「一次性求解」：网络或匹配器直接给出答案，没有迭代纠错的机会。第四条路线先要一个粗略初始姿态，再用迭代把它磨准，精度上限由细化过程决定，而不是由单次回归决定。
-
-选型的瓶颈因此分成两处：前三类路线卡在先验（要 CAD、要训练数据、要关键点），细化路线卡在初值，以及「从一批初值里挑对那一个」。
-
-### FoundationPose 的真实机制：假设生成、细化、选择
-
-FoundationPose 把 6D 姿态分成「估计」与「跟踪」两个阶段，内部由三个模块接力，另有一个训练期组件常被误读。
-
-**第一步：位姿假设生成。**在物体周围均匀采样 $N_s = 42$ 个视点，每个视点配 $N_i = 12$ 个面内旋转，得到 504 个初始姿态假设。这批假设覆盖了「物体可能以什么姿态被看到」，因此不需要一个外部网络来猜第一个姿态。
-
-**第二步：姿态细化网络（Pose Refinement Network）。**输入是「按当前姿态渲染出的物体图 + 观测裁剪」，输出一个姿态更新量：平移增量 $\Delta t \in \mathbb{R}^3$ 与旋转增量 $\Delta R \in \mathrm{SO}(3)$，把当前估计往观测一致的方向推一步。论文的测试设置是估计阶段迭代 5 次、跟踪阶段只迭代 1 次。实机的对应参数是 `refiner_iterations`（默认 5），与论文的估计阶段一致。它与经典迭代最近点（Iterative Closest Point, ICP）的关系是替代而非叠加：ICP 需要显式几何对应，纹理缺失的平面或光滑圆柱上几乎找不到可用对应点；学习到的细化网络可以用颜色与形状的联合线索判断「该往哪边推」。
-
-**第三步：姿态选择/排序网络（Pose Selection, Ranking Network）。**对 $K = 5$ 个候选假设做两级层次比较并分别打分，取分数最高的一个作为输出。它回答的不是「怎么微调」，而是「这批假设里哪个最可信」。
-
-**常被误读的一点：扩散模型不参与推理。**论文里的扩散模型只用于合成训练数据（配合 LLM 引导的纹理增强），作用是把训练集做得更丰富；推理阶段的姿态筛选由上面第三步的排序网络完成。所以「扩散模型提供姿态先验」是一个架构性误解，不要在讲解或图示里这样画。
-
-**论文口径与实机实现的差别。**论文的 model-free 设置需要约 16 张参考图（消融实验显示 12 张即趋于饱和）。实机的 `bev_pose` 走的是另一条路：准备一份网格，用 `mesh_preprocessor.py` 预计算成 `.npz` 后通过 `mesh_npz_path` 传给节点，也可以直接给 NVlabs 源网格（`mesh_obj`）。所以「无需重新训练」指的是**无需为每个新物体重训网络**，不是「无需任何模型文件」。
-
-**速度量级要分开讲。**论文在 RTX 3090 上报告的数值是：单物体估计约 1.3 s，跟踪约 32 Hz。前者是「从未知姿态起步」的一次性开销，后者是「已初始化后逐帧维持」的开销，相差两个数量级。用同一个指标评价这两件事会得出相反结论。
-
-**对输入的三个硬前提。**缺任何一个，都会出现「看起来在跟踪、实际在漂」。第一，彩色图先按主线 `plumb_bob` 的 $(K, k_1, k_2, p_1, p_2, k_3)$ 去畸变，深度图由 D2C 对齐到彩色坐标系，两者落在同一套参数上；把鱼眼 `equidistant`（Kannala–Brandt）的参数混进来，误差会随视场角系统性放大。第二，内参 $K$ 必须与实机一致，反投影才有意义。第三，跟踪期间物体不被完全遮挡。
-
-**一句话记忆：**细化网络回答「当前姿态该往哪边微调」；选择/排序网络回答「这批假设里哪个最可信」。前者决定精度，后者决定不跑飞，扩散模型与这两件事都无关。
-
-### 与 DOPE 的对比：什么时候该换方案
-
-同一个物体，用 DOPE 还是用 FoundationPose，取决于你更缺 CAD、更缺速度，还是更缺对遮挡的容忍度。两者的输入、先验、输出形式都不同，不能只比一个「精度」数字。
-
-| 维度 | DOPE | FoundationPose |
-| --- | --- | --- |
-| 输入 | 单目 RGB 图像 | 去畸变彩色图 + 对齐深度 + 分割掩码 |
-| 先验依赖 | 目标物体的 CAD 模型，用于合成训练数据 | 论文：纹理 CAD 或约 16 张参考图；实机：一份网格（`.obj` → `.npz`） |
-| 中间产物 | 物体 8 个角点加 1 个质心的置信度热力图，再经 PnP 求解姿态 | 504 个初始假设，经细化与排序直接给出姿态 |
-| 输出形式 | 关键点热力图 → PnP 解出的位姿 | 位姿矩阵，可发布为 `PoseStamped`（主）与 `Detection3DArray`（可选） |
-| 新物体成本 | 需要该物体的 CAD 与一次合成数据训练 | 准备一份网格即可换物体，无需重新训练网络 |
-| 速度与遮挡 | 单目单次前向，延迟低；关键点被遮挡即置信度骤降，姿态跳变 | 估计阶段秒级、跟踪阶段逐帧；靠残留可见表面继续细化，对遮挡容忍度更高 |
-
-选型口径可以压成两句话。物体类别长期固定、追求低延迟、有现成 CAD，用 DOPE 这类关键点方案；物体经常换、拿不到 CAD 但能给一份网格、遮挡不可避免、能接受秒级初始化，用 FoundationPose。本课程选后者作为主线，因为桌面抓取任务里的目标物几乎是当场指定的。
-
-### 难点：对称、遮挡、截断与深度噪声
-
-姿态误差不来自单一原因，四个难点各有各的表现形式。分开写的目的，是让精度不达标时能定位到具体哪一条，而不是盲目调参。
-
-- **对称物体旋转歧义**：球、圆柱、方盒这类物体存在对称变换 $S$，$R_{gt}S$ 与 $R_{gt}$ 在物理上无法区分。估计值可能落在前者，用 ADD 直接比较会判为大误差，但这个姿态拿去抓取其实是对的。度量上要用 ADD-S 口径；实机的 `bev_pose` 没有暴露对称先验参数，所以遇到对称物体时要么在评估口径上处理，要么在上游把目标物限制成非对称的。
-
-- **遮挡**：可见表面减少后，能约束姿态的几何信息随之减少，细化会沿着未受约束的方向滑动。可见像素占比是判断这条的主要依据：占比越低，误差上升越明显。此时应考虑重选初始假设或提高 `refiner_iterations`，并把可见度与误差一起记录，而不是缩短迭代省算力。
-
-- **截断**：物体超出画面边界，节点能看到的表面只有一部分，与网格对不上，初始姿态容易偏差较大。典型表现是「框在画面边缘时姿态突然跳」，处理办法是把物体移回画面中部再初始化。
-
-- **纹理缺失与深度噪声**：无纹理表面让颜色线索失效，只剩几何线索；深度噪声直接污染几何线索。两者叠加时先修深度：确认深度与彩色对齐误差足够小、深度在有效范围内有足够多的有效点，再考虑换网格或换纹理。
-
-跟踪最危险的失败形态不是丢帧，而是「看起来在跟踪、姿态已经偏了」。实机没有提供自动重置项，漂移要靠你自己判：核对姿态附近的观测是否还支撑得住当前估计（例如把预测姿态下的物体轮廓与实测深度比一比），一旦发现估计与观测开始脱节而位置读数依然平滑，就丢弃该轨迹、重走初始化。判据的具体阈值需要实机跑通后再定。
-
-### 精度指标：ADD、ADD-S 与旋转/平移误差
-
-姿态精度不能只用一句「误差多少」描述，因为指标本身决定了什么算对、什么算错。评估前先定口径，评估结果才有可比性。
-
-- **ADD**：把物体的模型点按预测姿态与真值姿态各变换一次，算两组点的平均距离。它回答「这个姿态如果按几何误差算，差多少」。
-
-- **ADD-S**：对每个模型点取到真值点集的**最近点**距离再平均。它专门处理对称物体：等价姿态在 ADD 下会被判成大误差，在 ADD-S 下则不会被误判。
-
-- **旋转 / 平移误差**：把误差拆开看，旋转用角度表示（注意前面提到的「最短弧」判据），平移直接用欧氏距离。拆开的好处是能区分「转对了但位置偏」与「位置对了但转歪了」，这两种故障的排查方向完全不同。
-
-对称物体一旦用错口径，会把正确姿态判成大误差；这也是为什么 ADD-S 不是 ADD 的「更宽松版本」，而是针对另一类问题的度量。
-
-**但本章不产出这些数字。** 实机没有姿态评估脚本，也没有带真值姿态的测试序列。这里的口径保留下来，是为了让你在将来补评估时知道该选哪个。它是「未来的 correctness metric」，不是当前实测结果。
-
-### 实机的姿态链路：节点、话题与 Pose/TF 契约
-
-原理讲完，看这套东西在机器人上落地成什么。`bev_pose` 包提供两个节点：
-
-| 节点 | 作用 |
+| 项目 | 实测结果 |
 | --- | --- |
-| `object_mask_node` | P0 单物体初始化辅助：从深度与可选的 ROI 提示生成物体掩码 |
-| `foundationpose_node` | 主节点：消费彩色、深度、内参与掩码，输出物体姿态 |
+| 首帧 `register` | 11050.90 ms |
+| 后续 `track_one` | 89.37–237.11 ms/帧，平均约 120.43 ms/帧 |
+| tracking 参考换算 | 8.30 FPS，仅表示这组 tracking 阶段的平均耗时 |
+| 输出 | 8 个有限值 4×4 位姿矩阵、`report.json`、首帧和末帧标注图 |
 
-**输入**
+![Mustard 首帧 register 结果](images/m45_native_mustard_register.png)
 
-| 话题 | 类型 | 说明 |
-| --- | --- | --- |
-| `/perception/cameras/front/image` | `sensor_msgs/Image` | `rgb8` 或 `bgr8` |
-| `/perception/cameras/front/depth` | `sensor_msgs/Image` | **`32FC1`，单位米** |
-| `/perception/cameras/front/camera_info` | `sensor_msgs/CameraInfo` | 内参 K |
-| `/perception/object_mask` | `sensor_msgs/Image` | `mono8`，0/255 |
+*图：官方 Mustard 序列首帧的注册结果。来源：NVlabs FoundationPose `demo_data/mustard0`，本课程脚本在 Jetson 上生成。*
 
-**输出**
+![Mustard 后续 tracking 结果](images/m45_native_mustard_tracking.png)
 
-| 话题 | 类型 | 说明 |
-| --- | --- | --- |
-| `/perception/object_pose` | `geometry_msgs/PoseStamped` | **主输出** |
-| `/perception/object_poses_3d` | `vision_msgs/Detection3DArray` | 可选（`publish_det3d`） |
-| `/tf` | — | 父帧 `camera_front`，子帧由参数决定 |
-| `/perception/mesh_meta` | `std_msgs/String` | latched JSON，供可视化用 |
-| `/perception/foundationpose/stats` | `std_msgs/String` | JSON，1 Hz |
+*图：同一序列第 8 帧的 tracking 结果。首帧注册和后续 tracking 的耗时应分别阅读，不能把 8.30 FPS 解释为完整实时 RGB-D 相机帧率。*
 
-> **这里有一处必须记准的地方。** 主输出是 **`PoseStamped`**，不是 `Detection3DArray`；TF 的**父帧是 `camera_front`**。按 `Detection3DArray` 或按别的父帧名写订阅端，会收不到数据或查不到变换。
+脚本默认导出 `PYTHONNOUSERSITE=1`，避免用户目录中的 NumPy 覆盖 conda 环境。JetPack 6.2.1 的 CUDA 12.6 与当前 PyTorch wheel 在 3×3 逆矩阵符号上存在版本差异，runner 对 FoundationPose 使用到的相机/裁剪 3×3 矩阵采用局部解析逆矩阵兼容路径；上游 FoundationPose 仓库本身没有修改。
 
-关键参数（`config/pose_estimation.yaml`）：`model_dir`（权重目录）、`refiner_iterations`（5）、`score_threshold`（0.3）、`camera_frame_id`（`camera_front`）、`auto_register_on_first_mask`（true）、`require_mask_for_register`（true）、`mesh_obj` / `mesh_npz_path`（网格输入）。`object_mask_node` 是 **P0 单物体**辅助，本章不做多物体场景。
+## 5. CAD mesh 与尺度
 
-## 动手：readiness audit 与验收门
-
-三步。这三步是**核对与定义**，不是「跑起来看结果」。本章当前跑不通，照下面的步骤做，你会得到一份「还差什么」的清单。
-
-### 步骤 11：readiness audit
-
-先确认三样前置各差在哪，免得后面把环境问题误判成操作错误。
+课程中的真实目标模型来自 GL.iNet GL-SFT1200 Opal CAD。原始 STEP 使用毫米单位，预处理脚本将 mesh 缩放到米，并在 `object.yaml` 中记录来源和尺寸。运行时不需要 CAD 内核，只加载已经三角化的 OBJ 或 `.npz`。
 
 ```bash
-# 1. 权重目录
-ls -d /home/seeed/FoundationPose/weights
-
-# 2. 依赖
-python3 -c "import torch; print('torch', torch.__version__)"
-python3 -c "import trimesh; print('trimesh ok')"
-python3 -c "import nvdiffrast; print('nvdiffrast ok')"
-
-# 3. 相机
-ros2 topic list | grep /perception/cameras/front
+python3 scripts/m4/step_to_foundationpose_mesh.py models/m4/pose
+bash scripts/m4/preprocess_mesh.sh
 ```
 
-三项的当前状态：权重目录**不存在**；`torch` / `trimesh` / `nvdiffrast` **均无法 import**；相机**未连接**。三项都补齐之前，`run_m4_4_demo.sh` 与 `run_m4_4_perf_benchmark.sh` 都不会有有意义的结果。
+检查 mesh 时至少确认：
 
-> **[待实现]** 把这一步的输出记下来，作为本章的「前置清单」。它比任何操作步骤都更接近本章当前能交付的东西。
+1. 顶点和法线形状为 `(N,3)`。
+2. 面索引没有越界。
+3. 包围盒尺寸与实物数量级一致。
+4. mesh 的天线、接口和外壳方向与真实物体坐标系一致。
 
-### 步骤 12：核对 Pose / TF 输出契约
+## 6. `bev_pose` ROS 2 封装
 
-按**真实**契约写下游，而不是按直觉。
+standalone MVP 解决“原生 FoundationPose 能否读取 RGB-D 并输出位姿”。ROS 2 封装进一步解决“如何把它放进移动机器人感知链”。主要节点关系是：
 
-```bash
-cat modules/m04-ai-vision-and-edge-acceleration/ros2/bev_pose/config/pose_estimation.yaml
-grep -n "camera_frame_id\|pose_topic\|publish_det3d" modules/m04-ai-vision-and-edge-acceleration/ros2/bev_pose/bev_pose/foundationpose_node.py
+```text
+RGB ───────────────┐
+aligned depth ─────┼─> foundationpose_node ─> PoseStamped
+CameraInfo ────────┤                         ├─> Detection3DArray
+object instance mask┘                         └─> camera_front → object TF
 ```
 
-逐项确认：
+### 话题契约
 
-- 主输出是 `/perception/object_pose`，类型 `geometry_msgs/PoseStamped`；
-
-- `/perception/object_poses_3d` 是**可选**的 `Detection3DArray`（受 `publish_det3d` 控制）；
-
-- TF 的**父帧是 `camera_front`**，子帧由 `<frame_id>` 决定；
-
-- 深度输入必须是 `32FC1` 且单位为米；未满足该契约时，姿态结果不能进入有效验收。
-
-这一节最值得记住的不是参数值，而是**契约本身的形状**：姿态是一个 `PoseStamped` 加一条 TF，不是一个检测数组。
-
-### 步骤 13：定义升级为可运行章节的验收门
-
-最后给这一章定「什么时候才算真的能跑」。
-
-```bash
-# 只读脚本，核对它定义的验收条件（不执行）
-sed -n '1,40p' scripts/m4/run_m4_4_perf_benchmark.sh
-```
-
-对着脚本头部定义的验收条件逐条核对：
-
-| 门 | 类型 | 判据 |
+| 方向 | 话题 | 类型 |
 | --- | --- | --- |
-| tracking FPS > 10 | 硬 | 已初始化后的逐帧维持能力 |
-| 30 s 窗口内位姿稳定不丢跟踪 | 硬 | 漂移与丢跟踪的边界 |
-| RGB-D 管线时间戳偏差 < 33 ms | 硬 | 彩色与深度的对齐质量 |
-| register 延迟 | 软 | Jetson 上首次注册本来就慢，不作硬性上限 |
+| 输入 | `/perception/cameras/front/image` | `sensor_msgs/Image` |
+| 输入 | `/perception/cameras/front/depth` | `sensor_msgs/Image`，米制 depth |
+| 输入 | `/perception/cameras/front/camera_info` | `sensor_msgs/CameraInfo` |
+| 输入 | `/perception/object_mask` | `sensor_msgs/Image`，单目标二值掩膜 |
+| 输出 | `/perception/object_pose` | `geometry_msgs/PoseStamped` |
+| 输出 | `/perception/object_poses_3d` | `vision_msgs/Detection3DArray` |
+| 输出 | `/tf` | `camera_front → object` |
 
-**[待验证]** 这四项都要等步骤 11 的三项前置补齐之后才有意义。这一步只做两件事：**定义**门槛、**记录**门槛；当前既不能执行，也不能报告通过结果。在门通过之前，任何从这一章得出的数字都不成立，因为没有基线可比。
+`foundationpose_engine.py` 将生命周期拆成 `load_object_model`、`register` 和 `track`；`foundationpose_node.py` 负责消息同步、图像转换、内参提取和位姿发布。这样可以分别测试算法、输入校验和 ROS 通信，而不是把所有逻辑塞进一个回调。
 
-## 产出物与验收标准
+## 7. 应用案例
 
-### 交付清单
-
-**当前可交付（本章能兑现的）**
-
-1. 一份前置清单：权重目录、三项依赖、相机通路，各自的状态、验证方式与待补齐项。
-
-2. 一份契约记录：输入四路、输出五路（含 PoseStamped 主输出与 TF 父帧 `camera_front`）。
-
-3. 一份验收门清单：四项判据的类型与触发条件（**定义与记录**，不在本章执行）。
-
-**目标运行产物（`[待实现]` / `[待验证]`，本章不承诺产出）**
-
-- `/perception/object_pose` 的实时姿态输出，以及 RViz2 中跟随物体的 TF。
-
-**解锁后的执行链**（每一步都以前置补齐为前提，不是当前步骤）：
-
-依赖与权重就位 → 相机接通 → `[待验证]` `run_m4_4_demo.sh` 走通节点链路 → `run_m4_4_perf_benchmark.sh` 过四项判据。
-
-### 验收标准
-
-| 检查项 | 通过标准 | 不通过时优先检查 |
+| 场景 | 需要的输入 | 位姿的作用 |
 | --- | --- | --- |
-| 前置清单 | 三项前置的状态都能说准，并知道各自怎么补齐 | 是否漏了依赖项（`torch` / `trimesh` / `nvdiffrast` 三项都要） |
-| 契约核对 | 能准确说出主输出类型与 TF 父帧 | 是否按 `Detection3DArray` 记的 |
-| 坐标系 | 能画清相机系、物体系、基座标三者的连乘关系 | 是否把 `T_base^cam` 当成模型预测出来的 |
-| 机制复述 | 能说清三段机制，并指出扩散模型不参与推理 | 是否把扩散模型当成了姿态先验 |
-| 验收门 | 四项判据的类型与判据都写明 | 是否把软指标当成了硬门槛 |
+| 机械臂抓取 | RGB-D、目标实例掩膜、CAD mesh、手眼标定 | 将 `T_cam_obj` 转成 `T_base_obj`，生成抓取姿态 |
+| 移动机器人 | 对齐深度、CameraInfo、目标 mesh | 判断目标距离、朝向和与底盘的空间关系 |
+| AR/MR 叠加 | RGB、相机内参、目标 mesh | 在真实物体表面叠加坐标轴或虚拟模型 |
+| 盘点与检视 | 目标实例掩膜、参考 mesh、连续 tracking | 判断物体是否出现、姿态是否变化、视角是否覆盖 |
 
-## 常见问题与排障
+四类应用都依赖同一条链路：正确的 RGB-D、可靠的实例掩膜、尺度正确的模型和坐标标定。算法输出的相机系位姿不能跳过 TF 直接用于机器人基座。
 
-### 网格参数该填什么
+## 8. 思考题与延伸阅读
 
-- **预期会遇到的报错**：网格字段为空时节点无法初始化（排障条目依据的是参数契约，不是实机运行记录）。
+1. 为什么首帧需要 icosphere 姿态假设，而后续 tracking 可以使用上一帧结果？
+2. 如果 depth 单位从米误读成毫米，平移向量会出现什么现象？
+3. 为什么语义分割图不能直接代替一个物体的实例掩膜？
+4. `T_base_obj = T_base_cam · T_cam_obj` 中，哪一部分来自标定，哪一部分来自 FoundationPose？
 
-- **两个入口**：`mesh_obj`（NVlabs 源网格 `.obj`）与 `mesh_npz_path`（`mesh_preprocessor.py` 预计算出的 `.npz`）。
+参考资料：
 
-- **处理**：先用 `preprocess_mesh.sh` 把网格预处理成 `.npz`，再把路径填进 `config/pose_estimation.yaml`。网格参数只有这两个入口，别按网上其他实现里的参数名去找。
-
-### 姿态话题有数据，RViz2 里却不显示物体坐标系
-
-- **预期会遇到的症状**：姿态话题在发，物体 TF 却不动或不刷新（依据 TF 链与命名约定推断，实机跑通前无法复现）。
-
-- **先查什么**：先查 TF 链，而不是先怀疑模型。父帧 `camera_front` 到目标子帧之间缺环、或某一段的时间戳过期，RViz2 就会停止刷新。
-
-- **处理**：`ros2 run tf2_tools view_frames` 看整棵树，确认 `camera_front` 这一环存在且连续。再确认 `/perception/object_pose` 是否在发。姿态停发与 TF 链断裂是两种不同的故障，先分清是哪一种。
-
-### 姿态整体偏移，且误差随距离放大
-
-- **预期会遇到的症状**：所有姿态朝同一方向偏差，距离越远偏得越多（结构性推理，非实机观测）。
-
-- **先查什么**：「随距离线性放大」这类误差指向坐标系或标定，而不是模型：内参 K 与实际不一致、`T_base^cam` 用了未标定的近似值、或者深度单位不是米。
-
-- **处理**：先确认深度图的编码与单位（本章要求 `32FC1` 且单位米）；再核对 `camera_info` 与实际相机是否同一套标定；最后查 `T_base^cam` 的来源。这类误差不会自己消失，必须定位到具体那一环。
-
-> **路线关系：**先在 [4.4](../4.4_Isaac_ROS_FoundationPose_and_Acceleration/README_zh_CN.md) 用 Isaac ROS 官方 Mustard 示例验证 ROS 2 运行链路；本章研究原生 NVlabs 实现、算法机制与独立验收。两条路线的运行证据分别记录，不能互相代替。
+- [FoundationPose 论文，arXiv 2312.08344](https://arxiv.org/abs/2312.08344)
+- [NVlabs FoundationPose](https://github.com/NVlabs/FoundationPose)
+- [Isaac ROS FoundationPose](https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_pose_estimation)
+- [FoundationPose 官方示例 `run_demo.py`](https://github.com/NVlabs/FoundationPose/blob/main/run_demo.py)

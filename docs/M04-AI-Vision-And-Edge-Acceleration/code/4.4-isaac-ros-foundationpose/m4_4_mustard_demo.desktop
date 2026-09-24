@@ -1,0 +1,12 @@
+[Desktop Entry]
+Type=Application
+Name=M4.4 Mustard 位姿演示
+Name[en_US]=M4.4 Mustard Pose Demo
+Comment=双击在 RViz 中查看 Mustard 物体位姿
+Comment[en_US]=View the Isaac ROS FoundationPose Mustard example in RViz
+Exec=/usr/bin/env M44_MODE=official M44_VIEW_SECONDS=300 /home/seeed/workspace/ros2_bev/modules/m04-ai-vision-and-edge-acceleration/scripts/m4/run_m4_4_isaacros_visual.sh
+Path=/home/seeed/workspace/ros2_bev
+Icon=video-display
+Terminal=true
+StartupNotify=false
+Categories=Education;

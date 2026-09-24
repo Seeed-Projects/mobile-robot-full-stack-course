@@ -247,28 +247,27 @@ Details: [`4.3-semantic-segmentation/README.md`](4.3-semantic-segmentation/READM
 ## 4.4 — Isaac ROS FoundationPose
 
 The official Isaac ROS 3.2 packages, Mustard quickstart data, FoundationPose
-ONNX models, FP32 refine engine and FP16 RT-DETR engine are present on Jetson.
-The score engine and first pose are still blocked. Use
+ONNX models, FP32 refine engine and score engines are present on Jetson. The
+official FP32/252 Mustard graph and separate FP32/42 adaptation both produced
+valid single-frame poses; physical RGB-D acceptance remains open. Use
 [`4.4-isaac-ros-foundationpose/README.md`](4.4-isaac-ros-foundationpose/README.md)
 and `scripts/m4/run_m4_4_isaacros_quickstart.sh` for this chapter.
 
 ## 4.5 — Native NVlabs FoundationPose
 
-**BLOCKED — published as-is. Nothing in this chapter has been executed.**
+The native route is pinned to NVlabs commit
+`a1b694b83e633c2cb6115b9063d940a687759392`. Its minimum MVP uses the official
+recorded Mustard RGB-D sequence, calls `register` on the first frame and
+`track_one` on the following frames, then writes pose matrices, annotated images
+and a JSON timing report.
 
-The package installs, but the scaffold's FoundationPose calls were written against an API
-that does not exist, and every runtime dependency is absent. The API has since been
-rewritten against the real upstream revision (`estimater.py`,
-`a1b694b83e633c2cb6115b9063d940a687759392`), but the Phase 0 gate — running NVlabs
-FoundationPose standalone — has **not** been passed, so no ROS integration has been done.
+```bash
+bash scripts/m4/run_m4_5_native_mvp.sh --frames 8
+```
 
-Also absent: the NVlabs weights (Google Drive is unreachable), the official demo data, the
-Orbbec driver and the Orbbec Gemini 2 itself. `launch/orbbec_gemini2.launch.py` names a
-package and executable that do not exist; it was written against an invented interface.
-
-Read [`4.4-foundationpose/README.md`](4.4-foundationpose/README.md) before touching this
-chapter — it quotes the real API, records the CAD model's verified units, and lists the
-four unmet hard gates.
+Read [`4.4-foundationpose/README.md`](4.4-foundationpose/README.md) for the
+runtime layout, output files, ROS 2 topic contract and CAD-mesh path. The
+directory name is historical; this code belongs to Chapter 4.5.
 
 ## Common — bev_interfaces + m4_demo_bringup
 

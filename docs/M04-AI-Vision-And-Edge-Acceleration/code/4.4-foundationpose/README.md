@@ -1,180 +1,112 @@
-# M4.5 Native NVlabs FoundationPose 6D Object Pose
+# M4.5 Native NVlabs FoundationPose
 
-The physical directory name and old `run_m4_4_demo.sh` entry are retained for
-compatibility. This is the unverified native/PyTorch scaffold, not the M4.4
-Isaac ROS official quickstart. See `../4.4-isaac-ros-foundationpose/README.md`
-for the Isaac ROS path and the canonical `../PROJECT_STATUS.md` for status.
+The physical directory keeps its historical `4.4-foundationpose` name, but it
+implements Chapter 4.5: the native NVlabs/PyTorch FoundationPose route. Chapter
+4.4 uses the separate `4.4-isaac-ros-foundationpose` directory and Isaac ROS.
 
-> All relative paths below are relative to the module root,
-> `modules/m04-ai-vision-and-edge-acceleration/`.
+## Minimum MVP
 
-NVlabs FoundationPose over an Orbbec Gemini 2 RGB-D stream, registering and
-tracking a known CAD object and publishing its 6D pose.
+The release MVP runs the official recorded Mustard RGB-D sequence without ROS:
 
-**Status: BLOCKED.** The package installs, but nothing it depends on at runtime
-exists on this machine, and the scaffold's FoundationPose calls were **invented**
-rather than written against the upstream API.
+```bash
+cd /home/seeed/workspace/ros2_bev/modules/m04-ai-vision-and-edge-acceleration
+bash scripts/m4/run_m4_5_native_mvp.sh --frames 8
+```
 
-## What is actually wrong
+The script performs one global `register` call and then calls `track_one` for
+the remaining frames. It writes:
 
-### 1. The API is fabricated (CRITICAL)
+```text
+output/m4/m45_native_mvp/
+├── report.json
+├── pose_0000.txt ...
+├── frame_0000_pose.png
+└── frame_0007_pose.png
+```
 
-Verified against the real upstream source, not against a summary of it. The
-constructor in `estimater.py` is:
+The compatibility command below invokes the same runner:
+
+```bash
+bash scripts/m4/phase0_foundationpose_verify.sh --frames 8
+```
+
+The verified 8-frame J501 / AGX Orin run completed with
+`M45_NATIVE_MVP_OK`: registration took 11050.90 ms, and seven tracking calls
+took 89.37–237.11 ms each (about 120.43 ms average, 8.30 FPS tracking-only
+reference). All exported 4x4 matrices contained finite values.
+
+## Runtime Layout
+
+The verified checkout layout is:
+
+```text
+/home/seeed/workspace/third_party/FoundationPose/
+├── demo_data/mustard0/
+├── weights/2023-10-28-18-33-37/{config.yml,model_best.pth}
+├── weights/2024-01-11-20-02-45/{config.yml,model_best.pth}
+└── mycpp/build/mycpp*.so
+```
+
+The course targets commit
+`a1b694b83e633c2cb6115b9063d940a687759392`. The Python entry point defaults
+to `/home/seeed/miniconda3/envs/py310/bin/python` and can be overridden with
+`PYTHON=/path/to/python`. The shell entry point sets `PYTHONNOUSERSITE=1` to
+keep binary dependencies on the tested conda NumPy stack. The Python runner
+contains a narrow analytic 3x3 inverse compatibility path for JetPack 6.2.1's
+CUDA 12.6 cuSOLVER; it does not modify the upstream checkout.
+
+## ROS 2 Package
+
+`ros2/bev_pose` wraps the same lifecycle for a robot perception graph:
+
+```text
+RGB + aligned depth + CameraInfo + object mask
+  -> FoundationPoseEngine.register / track
+  -> /perception/object_pose          geometry_msgs/PoseStamped
+  -> /perception/object_poses_3d      vision_msgs/Detection3DArray
+  -> /tf                              camera_front -> object
+```
+
+Important files:
+
+- `bev_pose/foundationpose_engine.py`: upstream API adapter and lifecycle.
+- `bev_pose/foundationpose_node.py`: ROS image conversion and pose publishing.
+- `bev_pose/object_mask_node.py`: simple ROI-plus-depth mask helper.
+- `bev_pose/mesh_preprocessor.py`: OBJ to self-contained `.npz` geometry.
+- `config/pose_estimation.yaml`: topic, mesh, frame, and iteration parameters.
+
+The wrapper uses the real upstream constructor:
 
 ```python
-class FoundationPose:
-  def __init__(self, model_pts, model_normals, symmetry_tfs=None, mesh=None,
-               scorer: ScorePredictor=None, refiner: PoseRefinePredictor=None,
-               glctx=None, debug=0, debug_dir='...')
+FoundationPose(
+    model_pts=verts,
+    model_normals=normals,
+    mesh=mesh,
+    scorer=ScorePredictor(),
+    refiner=PoseRefinePredictor(),
+    glctx=dr.RasterizeCudaContext(),
+)
 ```
 
-`bev_pose/foundationpose_engine.py` instead calls:
+Initial registration uses `register(K, rgb, depth, ob_mask, iteration)`. Later
+frames use `track_one(rgb, depth, K, iteration)` and the estimator's internal
+previous pose.
 
-```python
-FoundationPose(model_dir=..., scorer_module=..., refiner_module=...,
-               mesh_file=..., device=...)
+## Object Mesh
+
+The supplied GL.iNet GL-SFT1200 Opal CAD path converts STEP millimeters to
+meters before runtime. Generate and preprocess it with:
+
+```bash
+python3 scripts/m4/step_to_foundationpose_mesh.py models/m4/pose
+bash scripts/m4/preprocess_mesh.sh
 ```
 
-**Five parameters that do not exist**, and it omits both required ones
-(`model_pts`, `model_normals`). The fallback path is worse: it imports
-`PoseRefiner`, which is not a class in that module at all (the real name is
-`PoseRefinePredictor`), constructs `ScorePredictor(weights=..., device=...)` when
-the real signature is `ScorePredictor(amp=True)`, and then calls `FoundationPose`
-without ever importing it.
+The generated metadata records scale, dimensions, source CAD checksum, object
+frame, and the required antenna configuration.
 
-`track_one` is wrong too. Upstream:
+## Course Page
 
-```python
-def track_one(self, rgb, depth, K, iteration, extra={})
-```
-
-The scaffold passes `pose_init=self._last_pose` — no such parameter exists, and
-the tracker holds its previous pose in `self.pose_last` internally. There is no
-re-registration-per-frame path to build here; `track_one` is simply called again.
-
-### 2. The canonical usage, for whoever fixes this
-
-From upstream `run_demo.py`, which is the shape any rewrite must follow:
-
-```python
-mesh    = trimesh.load(mesh_file)
-scorer  = ScorePredictor()
-refiner = PoseRefinePredictor()
-glctx   = dr.RasterizeCudaContext()          # nvdiffrast
-est = FoundationPose(model_pts=mesh.vertices,
-                     model_normals=mesh.vertex_normals,
-                     mesh=mesh, scorer=scorer, refiner=refiner,
-                     glctx=glctx, debug=debug, debug_dir=debug_dir)
-pose = est.register(K=K, rgb=color, depth=depth, ob_mask=mask, iteration=n)
-pose = est.track_one(rgb=color, depth=depth, K=K, iteration=n)
-```
-
-Note `model_pts`/`model_normals` are **arrays sampled from the mesh**, not a file
-path — which is why the scaffold's `mesh_file=` could never have worked.
-
-### 3. `phase0_foundationpose_verify.sh` cannot run
-
-Line 285 is a hard Python syntax error:
-
-```python
-pose = est.track_one(rgbs[i], depths[i], K, pose, masks[i]=masks[i] if i%10==0 else None)
-```
-
-`masks[i]=masks[i]` uses a subscript as a keyword name. Independently, `pose` is
-passed as the 4th positional argument, which upstream defines as `iteration`.
-The script also runs under the system `python3`, which has no torch; FoundationPose
-needs the conda `py310` environment.
-
-`fetch_foundationpose_testdata.sh` also cannot work: it sparse-checks-out
-`test_data/test/cup` from the NVlabs repository, and **that path does not exist
-in the repository** — the tree has 67 tracked paths and no `test_data/` or
-`demo_data/` at all.
-
-## Dependency status
-
-| Dependency | State |
-| --- | --- |
-| NVlabs/FoundationPose checkout | **present** at `/home/seeed/workspace/third_party/FoundationPose` (outside the course repo, per the brief) - revision `a1b694b83e633c2cb6115b9063d940a687759392` |
-| Refiner weights `2023-10-28-18-33-37` | downloading — `model_best.pth` from `hf-mirror.com/gpue/foundationpose-weights` |
-| Scorer weights `2024-01-11-20-02-45` | queued |
-| Official demo data (`demo_data/`) | **UNOBTAINABLE** — Google Drive only, and Drive is unreachable from this Jetson |
-| Orbbec SDK / driver | not installed (0 of 279 ROS packages) |
-| Orbbec Gemini 2 hardware | **not attached** (`lsusb` shows no vendor `2bc5`) |
-| `nvdiffrast`, `mycpp`, `trimesh`, `tf_transformations` | not installed in conda `py310` |
-
-The weights are reachable only because `gpue/foundationpose-weights` mirrors the
-two folder names the upstream README names. That mirror declares
-`license: cc-by-nc-4.0`; treat that as the mirror's declaration, not as NVIDIA's
-terms.
-
-**Google Drive is blocked** from this Jetson — `drive.google.com`,
-`drive.usercontent.google.com` and `docs.google.com` all time out, while GitHub,
-`hf-mirror.com` and `pypi.org/pypi/*/json` all work.
-
-## What exists now
-
-A real CAD model for the target object, converted and shipped:
-
-```
-models/m4/pose/
-  object.yaml                       tracked - measured metadata, source of truth
-  model.obj                         gitignored - 36,504 triangles, metres
-  original/gl_sft1200_opal.step     gitignored - the untouched source CAD
-```
-
-| Field | Value |
-| --- | --- |
-| Object | GL.iNet GL-SFT1200 "Opal" portable travel router |
-| Source | `gl_sft1200_opal.step`, build123d 0.11.1, AP214 |
-| Measured bbox (CAD units) | 111.671 x 80.000 x 75.000 |
-| **Units** | **mm** — the STEP header declares `SI_UNIT(.MILLI.,.METRE.)` |
-| `scale_to_meters` | **0.001**, derived from the file, not assumed |
-| Resulting size | 0.1117 x 0.0800 x 0.0750 m, diameter 0.1455 m |
-| `symmetry` | `none`, verified — the -Y port face and +Y antenna hinges break the 180 degree rotational ambiguity (a left/right mirror is a reflection, not a rotation) |
-
-Note the CAD models the **antennas raised and splayed**: the widest axis reaches
-111.67 mm against the 105 mm body. The physical unit must be posed the same way
-or the mesh will not register.
-
-## Hard gates that are still unmet
-
-Per the brief, these are not optional:
-
-1. **FoundationPose standalone has not run.** The repo is cloned but the weight
-   download had not finished and nothing has been executed.
-   The gate is a genuine gate — no ROS integration work should be done until the
-   official path runs.
-2. **Official demo data is unobtainable**, so the "test with official data first"
-   step cannot be satisfied as written. The only data that could be used is the
-   user's own object captured from a depth camera — which does not exist here yet.
-3. **No Orbbec hardware and no driver.** The existing
-   `launch/orbbec_gemini2.launch.py` names a package (`orbbec_camera`) and
-   executable (`orbbec_camera_node`) that **do not exist**; it was written against
-   an invented interface. Per the brief, the installed driver's real names must be
-   inspected before that launch file is touched.
-4. **Topic namespace collides.** `foundationpose_node.py` defaults its RGB topic
-   to `/perception/cameras/front/image`, the same topic 4.1-4.3 consume. Running
-   both would put two publishers on it.
-
-## Other defects found in the scaffold (not yet fixed)
-
-- `foundationpose_node.py` does not check `rgb.shape[:2] == depth.shape[:2]`,
-  while `orbbec_gemini2.launch.py` requests 1280x720 colour against 640x576
-  depth. A mismatch is silent.
-- `object_mask_node.py` silently `cv2.resize`s depth to the RGB shape rather than
-  failing — the brief forbids exactly that.
-- The published quaternion is never normalised and NaN/Inf is never rejected.
-- `bev_pose` has **zero** tests.
-
-## Next steps, in order
-
-1. Finish the clone and the weight download; record the exact upstream commit hash.
-2. Install `trimesh`, `tf_transformations`, then build `mycpp` and `nvdiffrast`
-   against `/usr/local/cuda-12.6/bin/nvcc` (present).
-3. Rewrite `foundationpose_engine.py` against the API quoted above and fix
-   `phase0_foundationpose_verify.sh` (line 285 plus the interpreter).
-4. Run the official standalone path. **This is the gate.** If it does not pass,
-   do not proceed.
-5. Only then: attach the Gemini 2, install `OrbbecSDK_ROS2`, inspect the real
-   driver names, and build the ROS pipeline.
+See the bilingual Chapter 4.5 pages for the 6D-pose fundamentals, hypothesis,
+refine and score stages, register/track distinction, ROS topic contract, and
+application examples.
