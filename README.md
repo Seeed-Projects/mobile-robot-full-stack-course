@@ -99,12 +99,6 @@ The course is planned as **11 modules, about 43 class hours** in total. Starting
 
 ---
 
-## Integrated Projects
-
-Planned...
-
----
-
 <a id="hardware-and-software"></a>
 
 ## Core Hardware
@@ -119,6 +113,8 @@ Planned...
 | Power | Mobile robot power supply system |
 
 You do not need to purchase all hardware at once. Early modules can be completed with only the J501 and a single camera. Navigation- and robotic-arm-related hardware can be added gradually later.
+
+![image](./assets/images/amr_structural_frame.jpg)
 
 ### DM-H65 Chassis Python SDK
 
