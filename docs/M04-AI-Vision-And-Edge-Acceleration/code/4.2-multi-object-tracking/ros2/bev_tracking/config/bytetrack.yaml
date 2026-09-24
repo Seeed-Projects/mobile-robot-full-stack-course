@@ -1,0 +1,26 @@
+# ByteTrack parameters for bev_tracking (M4.2)
+#
+# These parameters tune the supervision.ByteTrack tracker that associates
+# per-frame detections from bev_detection (M4.1) into stable track_ids.
+#
+# frame_rate matches the observed bev_detection throughput on Jetson Orin
+# (~10 Hz after TensorRT + NMS). lost_track_buffer is in frames, so a value
+# of 30 at 10 Hz gives ~3 seconds of occlusion tolerance.
+
+tracking_node:
+  ros__parameters:
+
+    # I/O
+    input_topic: "/perception/detections"
+    output_topic: "/perception/tracks"
+
+    # ByteTrack (supervision)
+    tracker_type: "bytetrack"
+    track_activation_threshold: 0.25
+    lost_track_buffer: 30
+    minimum_matching_threshold: 0.8
+    frame_rate: 10
+    minimum_consecutive_frames: 1
+
+    # Diagnostics
+    publish_log_throttle_ms: 1000
