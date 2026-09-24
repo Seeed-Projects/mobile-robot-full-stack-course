@@ -1,0 +1,573 @@
+/* ============================================================================
+ * M4 Perception Lab — shared design system.
+ *
+ * Dark, minimal, video-first. Hierarchy comes from spacing and typography,
+ * not from borders and cards: the camera feed is the page, everything else
+ * is a thin frame around it.
+ *
+ * Layout:  header / [ module rail | video stage ] / status bar
+ *          + a right slide-over #drawer that is CLOSED by default.
+ *
+ * Class names .tab / .panel / .badge are a stable contract asserted by
+ * test/m4_web_hub_regression.py. They are live classes here (module rail
+ * item, drawer section, header transport indicator) — not leftovers.
+ * ==========================================================================*/
+
+:root {
+  /* Neutral dark surface ramp. One primary accent only. */
+  --bg: #0b0f17;
+  --surface: #141a25;
+  --surface-2: #1b2230;
+  --surface-3: #242c3c;
+  --border: #232c3b;
+  --border-strong: #33415a;
+  --text: #e8edf5;
+  --muted: #8b97a8;
+  --accent: #4d8dfd;
+
+  --ok: #3ecf8e;
+  --warn: #e2a33c;
+  --bad: #ef5350;
+
+  --rail-w: 176px;
+  --rail-w-compact: 60px;
+  --header-h: 48px;
+  --status-h: 48px;
+  --radius: 8px;
+  --radius-sm: 6px;
+
+  --mono: ui-monospace, "SF Mono", Menlo, monospace;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+}
+
+body {
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    "PingFang SC", "Microsoft YaHei", sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.45;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- shared primitives --------------------------------------------------- */
+
+.small { font-size: 11px; color: var(--muted); line-height: 1.5; }
+.mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+
+h1, h2, h3 { margin: 0; color: var(--text); font-weight: 600; }
+
+/* Drawer section container. Kept as .panel: the regression asserts it. */
+.panel {
+  background: transparent;
+  border: 0;
+  border-radius: 0;
+  padding: 0;
+}
+.panel + .panel {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--border);
+}
+
+/* Header transport indicator. Also asserted by the regression. */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 9px;
+  border-radius: 5px;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .2px;
+  white-space: nowrap;
+  background: var(--surface-2);
+  color: var(--muted);
+  border: 1px solid var(--border);
+}
+.badge.ok { color: #8ee6bb; border-color: rgba(62, 207, 142, .32); }
+.badge.warn { color: #f0c479; border-color: rgba(226, 163, 60, .32); }
+.badge.no { color: #ffa2a0; border-color: rgba(239, 83, 80, .32); }
+.badge.muted { color: var(--muted); }
+
+/* Label / value list used throughout the drawer. */
+.kv {
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  gap: 7px 14px;
+  font-size: 12px;
+  margin: 0;
+}
+.kv dt { color: var(--muted); }
+.kv dd {
+  margin: 0;
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  overflow-wrap: anywhere;
+}
+
+/* ---- header -------------------------------------------------------------- */
+
+.header {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  height: var(--header-h);
+  flex: 0 0 var(--header-h);
+  padding: 0 16px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  z-index: 6;
+}
+.header .spacer { flex: 1; }
+
+.brand {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  white-space: nowrap;
+}
+.brand .name { font-size: 15px; font-weight: 600; letter-spacing: .2px; }
+.brand .sub { font-size: 11px; color: var(--muted); }
+
+.live {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.live .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--muted);
+  flex: 0 0 auto;
+}
+.live.on { color: #8ee6bb; }
+.live.on .dot {
+  background: var(--ok);
+  box-shadow: 0 0 0 3px rgba(62, 207, 142, .16);
+}
+.live.err { color: #ffa2a0; }
+.live.err .dot { background: var(--bad); }
+
+/* ---- app shell ----------------------------------------------------------- */
+
+.app {
+  flex: 1;
+  display: flex;
+  gap: 16px;
+  padding: 16px;
+  min-height: 0;
+  align-items: center;
+}
+
+/* ---- module rail --------------------------------------------------------- */
+
+.sidebar {
+  flex: 0 0 var(--rail-w);
+  width: var(--rail-w);
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+/* Module rail item. `.tab` is the regression-asserted class name. */
+.tab {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 9px 10px;
+  background: transparent;
+  border: 0;
+  border-left: 2px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  font-size: 13px;
+  transition: background .12s, color .12s;
+}
+.tab:hover { background: var(--surface-2); color: var(--text); }
+.tab.active {
+  background: var(--surface-2);
+  border-left-color: var(--accent);
+  color: var(--text);
+}
+/* A selected-but-not-running chapter still reads as selected. */
+.tab.active.selected-only { border-left-color: var(--warn); }
+.tab.blocked { cursor: default; color: #6b7688; }
+.tab.blocked:hover { background: transparent; color: #7d8899; }
+
+.tab .dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #4a5568;
+  flex: 0 0 auto;
+}
+.tab .dot.ready { background: var(--ok); }
+.tab .dot.running {
+  background: var(--ok);
+  box-shadow: 0 0 0 3px rgba(62, 207, 142, .18);
+}
+.tab .dot.blocked { background: var(--bad); }
+.tab .dot.offline { background: #4a5568; }
+
+.tab .m-body { flex: 1; min-width: 0; }
+.tab .m-name {
+  display: block;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tab .m-state {
+  display: block;
+  font-family: var(--mono);
+  font-size: 10px;
+  letter-spacing: .4px;
+  color: var(--muted);
+  margin-top: 1px;
+}
+.tab.blocked .m-state { color: #8d5a58; }
+
+/* ---- video stage --------------------------------------------------------- */
+
+.stage {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.video-wrap {
+  position: relative;
+  flex: 0 1 auto;
+  min-height: 0;
+  width: min(100%, 1440px, calc((100vh - 128px) * 16 / 9));
+  max-height: calc(100vh - 128px);
+  aspect-ratio: 16 / 9;
+  background: #000;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+/* Both transports are styled identically: WebRTC uses <video>, MJPEG <img>. */
+.video-wrap video,
+.video-wrap img.stream {
+  width: 100%;
+  height: 100%;
+  display: block;
+  object-fit: contain;
+  background: #000;
+}
+.video-wrap img.stream[hidden],
+.video-wrap video[hidden] { display: none; }
+
+.stage-msg {
+  position: absolute;
+  inset: 0;
+  display: none;
+  place-items: center;
+  text-align: center;
+  padding: 32px;
+  background: rgba(11, 15, 23, .94);
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+.stage-msg.show { display: grid; }
+.stage-msg .inner { max-width: 480px; }
+
+.stage-msg .spinner {
+  width: 30px;
+  height: 30px;
+  margin: 0 auto 14px;
+  border: 2px solid var(--surface-3);
+  border-top-color: var(--accent);
+  border-radius: 50%;
+  animation: m4-spin .9s linear infinite;
+}
+@keyframes m4-spin { to { transform: rotate(360deg); } }
+
+/* Blocked / empty state: name the chapter, name the model, name what is
+   missing. No fabricated data, no spinner. */
+.stage-msg .empty-tag {
+  font-family: var(--mono);
+  font-size: 11px;
+  letter-spacing: 1px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.stage-msg .empty-title {
+  font-size: 17px;
+  font-weight: 600;
+  color: var(--text);
+  margin-bottom: 6px;
+}
+.stage-msg .empty-model {
+  font-size: 12px;
+  color: var(--muted);
+  margin-bottom: 18px;
+}
+.stage-msg .empty-reason { font-size: 13px; margin-bottom: 8px; }
+.stage-msg .empty-missing {
+  display: inline-block;
+  font-family: var(--mono);
+  font-size: 12px;
+  color: #f0c479;
+  background: rgba(226, 163, 60, .1);
+  border: 1px solid rgba(226, 163, 60, .28);
+  border-radius: 5px;
+  padding: 5px 10px;
+}
+.stage-msg .empty-note { font-size: 11px; color: var(--muted); margin-top: 18px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .stage-msg .spinner { animation: none; }
+}
+
+/* ---- status bar ---------------------------------------------------------- */
+
+.statusbar {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex: 0 0 var(--status-h);
+  height: var(--status-h);
+  padding: 0 14px;
+  background: var(--surface);
+  border-top: 1px solid var(--border);
+  z-index: 6;
+}
+.statusbar .spacer { flex: 1; }
+
+.sb-left {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  font-size: 12px;
+}
+.sb-model {
+  color: var(--text);
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+/* Pipeline FPS is the ONLY metric named "FPS" outside the drawer. */
+.sb-metric {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted);
+  white-space: nowrap;
+}
+.sb-metric .v {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--text);
+}
+.sb-metric.primary .v { color: var(--text); }
+.sb-metric.muted .v { color: var(--muted); }
+
+.sep {
+  width: 1px;
+  height: 16px;
+  background: var(--border);
+  flex: 0 0 auto;
+}
+
+.sb-right { display: flex; align-items: center; gap: 4px; }
+
+/* Icon buttons: borderless until hover, so the strip reads as type. */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 9px;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  transition: background .12s, color .12s, border-color .12s;
+}
+.icon-btn:hover {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text);
+}
+.icon-btn[aria-pressed="true"] {
+  background: var(--surface-2);
+  border-color: var(--border);
+  color: var(--text);
+}
+.icon-btn svg { width: 15px; height: 15px; display: block; }
+.icon-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ---- settings popover ---------------------------------------------------- */
+
+.popover {
+  position: absolute;
+  right: 12px;
+  bottom: calc(var(--status-h) - 4px);
+  width: 244px;
+  background: var(--surface-2);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, .5);
+  padding: 12px 14px;
+  z-index: 30;
+}
+.popover[hidden] { display: none; }
+.popover .pop-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.popover .pop-row + .pop-row {
+  margin-top: 10px;
+  padding-top: 10px;
+  border-top: 1px solid var(--border);
+}
+.popover .pop-label { font-size: 12px; color: var(--text); }
+.popover .pop-hint { font-size: 10px; color: var(--muted); margin-top: 2px; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 11px;
+  background: var(--surface-3);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 500;
+  transition: background .12s;
+  user-select: none;
+}
+.btn:hover { background: #2b344a; }
+.btn:disabled { opacity: .45; cursor: not-allowed; }
+.btn-sm { padding: 4px 9px; font-size: 11px; }
+.btn[aria-pressed="true"] {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+
+/* ---- details drawer (closed by default) ---------------------------------- */
+
+.drawer {
+  position: fixed;
+  top: var(--header-h);
+  bottom: var(--status-h);
+  right: 0;
+  width: 320px;
+  max-width: 92vw;
+  background: var(--surface);
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  z-index: 20;
+  transform: translateX(100%);
+  visibility: hidden;
+  transition: transform .18s ease, visibility .18s;
+}
+.drawer.open { transform: translateX(0); visibility: visible; }
+@media (prefers-reduced-motion: reduce) {
+  .drawer { transition: none; }
+}
+
+.drawer-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  flex: 0 0 auto;
+}
+.drawer-head h2 {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: .5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.drawer-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  padding: 14px;
+}
+.drawer-section-title {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: .6px;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin-bottom: 9px;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb { background: var(--surface-3); border-radius: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+
+/* ---- responsive ---------------------------------------------------------- */
+
+/* Below the desktop target the rail collapses to dots; the video keeps the
+   space. The Jetson demo runs on a desktop browser, so phone layout is not
+   a goal — this is only so a narrower window degrades sensibly. */
+@media (max-width: 1279px) {
+  .sidebar { flex-basis: var(--rail-w-compact); width: var(--rail-w-compact); }
+  .tab { justify-content: center; padding: 10px 4px; }
+  .tab .m-body { display: none; }
+  .brand .sub { display: none; }
+  .sb-model { max-width: 34vw; }
+}
+
+@media (max-width: 820px) {
+  .app { padding: 8px; gap: 8px; align-items: stretch; }
+  .sidebar { display: none; }
+  .sb-left { gap: 8px; }
+  .video-wrap { width: 100%; max-height: none; }
+  .icon-btn span { display: none; }
+  .statusbar { padding: 0 8px; }
+  .sb-model { max-width: 28vw; }
+}

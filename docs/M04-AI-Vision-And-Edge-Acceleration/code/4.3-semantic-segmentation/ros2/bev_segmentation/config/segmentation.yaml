@@ -1,0 +1,19 @@
+# bev_segmentation/config/segmentation.yaml
+#
+# M4.3 Semantic Segmentation 节点参数.
+# ⚠️ drivable_class_ids 默认 [0] (road only); sidewalk (id=1) 可选加入.
+# ⚠️ 该 mask 是 candidate-drivable semantic mask, 不等价于 collision-free space.
+
+segmentation_node:
+  ros__parameters:
+    engine_path: "/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration/models/m4/segmentation/engines/segformer_b0_fp16.engine"
+    labels_path: "/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration/models/m4/segmentation/labels/labels.json"
+
+    input_image_topic:   "/perception/cameras/front/image"
+    semantic_mask_topic: "/perception/semantic_mask"
+    drivable_mask_topic: "/perception/drivable_mask"
+
+    # 默认 drivable = road (id=0); sidewalk (id=1) 可选加入
+    drivable_class_ids: [0]
+
+    publish_debug: false
