@@ -17,7 +17,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, LogInfo
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PythonExpression
 from launch_ros.actions import Node
 
 
@@ -29,13 +29,17 @@ def generate_launch_description() -> LaunchDescription:
     config_path = os.path.join(pkg_demo, 'config', 'demo.yaml')
     seg_config = os.path.join(pkg_seg, 'config', 'segmentation.yaml')
     camera_source = LaunchConfiguration('camera_source')
+    segmentation_max_fps = LaunchConfiguration('segmentation_max_fps')
+    segmentation_view_mode = LaunchConfiguration('segmentation_view_mode')
 
     # ---- GMSL: camera_sync_node + camera_adapter_node ----
     gmsl_camera_include = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_detection, 'launch', 'm4_detection.launch.py')),
+        # ROS 2 has no $(eval ...) substitution - that is roslaunch syntax.
+        # PythonExpression evaluates the concatenated substitutions as Python.
         condition=IfCondition(
-            '$(eval camera_source == "gmsl")'),
+            PythonExpression(["'", camera_source, "' == 'gmsl'"])),
         launch_arguments={
             'use_camera_sync': 'true',
             'use_yolo': 'false',
@@ -51,7 +55,10 @@ def generate_launch_description() -> LaunchDescription:
         executable='segmentation_node',
         name='segmentation_node',
         output='screen',
-        parameters=[seg_config],
+        parameters=[seg_config, {
+            'max_inference_fps': segmentation_max_fps,
+            'selected_image_topic': '/perception/segmentation/source_image',
+        }],
     )
 
     # ---- Segmentation visualizer ----
@@ -60,13 +67,23 @@ def generate_launch_description() -> LaunchDescription:
         executable='segmentation_visualizer',
         name='segmentation_visualizer',
         output='screen',
-        parameters=[config_path],
+        parameters=[config_path, {
+            'image_topic': '/perception/segmentation/source_image',
+            'view_mode': segmentation_view_mode,
+            'max_width': 1920,
+        }],
     )
 
     return LaunchDescription([
         DeclareLaunchArgument(
             'camera_source', default_value='auto',
             description='gmsl|existing|csi|usb|test  (passed from bash wrapper)'),
+        DeclareLaunchArgument(
+            'segmentation_max_fps', default_value='30.0',
+            description='M4.3 standalone inference cap (1..30)'),
+        DeclareLaunchArgument(
+            'segmentation_view_mode', default_value='semantic',
+            description='M4.3 view: original|semantic|drivable'),
         gmsl_camera_include,
         seg_node,
         seg_visualizer,

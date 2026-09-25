@@ -4,18 +4,13 @@
 # What it does differently from run_m4_1/2/3_demo.sh
 # --------------------------------------------------
 # The three per-lesson demos each bring up their own pipeline and their own
-# web server on port 8080, so they cannot be shown together, and 4.2 started
-# a SECOND YOLO instance on the same camera. This script brings up the shared
-# pipeline exactly once and serves all three modules from ONE web server with
-# a tabbed page:
+# web server on port 8080. This Hub owns one camera and one web server. The
+# server starts exactly ONE selected inference lesson at a time:
 #
 #   ONE camera publisher  → /perception/cameras/front/image
-#   ONE yolo_trt_node     → /perception/detections
-#                        ├─ debug image ──► /perception/demo/m4_1   (4.1 tab)
-#                        └─ tracking_node ► /perception/tracks
-#                             └─ tracking_visualizer ► /perception/demo/m4_2 (4.2 tab)
-#   ONE segmentation_node → /perception/semantic_mask, /perception/drivable_mask
-#                        └─ segmentation_visualizer ► /perception/demo/m4_3 (4.3 tab)
+#   selected 4.1: yolo_trt_node → /perception/demo/m4_1
+#   selected 4.2: yolo_trt_node + tracking_node → /perception/demo/m4_2
+#   selected 4.3: segmentation_node → /perception/demo/m4_3
 #   ONE m4_web_demo_server --demo hub  →  http://<jetson>:8080/m4/1
 #
 # A module whose engine is not built yet (M4.3 before segformer_b0_fp16.engine
@@ -32,9 +27,14 @@
 # Environment overrides:
 #   CAMERA_SOURCE={auto|csi|v4l2|existing|gmsl|usb|test}   default: auto
 #   CAMERA_DEVICE=/dev/videoN                              default: /dev/video0
-#   CAMERA_WIDTH/HEIGHT/FPS                                1920/1080/30 (native)
+#   CAMERA_WIDTH/HEIGHT/FPS                                1920/1080/30 (published)
+#   CAMERA_CAPTURE_WIDTH/HEIGHT                            1920/1536 (native calibration input)
 #   WEB_PORT (8080) · WEB_HOST (0.0.0.0) · WEB_BACKEND (h264|auto|mjpeg|vp8) · WEB_ACTIVE (m4_1)
+#   WEB_MJPEG_SIDE_CHANNEL=1 enables the crisp fallback beside H.264 (extra CPU)
 #   ENABLE_TRACKING=1 · ENABLE_SEGMENTATION=auto|0|1
+#   ENABLE_POSE={auto|0|1} · M4_POSE_CONTAINER (m4-isaacros-foundationpose)
+#     4.4 is bag-replay visualization from the Isaac ROS FoundationPose
+#     container; auto enables it whenever that container is running.
 
 set -u
 
@@ -53,14 +53,29 @@ m4_lib_init "$DEMO_NAME"
 : "${CAMERA_DEVICE:=/dev/video0}"
 : "${CAMERA_WIDTH:=1920}"
 : "${CAMERA_HEIGHT:=1080}"
+: "${CAMERA_CAPTURE_WIDTH:=1920}"
+: "${CAMERA_CAPTURE_HEIGHT:=1536}"
 : "${CAMERA_FPS:=30}"
 : "${VIEWER:=none}"          # the web hub replaces local GUI viewers
 : "${DURATION:=0}"
 : "${ENABLE_TRACKING:=1}"
 : "${ENABLE_SEGMENTATION:=auto}"
+: "${ENABLE_POSE:=auto}"
+: "${M4_POSE_CONTAINER:=m4-isaacros-foundationpose}"
+: "${FOUNDATIONPOSE_HOST_MODEL_ROOT:=/home/seeed/workspace/isaac_ros_assets/models/foundationpose}"
+: "${SEGMENTATION_MAX_FPS:=10.0}"
 : "${M4_WEB_ACTIVE:=m4_1}"
+: "${M4_RUNTIME_SETTINGS_PATH:=${HOME}/.config/m4-perception/runtime_settings.json}"
+: "${M4_IMAGE_TOPIC:=/perception/inputs/camera}"
 
-export CAMERA_SOURCE CAMERA_DEVICE CAMERA_WIDTH CAMERA_HEIGHT CAMERA_FPS VIEWER DURATION
+export CAMERA_SOURCE CAMERA_DEVICE CAMERA_WIDTH CAMERA_HEIGHT CAMERA_CAPTURE_WIDTH CAMERA_CAPTURE_HEIGHT CAMERA_FPS VIEWER DURATION \
+  M4_RUNTIME_SETTINGS_PATH SEGMENTATION_MAX_FPS
+export M4_WEB_MANAGED_MODULES=1
+export M4_IMAGE_TOPIC
+export M4_SEGMENTATION_MAX_FPS="$SEGMENTATION_MAX_FPS"
+
+awk -v fps="$SEGMENTATION_MAX_FPS" 'BEGIN { exit !(fps >= 1 && fps <= 30) }' || \
+  m4_die "SEGMENTATION_MAX_FPS must be within 1..30 (got: $SEGMENTATION_MAX_FPS)"
 
 # ---- CLI -----------------------------------------------------------------
 CHECK_ONLY=0
@@ -82,9 +97,9 @@ done
 m4_parse_cli "$DEMO_NAME" ${PASSTHRU[@]+"${PASSTHRU[@]}"}
 m4_setup_env
 
-SEG_ENGINE="$REPO/models/m4/segmentation/engines/segformer_b0_fp16.engine"
-SEG_LABELS="$REPO/models/m4/segmentation/labels/labels.json"
-YOLO_ENGINE="$REPO/models/m4/detection/engines/yolo11n_fp16.engine"
+SEG_ENGINE="$M4_CODE_ROOT/models/m4/segmentation/engines/segformer_b0_fp16.engine"
+SEG_LABELS="$M4_CODE_ROOT/models/m4/segmentation/labels/labels.json"
+YOLO_ENGINE="$M4_CODE_ROOT/models/m4/detection/engines/yolo11n_fp16.engine"
 
 # Resolve segmentation enablement: auto = only when the engine AND labels
 # exist. TensorRT cannot be asked to "partially" load, so a missing engine
@@ -104,27 +119,45 @@ case "$ENABLE_SEGMENTATION" in
     *) m4_die "ENABLE_SEGMENTATION must be auto|0|1 (got: $ENABLE_SEGMENTATION)" ;;
 esac
 
+# Resolve pose enablement: auto = only when the Isaac ROS FoundationPose
+# container is running. The 4.4 tab is bag-replay visualization; a stopped
+# container only disables the module (the physical RGB-D gate stays open).
+POSE_REASON=""
+case "$ENABLE_POSE" in
+    auto)
+        if command -v docker >/dev/null 2>&1 && docker inspect "$M4_POSE_CONTAINER" >/dev/null 2>&1; then
+            ENABLE_POSE=1
+        else
+            ENABLE_POSE=0
+            POSE_REASON="Isaac ROS container '$M4_POSE_CONTAINER' is not running"
+        fi
+        ;;
+    0|1) ;;
+    *) m4_die "ENABLE_POSE must be auto|0|1 (got: $ENABLE_POSE)" ;;
+esac
+
 # ---- preflight -----------------------------------------------------------
 m4_section "Preflight"
 
+CAMERA_PUBLISHER="$M4_WS_ROOT/install/m4_demo_bringup/lib/m4_demo_bringup/csi_camera_publisher"
 M4_PREFLIGHT_PATHS="$YOLO_ENGINE \
-  $REPO/ros2_ws/install/bev_detection/lib/bev_detection/yolo_trt_node \
-  $REPO/ros2_ws/src/bev_detection/test/csi_camera_publisher.py \
-  $REPO/ros2_ws/install/m4_demo_bringup/lib/m4_demo_bringup/m4_web_demo_server"
+  $M4_WS_ROOT/install/bev_detection/lib/bev_detection/yolo_trt_node \
+  $CAMERA_PUBLISHER \
+  $M4_WS_ROOT/install/m4_demo_bringup/lib/m4_demo_bringup/m4_web_demo_server"
 m4_preflight
 
 # The hub launch file must be installed; a stale build is a common footgun.
-HUB_LAUNCH="$REPO/ros2_ws/install/m4_demo_bringup/share/m4_demo_bringup/launch/m4_all_demo.launch.py"
+HUB_LAUNCH="$M4_WS_ROOT/install/m4_demo_bringup/share/m4_demo_bringup/launch/m4_all_demo.launch.py"
 if [ ! -f "$HUB_LAUNCH" ]; then
     m4_fail "missing installed launch: $HUB_LAUNCH"
-    m4_fail "  rebuild first:  cd $REPO/ros2_ws && colcon build --packages-select m4_demo_bringup --symlink-install"
+    m4_fail "  rebuild first:  cd $M4_WS_ROOT && colcon build --packages-select m4_demo_bringup --symlink-install"
     m4_die "preflight failed"
 fi
 m4_ok "hub launch present"
 
 if [ "$ENABLE_TRACKING" = "1" ]; then
-    for p in "$REPO/ros2_ws/install/bev_tracking/lib/bev_tracking/tracking_node" \
-             "$REPO/ros2_ws/install/bev_tracking/lib/bev_tracking/tracking_visualizer"; do
+    for p in "$M4_WS_ROOT/install/bev_tracking/lib/bev_tracking/tracking_node" \
+             "$M4_WS_ROOT/install/bev_tracking/lib/bev_tracking/tracking_visualizer"; do
         [ -e "$p" ] || m4_die "ENABLE_TRACKING=1 but missing: $p"
     done
     m4_ok "tracking artifacts present"
@@ -132,7 +165,7 @@ fi
 
 if [ "$ENABLE_SEGMENTATION" = "1" ]; then
     for p in "$SEG_ENGINE" \
-             "$REPO/ros2_ws/install/bev_segmentation/lib/bev_segmentation/segmentation_node"; do
+             "$M4_WS_ROOT/install/bev_segmentation/lib/bev_segmentation/segmentation_node"; do
         [ -e "$p" ] || m4_die "ENABLE_SEGMENTATION=1 but missing: $p"
     done
     m4_ok "segmentation artifacts present"
@@ -143,9 +176,29 @@ else
     m4_warn "  the 4.3 tab will show as not-ready; 4.1/4.2 are unaffected"
 fi
 
+# The 4.4 wrapper + installed launch are part of this module's code; a stale
+# build is the same footgun as the hub launch above. The TensorRT engines are
+# data, not code: a missing one only slows the first 4.4 start.
+M4_4_MODULE_SCRIPT="$M4_CODE_ROOT/scripts/m4/m4_4_hub_module.sh"
+if [ "$ENABLE_POSE" = "1" ]; then
+    for p in "$M4_4_MODULE_SCRIPT" \
+             "$M4_WS_ROOT/install/m4_demo_bringup/share/m4_demo_bringup/launch/m4_4_web.launch.py"; do
+        [ -e "$p" ] || m4_die "ENABLE_POSE=1 but missing: $p"
+    done
+    m4_ok "pose artifacts present (container=$M4_POSE_CONTAINER)"
+    if [ ! -s "$FOUNDATIONPOSE_HOST_MODEL_ROOT/score_trt_engine.plan" ]; then
+        m4_warn "score engine not built yet; the first 4.4 start will build it (~213 s)"
+    fi
+else
+    m4_warn "M4.4 pose DISABLED for this run"
+    [ -n "$POSE_REASON" ] && m4_warn "  reason: $POSE_REASON"
+    m4_warn "  the 4.4 tab will show as not-ready; 4.1/4.2/4.3 are unaffected"
+fi
+export M4_4_HUB_MODULE_SCRIPT="$M4_4_MODULE_SCRIPT"
+
 # Read-only camera/environment report (also the whole of --check).
 m4_section "Environment"
-m4_note "camera source=$CAMERA_SOURCE device=$CAMERA_DEVICE ${CAMERA_WIDTH}x${CAMERA_HEIGHT}@${CAMERA_FPS}"
+m4_note "camera source=$CAMERA_SOURCE device=$CAMERA_DEVICE native=${CAMERA_CAPTURE_WIDTH}x${CAMERA_CAPTURE_HEIGHT} published=${CAMERA_WIDTH}x${CAMERA_HEIGHT}@${CAMERA_FPS}"
 if [ -e "$CAMERA_DEVICE" ]; then
     local_fmt=$(v4l2-ctl -d "$CAMERA_DEVICE" --get-fmt-video 2>/dev/null | tr -d '\n' || true)
     m4_note "current v4l2 fmt: ${local_fmt:-unavailable}"
@@ -169,16 +222,25 @@ m4_note "web: port=$M4_WEB_PORT host=$M4_WEB_HOST backend=$M4_WEB_BACKEND"
 
 if [ "$CHECK_ONLY" = "1" ]; then
     m4_section "--check complete (no side effects)"
-    m4_note "tracking=$( [ "$ENABLE_TRACKING" = 1 ] && echo enabled || echo disabled ) segmentation=$( [ "$ENABLE_SEGMENTATION" = 1 ] && echo enabled || echo disabled )"
+    m4_note "tracking=$( [ "$ENABLE_TRACKING" = 1 ] && echo enabled || echo disabled ) segmentation=$( [ "$ENABLE_SEGMENTATION" = 1 ] && echo enabled || echo disabled ) pose=$( [ "$ENABLE_POSE" = 1 ] && echo enabled || echo disabled )"
     exit 0
 fi
 
 # ---- plan ----------------------------------------------------------------
 TOPICS_SPEC="m4_1=/perception/demo/m4_1"
+UNAVAILABLE_LIST=()
 [ "$ENABLE_TRACKING" = "1" ] && TOPICS_SPEC="$TOPICS_SPEC,m4_2=/perception/demo/m4_2"
 if [ "$ENABLE_SEGMENTATION" = "1" ]; then
     TOPICS_SPEC="$TOPICS_SPEC,m4_3=/perception/demo/m4_3"
+else
+    UNAVAILABLE_LIST+=("m4_3=${SEG_REASON:-segmentation disabled by ENABLE_SEGMENTATION=0}")
 fi
+if [ "$ENABLE_POSE" = "1" ]; then
+    TOPICS_SPEC="$TOPICS_SPEC,m4_4=/perception/demo/m4_4"
+else
+    UNAVAILABLE_LIST+=("m4_4=${POSE_REASON:-pose disabled by ENABLE_POSE=0}")
+fi
+UNAVAILABLE_SPEC="$(IFS=,; echo "${UNAVAILABLE_LIST[*]}")"
 
 if [ "$M4_DRY_RUN" = "1" ]; then
     cat <<EOF
@@ -186,17 +248,15 @@ if [ "$M4_DRY_RUN" = "1" ]; then
   1. reap a leaked camera publisher from a previous run (ownership-checked)
   2. resolve camera source: $CAMERA_SOURCE
   3. spawn ONE camera publisher ($CAMERA_WIDTH x $CAMERA_HEIGHT @ $CAMERA_FPS) if unresolved
-  4. ros2 launch m4_demo_bringup m4_all_demo.launch.py \\
-       enable_tracking:=$ENABLE_TRACKING enable_segmentation:=$ENABLE_SEGMENTATION
-  5. readiness gate: /perception/cameras/front/image → /perception/detections
-       → /perception/demo/m4_1 [→ /perception/tracks → /perception/demo/m4_2]
-       [→ /perception/semantic_mask → /perception/demo/m4_3]
-  6. ONE hub web server: --demo hub --topics "$TOPICS_SPEC" (port $M4_WEB_PORT)
-  7. print URL http://<jetson-ip>:$M4_WEB_PORT/m4/1
-  8. Ctrl-C → SIGINT camera/launch/web PGIDs, 5s grace, SIGKILL survivors
+  4. start ONE hub web server with a single-module runtime manager
+  5. initially launch $M4_WEB_ACTIVE only; clicking another chapter stops it
+       and starts only that lesson (4.2 includes its YOLO dependency)
+  6. print URL http://<jetson-ip>:$M4_WEB_PORT/m4/1
+  7. Ctrl-C → SIGINT camera/web/module PGIDs, 5s grace, SIGKILL survivors
 
 [DRY-RUN] topics: $TOPICS_SPEC
-[DRY-RUN] tracking=$ENABLE_TRACKING segmentation=$ENABLE_SEGMENTATION
+[DRY-RUN] unavailable: ${UNAVAILABLE_SPEC:-none}
+[DRY-RUN] tracking=$ENABLE_TRACKING segmentation=$ENABLE_SEGMENTATION pose=$ENABLE_POSE
 EOF
     exit 0
 fi
@@ -215,7 +275,7 @@ m4_reap_leaked_camera_publisher
 reap_untracked_publishers() {
     [ "$REAP_UNTRACKED" = "1" ] || { m4_note "untracked-publisher reaping disabled (--no-reap)"; return 0; }
     local pids p cmd up
-    pids=$(pgrep -f "csi_camera_publisher.py" 2>/dev/null || true)
+    pids=$(pgrep -f "csi_camera_publisher" 2>/dev/null || true)
     for p in $pids; do
         [ "$p" = "${M4_CAMERA_PID:-}" ] && continue
         grep -qa "$REPO" "/proc/$p/cmdline" 2>/dev/null || continue
@@ -223,10 +283,10 @@ reap_untracked_publishers() {
         up=$(ps -o etime= -p "$p" 2>/dev/null | tr -d ' ')
         m4_warn "untracked camera publisher left by an earlier run: pid=$p uptime=${up:-?}"
         m4_warn "    ${cmd:0:140}"
-        kill -INT "$p" 2>/dev/null || true
+        kill -TERM "$p" 2>/dev/null || true
     done
     sleep 2
-    for p in $(pgrep -f "csi_camera_publisher.py" 2>/dev/null || true); do
+    for p in $(pgrep -f "csi_camera_publisher" 2>/dev/null || true); do
         [ "$p" = "${M4_CAMERA_PID:-}" ] && continue
         grep -qa "$REPO" "/proc/$p/cmdline" 2>/dev/null || continue
         m4_warn "SIGKILL stubborn untracked publisher pid=$p"
@@ -273,22 +333,12 @@ if [ "$M4_CAMERA_OWNED" = "true" ] && [ "$M4_CAMERA_MODE" != "gmsl" ]; then
     sleep 1
 fi
 
-# ---- launch the shared pipeline (ONE YOLO) -------------------------------
-m4_section "Launching shared pipeline (m4_all_demo.launch.py)"
-m4_launch_ros ros2 launch m4_demo_bringup m4_all_demo.launch.py \
-    camera_topic:=/perception/cameras/front/image \
-    detections_topic:=/perception/detections \
-    tracks_topic:=/perception/tracks \
-    enable_tracking:="$ENABLE_TRACKING" \
-    enable_segmentation:="$ENABLE_SEGMENTATION"
-m4_record_meta
-
 # ---- the single unified web server --------------------------------------
 if [ "$NO_WEB" = "1" ]; then
     m4_note "web hub disabled by --no-web"
 else
-    m4_section "Web hub (one server, all modules)"
-    if m4_launch_web_hub "$TOPICS_SPEC"; then
+    m4_section "Web hub (one server, one selected inference module)"
+    if m4_launch_web_hub "$TOPICS_SPEC" "$UNAVAILABLE_SPEC"; then
         if [ "$M4_WEB_PID" != "0" ]; then
             if ! m4_report_hub_url; then
                 m4_die "web hub health gate failed; refusing to continue with an unavailable preview"
@@ -303,23 +353,19 @@ fi
 m4_section "Readiness gate"
 
 m4_wait_for_stage "/perception/cameras/front/image" 10.0 "camera front image" || true
-m4_wait_for_stage "/perception/detections"          15.0 "YOLO detections" vision_msgs.msg.Detection2DArray || true
-m4_wait_for_stage "/perception/demo/m4_1"           10.0 "4.1 overlay"        || true
-if [ "$ENABLE_TRACKING" = "1" ]; then
-    m4_wait_for_stage "/perception/tracks"           10.0 "tracker tracks" vision_msgs.msg.Detection2DArray || true
-    m4_wait_for_stage "/perception/demo/m4_2"        10.0 "4.2 overlay"        || true
-fi
-if [ "$ENABLE_SEGMENTATION" = "1" ]; then
-    m4_wait_for_stage "/perception/semantic_mask"    15.0 "semantic mask"      || true
-    m4_wait_for_stage "/perception/drivable_mask"    10.0 "drivable mask"      || true
-    m4_wait_for_stage "/perception/demo/m4_3"        10.0 "4.3 overlay"        || true
-fi
+case "$M4_WEB_ACTIVE" in
+    m4_1) m4_wait_for_stage "/perception/demo/m4_1" 15.0 "initial 4.1 overlay" || true ;;
+    m4_2) m4_wait_for_stage "/perception/demo/m4_2" 15.0 "initial 4.2 overlay" || true ;;
+    m4_3) m4_wait_for_stage "/perception/demo/m4_3" 20.0 "initial 4.3 overlay" || true ;;
+    m4_4) m4_wait_for_stage "/perception/demo/m4_4" 150.0 "initial 4.4 overlay" || true ;;
+    *) m4_die "M4_WEB_ACTIVE must be m4_1, m4_2, m4_3 or m4_4 (got: $M4_WEB_ACTIVE)" ;;
+esac
 
 # ---- status + wait -------------------------------------------------------
 m4_start_status_reporter
 m4_note "M4 unified preview is live. Press Ctrl-C to stop."
-wait "$M4_LAUNCH_PID" 2>/dev/null
+wait "$M4_WEB_PID" 2>/dev/null
 rc=$?
-[ $rc -ne 0 ] && m4_report_launch_failure
-m4_note "launch process exited (rc=$rc); cleanup follows via EXIT trap"
+[ $rc -ne 0 ] && m4_warn "web hub process exited (rc=$rc)"
+m4_note "web hub process exited (rc=$rc); cleanup follows via EXIT trap"
 exit 0

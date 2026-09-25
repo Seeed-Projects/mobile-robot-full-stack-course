@@ -1,0 +1,11 @@
+%YAML 1.2
+---
+foundationpose:
+  ros__parameters:
+    resized_image_height: 160
+    resized_image_width: 160
+    max_hypothesis: 42
+    refine_crop_ratio: 1.2
+    score_crop_ratio: 1.1
+    rot_normalizer: 0.349065850398865
+    trans_normalizer: [0.019999999552965164, 0.019999999552965164, 0.05000000074505806]

@@ -25,10 +25,13 @@ set -u
 #   - pipefail triggers on grep finding 0 lines, which is normal for empty logs
 #   - We want cleanup() to run from EXIT/INT/TERM traps, not from per-line ERR
 
-REPO="/home/seeed/workspace/ros2_bev"
-ENGINE="$REPO/models/m4/detection/engines/yolo11n_fp16.engine"
-LABELS="$REPO/models/m4/detection/labels/coco.names"
-OUT="$REPO/output/m4/4.1"
+# --- module anchors: derived from this script's own location, never hardcoded ---
+# M4_ROOT is this M04 module; WS_ROOT is the repository root.
+M4_ROOT="${M4_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+WS_ROOT="${WS_ROOT:-$(cd "$M4_ROOT/../.." && pwd)}"
+ENGINE="$M4_ROOT/models/m4/detection/engines/yolo11n_fp16.engine"
+LABELS="$M4_ROOT/models/m4/detection/labels/coco.names"
+OUT="$M4_ROOT/output/m4/4.1"
 LOG_DIR="$OUT/visualize_live"
 
 CAMERA_SOURCE="${CAMERA_SOURCE:-auto}"
@@ -213,11 +216,11 @@ trap 'cleanup "EXIT"' EXIT
 section "Step 0/4 — ROS environment"
 set +u
 source /opt/ros/humble/setup.bash
-cd "$REPO/ros2_ws"
+cd "$WS_ROOT"
 source install/setup.bash
 set -u
 ok "ros2 + bev_detection sourced"
-export LD_LIBRARY_PATH="$REPO/ros2_ws/install/bev_detection/lib:/home/seeed/src/opencv-4.14.0-cuda-build/lib:/usr/local/cuda-12.6/lib64:/usr/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH"
+export LD_LIBRARY_PATH="$WS_ROOT/install/bev_detection/lib:${OPENCV_CUDA_LIB:-}:/usr/local/cuda/lib64:/usr/lib/aarch64-linux-gnu:$LD_LIBRARY_PATH"
 ok "LD_LIBRARY_PATH configured"
 
 if [ ! -f "$ENGINE" ]; then
@@ -243,7 +246,7 @@ note "yolo_trt_node PID=$YOLO_PID  (log: $LOG_DIR/yolo.log)"
 
 # ---- 2. camera publisher ----
 section "Step 2/4 — camera publisher  (source=$CAMERA_SOURCE device=$CAMERA_DEVICE)"
-python3 "$REPO/ros2_ws/src/bev_detection/test/csi_camera_publisher.py" \
+python3 "$WS_ROOT/install/m4_demo_bringup/lib/m4_demo_bringup/csi_camera_publisher" \
   --source "$CAMERA_SOURCE" \
   --device "$CAMERA_DEVICE" \
   --width "$CAMERA_WIDTH" \
@@ -289,7 +292,7 @@ if [ "$SHOW_WINDOW" = "1" ]; then
   # stderr is filtered to drop the Qt font warnings that OpenCV writes on
   # startup (they don't affect rendering). rclpy logs go to stderr; we keep
   # everything else and just strip the Qt noise.
-  python3 "$REPO/ros2_ws/src/bev_detection/test/cv_viewer.py" \
+  python3 "$WS_ROOT/modules/m04-ai-vision-and-edge-acceleration/4.1-yolo-object-detection/ros2/bev_detection/test/cv_viewer.py" \
     --topic /perception/debug/detection_image \
     --display "$VIEWER_DISPLAY" \
     --width "$VIEWER_WIDTH" \
@@ -304,7 +307,7 @@ else
   SNAP_DIR="$OUT/live_snaps_$(date +%Y%m%d_%H%M%S)"
   mkdir -p "$SNAP_DIR"
   ok "SHOW_WINDOW=0 → saving PNG every frame to: $SNAP_DIR"
-  python3 "$REPO/ros2_ws/src/bev_detection/test/screenshot_saver.py" \
+  python3 "$WS_ROOT/modules/m04-ai-vision-and-edge-acceleration/4.1-yolo-object-detection/ros2/bev_detection/test/screenshot_saver.py" \
     --out "$SNAP_DIR/snapshot.png" \
     --topic /perception/debug/detection_image \
     --timeout 0 \

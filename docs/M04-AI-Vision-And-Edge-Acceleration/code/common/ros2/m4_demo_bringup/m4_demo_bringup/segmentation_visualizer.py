@@ -30,21 +30,21 @@ Cityscapes palette:
 from __future__ import annotations
 
 import array
+import json
 import sys
 import time
-from typing import Optional
-
 import cv2
 import numpy as np
 import rclpy
-from cv_bridge import CvBridge
 from rclpy.node import Node
+from rcl_interfaces.msg import SetParametersResult
 from rclpy.qos import (
     QoSHistoryPolicy,
     QoSProfile,
     QoSReliabilityPolicy,
 )
 from sensor_msgs.msg import Image
+from std_msgs.msg import String
 
 from .sync_utils import BoundedStampCache
 
@@ -90,14 +90,6 @@ CITYSCAPES_NAMES: list[str] = [
 _SEMANTIC_LUT = np.zeros((256, 3), dtype=np.uint8)
 for _cid, _bgr in enumerate(CITYSCAPES_PALETTE_BGR):
     _SEMANTIC_LUT[_cid] = _bgr
-
-# HUD panel fill / accent (BGR), matching the M4.1 and M4.2 overlays.
-_HUD_BG_BGR = (24, 28, 34)
-_HUD_ACCENT_BGR = (120, 230, 255)
-
-# Width of the separator column inserted between the two side-by-side panels.
-_SEP_W = 4
-
 
 def _stamp_ns(stamp) -> int:
     return int(stamp.sec) * 1_000_000_000 + int(stamp.nanosec)
@@ -149,21 +141,29 @@ class SegmentationVisualizer(Node):
 
         # ---- Sync ----
         self.declare_parameter('mask_cache_size', 10)
+        # In Hub mode the TensorRT callback can be delayed behind other ROS
+        # consumers.  Raw 1080p frames therefore need a longer history than
+        # their small mono8 masks; 90 frames covers roughly three seconds at
+        # 30 FPS without retaining data indefinitely.
+        self.declare_parameter('image_cache_size', 90)
         self.declare_parameter('tolerance_ns', 0)
         self.declare_parameter('log_throttle_ms', 1000)
 
         # ---- Drawing ----
         self.declare_parameter('overlay_alpha', 0.45)
         self.declare_parameter('drivable_color_bgr', '00FF00')   # green BGR for drivable
-        self.declare_parameter('side_by_side', True)
-        self.declare_parameter('max_width', 960)
+        self.declare_parameter('view_mode', 'semantic')
+        self.declare_parameter('max_width', 1920)
+        self.declare_parameter('stats_topic', '/perception/demo/m4_3/stats')
 
         image_topic = self.get_parameter('image_topic').value
         semantic_topic = self.get_parameter('semantic_topic').value
         drivable_topic = self.get_parameter('drivable_topic').value
         debug_topic = self.get_parameter('debug_image_topic').value
+        stats_topic = self.get_parameter('stats_topic').value
 
         cache_size = int(self.get_parameter('mask_cache_size').value)
+        image_cache_size = int(self.get_parameter('image_cache_size').value)
         self._tolerance_ns = int(self.get_parameter('tolerance_ns').value)
         if self._tolerance_ns > 0:
             self.get_logger().warn(
@@ -172,15 +172,21 @@ class SegmentationVisualizer(Node):
                 f'fall back to nearest-timestamp matching.'
             )
 
-        self._bridge = CvBridge()
+        # Rendering is mask-driven: retain only a small window of source
+        # frames and publish when all three messages share a stamp.  This is
+        # essential when the inference node intentionally runs below camera
+        # rate in Hub mode; publishing from every camera callback would create
+        # two out of three misleading "waiting" pictures.
+        self._img_cache = BoundedStampCache(maxlen=image_cache_size, tolerance_ns=self._tolerance_ns)
         self._sem_cache = BoundedStampCache(maxlen=cache_size, tolerance_ns=self._tolerance_ns)
         self._driv_cache = BoundedStampCache(maxlen=cache_size, tolerance_ns=self._tolerance_ns)
+        self._published_cache = BoundedStampCache(maxlen=cache_size, tolerance_ns=0)
 
         self._alpha = float(self.get_parameter('overlay_alpha').value)
         self._max_width = int(self.get_parameter('max_width').value)
-        # Class mask of the most recent frame, for the legend (set by
-        # _draw_semantic, consumed by _on_image after max_width fitting).
-        self._last_cls: Optional[np.ndarray] = None
+        self._view_mode = str(self.get_parameter('view_mode').value)
+        if self._view_mode not in ('original', 'semantic', 'drivable'):
+            raise ValueError('view_mode must be original, semantic or drivable')
         s = self.get_parameter('drivable_color_bgr').value.strip().lstrip('#')
         self._drivable_bgr = (int(s[4:6], 16), int(s[2:4], 16), int(s[0:2], 16))
 
@@ -194,6 +200,9 @@ class SegmentationVisualizer(Node):
         self._sem_sub = self.create_subscription(Image, semantic_topic, self._on_semantic, qos)
         self._driv_sub = self.create_subscription(Image, drivable_topic, self._on_drivable, qos)
         self._out_pub = self.create_publisher(Image, debug_topic, qos)
+        self._stats_pub = self.create_publisher(String, stats_topic, qos)
+        self._parameter_callback = self.add_on_set_parameters_callback(
+            self._on_set_parameters)
 
         self._frames = 0
         self._exact = 0
@@ -202,25 +211,60 @@ class SegmentationVisualizer(Node):
         self._last_log_us = 0
         self._log_throttle_us = int(
             float(self.get_parameter('log_throttle_ms').value) * 1000.0)
-        # Smoothed draw rate for the HUD (independent of the throttled log).
-        self._hud_fps = 0.0
-        self._last_draw_t = 0.0
+        self._last_stats_t = 0.0
 
         self.get_logger().info(
             f'segmentation_visualizer ready: '
             f'image={image_topic} sem={semantic_topic} drivable={drivable_topic} '
             f'pub={debug_topic} tolerance_ns={self._tolerance_ns} '
-            f'palette=CITYSCAPES_19_classes')
+            f'image_cache={image_cache_size} mask_cache={cache_size} '
+            f'view={self._view_mode} palette=CITYSCAPES_19_classes')
+
+    def _on_set_parameters(self, params):
+        result = SetParametersResult(successful=True, reason='')
+        for param in params:
+            if param.name == 'view_mode':
+                value = str(param.value)
+                if value not in ('original', 'semantic', 'drivable'):
+                    result.successful = False
+                    result.reason = 'view_mode must be original, semantic or drivable'
+                    return result
+                self._view_mode = value
+                self.get_logger().info(f'M4.3 view switched to {value}')
+        return result
 
     # ---- callbacks ----
 
     def _on_semantic(self, msg: Image) -> None:
-        self._sem_cache.push(_stamp_ns(msg.header.stamp), msg)
+        stamp = _stamp_ns(msg.header.stamp)
+        self._sem_cache.push(stamp, msg)
+        self._try_render(stamp)
 
     def _on_drivable(self, msg: Image) -> None:
-        self._driv_cache.push(_stamp_ns(msg.header.stamp), msg)
+        stamp = _stamp_ns(msg.header.stamp)
+        self._driv_cache.push(stamp, msg)
+        self._try_render(stamp)
 
     def _on_image(self, msg: Image) -> None:
+        stamp = _stamp_ns(msg.header.stamp)
+        self._img_cache.push(stamp, msg)
+        self._try_render(stamp)
+
+    def _try_render(self, stamp: int) -> None:
+        """Publish exactly one visualisation when a full stamp triplet exists."""
+        if self._published_cache.lookup(stamp)[0] == 'exact':
+            return
+
+        image_match = self._img_cache.lookup(stamp)
+        sem_match = self._sem_cache.lookup(stamp)
+        driv_match = self._driv_cache.lookup(stamp)
+        if image_match[0] not in ('exact', 'nearest') or \
+                sem_match[0] not in ('exact', 'nearest') or \
+                driv_match[0] not in ('exact', 'nearest'):
+            self._miss += 1
+            return
+
+        msg: Image = image_match[1]
         t0 = time.perf_counter()
         try:
             canvas = _image_msg_to_bgr(msg)
@@ -228,53 +272,34 @@ class SegmentationVisualizer(Node):
             self.get_logger().warn(f'image parse failed: {e}')
             return
 
-        image_stamp = _stamp_ns(msg.header.stamp)
-        sem_match = self._sem_cache.lookup(image_stamp)
-        driv_match = self._driv_cache.lookup(image_stamp)
-
-        sem_msg: Optional[Image] = None
-        driv_msg: Optional[Image] = None
-        if sem_match[0] == 'exact':
-            sem_msg = sem_match[1]
+        sem_msg: Image = sem_match[1]
+        driv_msg: Image = driv_match[1]
+        if (image_match[0], sem_match[0], driv_match[0]) == ('exact', 'exact', 'exact'):
             self._exact += 1
-        elif sem_match[0] == 'nearest':
-            sem_msg = sem_match[1]
-            self._fallback += 1
         else:
-            self._miss += 1
-        if driv_match[0] in ('exact', 'nearest'):
-            driv_msg = driv_match[1]
+            self._fallback += 1
 
-        side_by_side = bool(self.get_parameter('side_by_side').value)
-        # Downscale the SOURCE to the publish width FIRST. Every blend,
-        # legend and mask resize then runs at the final resolution instead of
-        # building a 3844x1080 side-by-side pair and throwing most of it away.
-        # `_draw_semantic` / `_draw_drivable` resize the mask to whatever
-        # canvas they are handed, so this also removes the separate mask
-        # rescale that used to be needed for the legend.
-        canvas = self._fit_source(canvas, side_by_side)
-        left = self._draw_semantic(canvas, sem_msg)
-        right = self._draw_drivable(canvas, driv_msg)
-        out = self._side_by_side(left, right) if side_by_side else left
-        if self._last_cls is not None:
-            self._draw_class_legend(out, self._last_cls)
+        canvas = self._fit_source(canvas, False)
+        try:
+            cls = _mono_mask_from_msg(sem_msg)
+            drivable = _mono_mask_from_msg(driv_msg)
+        except Exception as exc:
+            self.get_logger().warn(f'mask decode failed: {exc}')
+            return
+        if cls.shape[:2] != canvas.shape[:2]:
+            cls = cv2.resize(
+                cls, (canvas.shape[1], canvas.shape[0]), interpolation=cv2.INTER_NEAREST)
+        if drivable.shape[:2] != canvas.shape[:2]:
+            drivable = cv2.resize(
+                drivable, (canvas.shape[1], canvas.shape[0]), interpolation=cv2.INTER_NEAREST)
 
-        # Smoothed draw rate for the HUD.
-        _now = time.monotonic()
-        if self._last_draw_t > 0.0:
-            _dt = _now - self._last_draw_t
-            if _dt > 1e-6:
-                _inst = 1.0 / _dt
-                self._hud_fps = (
-                    _inst if self._hud_fps <= 0.0
-                    else 0.9 * self._hud_fps + 0.1 * _inst
-                )
-        self._last_draw_t = _now
-
-        # Opaque HUD panel: identifies each side, the mask sync mode and the frame
-        # rate, matching the M4.1 / M4.2 overlays.
-        split_x = left.shape[1] if side_by_side else 0
-        self._draw_hud(out, split_x)
+        if self._view_mode == 'original':
+            out = canvas
+        elif self._view_mode == 'drivable':
+            out = self._draw_drivable_mask(canvas, drivable)
+        else:
+            out = self._draw_semantic_mask(canvas, cls)
+        self._publish_stats(cls, drivable, stamp)
 
         from sensor_msgs.msg import Image as ImageMsg
         out_msg = ImageMsg()
@@ -289,6 +314,7 @@ class SegmentationVisualizer(Node):
         # 1920x1080 frame) and held this visualizer at ~1 fps.
         out_msg.data = array.array('B', out.tobytes())
         self._out_pub.publish(out_msg)
+        self._published_cache.push(stamp, True)
 
         self._frames += 1
 
@@ -304,184 +330,67 @@ class SegmentationVisualizer(Node):
 
     # ---- drawing ----
 
-    def _draw_semantic(self, bgr: np.ndarray, sem_msg: Optional[Image]) -> np.ndarray:
-        out = bgr.copy()
-        self._last_cls = None
-        if sem_msg is None:
-            cv2.putText(out, 'semantic: waiting', (10, 50),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
-            return out
-        try:
-            cls = _mono_mask_from_msg(sem_msg)
-        except Exception as e:
-            self.get_logger().warn(f'semantic decode failed: {e}')
-            return out
-        if cls.shape[:2] != out.shape[:2]:
-            cls = cv2.resize(cls, (out.shape[1], out.shape[0]),
-                             interpolation=cv2.INTER_NEAREST)
+    def _draw_semantic_mask(self, bgr: np.ndarray, cls: np.ndarray) -> np.ndarray:
         color = _SEMANTIC_LUT[cls]
-        # The legend is drawn by _on_image() AFTER any max_width downscale so
-        # its text stays crisp; remember the mask for that.
-        self._last_cls = cls
-        return cv2.addWeighted(out, 1.0 - self._alpha, color, self._alpha, 0)
+        return cv2.addWeighted(bgr, 1.0 - self._alpha, color, self._alpha, 0)
 
-    def _draw_class_legend(self, canvas: np.ndarray, cls: np.ndarray) -> None:
-        """Bottom-left legend of the classes actually present.
-
-        One `bincount` pass over the mask gives every class count, so this
-        stays cheap even at 1920x1080 (the per-class `cls == cid` loop it
-        replaces would have been another 19 full-frame scans).
-        """
-        counts = np.bincount(cls.ravel(), minlength=len(CITYSCAPES_NAMES))
-        total = int(cls.size)
-        if total <= 0:
-            return
-        present = [(int(counts[i]), i) for i in range(len(CITYSCAPES_NAMES))
-                   if counts[i] > 0]
-        present.sort(reverse=True)
-        present = present[:8]           # keep it compact
-        if not present:
-            return
-
-        h, w = canvas.shape[:2]
-        fs = max(0.4, min(w, h) / 2200.0)
-        font = cv2.FONT_HERSHEY_DUPLEX
-        pad = max(4, int(round(9.0 * fs)))
-        row_h = int(round(22.0 * fs))
-        sw = int(round(16.0 * fs))
-        panel_w = int(round(210.0 * fs))
-        panel_h = row_h * (len(present) + 1) + pad
-        x0 = 0
-        y0 = max(0, h - panel_h)
-
-        cv2.rectangle(canvas, (x0, y0), (x0 + panel_w, y0 + panel_h),
-                      _HUD_BG_BGR, -1)
-        cv2.line(canvas, (x0, y0), (x0 + panel_w, y0),
-                 _HUD_ACCENT_BGR, 2, cv2.LINE_AA)
-        cv2.putText(canvas, f'classes ({len(present)})',
-                    (x0 + pad, y0 + pad + row_h - int(round(7.0 * fs))),
-                    font, fs, (255, 255, 255), 1, cv2.LINE_AA)
-
-        for row, (count, cid) in enumerate(present, start=1):
-            cy = y0 + pad + row * row_h
-            cv2.rectangle(
-                canvas,
-                (x0 + pad, cy - int(round(12.0 * fs))),
-                (x0 + pad + sw, cy - int(round(12.0 * fs)) + sw),
-                tuple(int(v) for v in CITYSCAPES_PALETTE_BGR[cid]), -1)
-            pct = 100.0 * count / total
-            cv2.putText(
-                canvas, f'{CITYSCAPES_NAMES[cid]} {pct:.0f}%',
-                (x0 + pad + sw + pad, cy),
-                font, fs, _HUD_ACCENT_BGR, 1, cv2.LINE_AA)
-
-    def _draw_drivable(self, bgr: np.ndarray, driv_msg: Optional[Image]) -> np.ndarray:
+    def _draw_drivable_mask(self, bgr: np.ndarray, mask: np.ndarray) -> np.ndarray:
         out = bgr.copy()
-        if driv_msg is None:
-            cv2.putText(out, 'drivable: waiting', (10, 50),
-                        cv2.FONT_HERSHEY_SIMPLEX, 0.5, (200, 200, 200), 1)
-            return out
-        try:
-            mask = _mono_mask_from_msg(driv_msg)
-        except Exception as e:
-            self.get_logger().warn(f'drivable decode failed: {e}')
-            return out
-        if mask.shape[:2] != out.shape[:2]:
-            mask = cv2.resize(mask, (out.shape[1], out.shape[0]),
-                              interpolation=cv2.INTER_NEAREST)
-        binary = mask > 0
-        if not binary.any():
-            return out
-        overlay = np.full_like(out, self._drivable_bgr)
-        # NOTE: cv2.addWeighted has NO `mask` parameter. The previous code
-        # passed mask=... and raised
-        #   cv2.error: 'mask' is an invalid keyword argument for addWeighted()
-        # the first time a real drivable mask arrived. That path had never
-        # executed because the M4.3 engine was not built, so the bug sat
-        # latent. Blend everywhere, then keep only the masked pixels.
-        blended = cv2.addWeighted(out, 1.0 - self._alpha, overlay,
-                                  self._alpha, 0)
-        # np.copyto(where=...) is a C-level masked copy. The equivalent
-        # `out[binary] = blended[binary]` boolean fancy-indexing measured
-        # roughly an order of magnitude slower on a 1920x1080 frame.
-        np.copyto(out, blended, where=binary[:, :, None])
+        active = mask > 0
+        if np.any(active):
+            tint = np.empty_like(out)
+            tint[:] = self._drivable_bgr
+            blended = cv2.addWeighted(out, 1.0 - self._alpha, tint, self._alpha, 0)
+            out[active] = blended[active]
         return out
 
-    def _fit_source(self, canvas: np.ndarray, side_by_side: bool) -> np.ndarray:
+    def _publish_stats(self, cls: np.ndarray, drivable: np.ndarray, stamp: int) -> None:
+        now = time.monotonic()
+        if now - self._last_stats_t < 0.5:
+            return
+        self._last_stats_t = now
+        counts = np.bincount(cls.reshape(-1), minlength=len(CITYSCAPES_NAMES))
+        total = max(1, int(cls.size))
+        present = [
+            (cid, int(counts[cid])) for cid in range(len(CITYSCAPES_NAMES))
+            if counts[cid] > 0
+        ]
+        present.sort(key=lambda item: item[1], reverse=True)
+        top = []
+        for cid, count in present[:5]:
+            b, g, r = CITYSCAPES_PALETTE_BGR[cid]
+            top.append({
+                'id': cid,
+                'name': CITYSCAPES_NAMES[cid],
+                'ratio': round(count / total, 6),
+                'color': f'#{r:02x}{g:02x}{b:02x}',
+            })
+        payload = {
+            'stamp_ns': stamp,
+            'view': self._view_mode,
+            'top_classes': top,
+            'drivable_ratio': round(float(np.count_nonzero(drivable)) / max(1, drivable.size), 6),
+        }
+        msg = String()
+        msg.data = json.dumps(payload, separators=(',', ':'))
+        self._stats_pub.publish(msg)
+
+    def _fit_source(self, canvas: np.ndarray, _unused: bool = False) -> np.ndarray:
         """Downscale the input image so the PUBLISHED frame is at most
         `max_width` wide (0 disables).
 
-        In side-by-side mode the published frame holds two panels plus a
-        `_SEP_W`-px separator, so each panel is scaled to (max_width - sep)/2.
-        Everything downstream (blend, legend, mask decode) then runs at the
-        final resolution, which is both faster and keeps annotation text crisp
-        because it is never scaled after being drawn.
+        Everything downstream runs at the final single-view resolution.
         """
         w = int(self._max_width)
         if w <= 0:
             return canvas
-        target = (w - _SEP_W) // 2 if side_by_side else w
+        target = w
         if target <= 0 or canvas.shape[1] <= target:
             return canvas
         scale = target / float(canvas.shape[1])
         return cv2.resize(
             canvas, (target, max(1, int(round(canvas.shape[0] * scale)))),
             interpolation=cv2.INTER_AREA)
-
-    def _draw_hud(self, canvas: np.ndarray, split_x: int = 0) -> np.ndarray:
-        """Opaque top-left HUD; labels the drivable half in side-by-side mode."""
-        h, w = canvas.shape[:2]
-        fs = max(0.5, min(w, h) / 1600.0)
-        font = cv2.FONT_HERSHEY_DUPLEX
-        pad = max(6, int(round(14.0 * fs)))
-        gap = max(2, int(round(6.0 * fs)))
-
-        line1 = 'M4.3  Semantic Segmentation'
-        line2 = f'FPS {self._hud_fps:.1f}    semantic / drivable'
-
-        (t1w, t1h), b1 = cv2.getTextSize(line1, font, fs, 1)
-        (t2w, t2h), b2 = cv2.getTextSize(line2, font, fs, 1)
-        panel_w = min(max(t1w, t2w) + 2 * pad, w)
-        panel_h = min(t1h + b1 + gap + t2h + b2 + 2 * pad, h)
-        if panel_w < 4 or panel_h < 4:
-            return canvas
-
-        cv2.rectangle(canvas, (0, 0), (panel_w - 1, panel_h - 1),
-                      _HUD_BG_BGR, -1)
-        cv2.line(canvas, (0, panel_h - 1), (panel_w - 1, panel_h - 1),
-                 _HUD_ACCENT_BGR, 2, cv2.LINE_AA)
-
-        y = pad + t1h
-        cv2.putText(canvas, line1, (pad, y), font, fs,
-                    (255, 255, 255), 1, cv2.LINE_AA)
-        y += b1 + gap + t2h
-        cv2.putText(canvas, line2, (pad, y), font, fs,
-                    _HUD_ACCENT_BGR, 1, cv2.LINE_AA)
-
-        if split_x > 0:
-            # Mark where the drivable half starts (side-by-side mode).
-            x = min(split_x, w - 1)
-            cv2.line(canvas, (x, 0), (x, panel_h - 1),
-                     _HUD_ACCENT_BGR, 2, cv2.LINE_AA)
-            cv2.putText(canvas, 'drivable', (x + pad, pad + t1h),
-                        font, fs, _HUD_ACCENT_BGR, 1, cv2.LINE_AA)
-        return canvas
-
-    @staticmethod
-    def _side_by_side(left: np.ndarray, right: np.ndarray) -> np.ndarray:
-        if left.shape[0] != right.shape[0]:
-            h = max(left.shape[0], right.shape[0])
-            if left.shape[0] < h:
-                pad = np.zeros((h - left.shape[0], left.shape[1], 3),
-                               dtype=left.dtype)
-                left = np.vstack([left, pad])
-            if right.shape[0] < h:
-                pad = np.zeros((h - right.shape[0], right.shape[1], 3),
-                               dtype=right.dtype)
-                right = np.vstack([right, pad])
-        sep = np.full((left.shape[0], _SEP_W, 3), 32, dtype=np.uint8)
-        return np.hstack([left, sep, right])
-
 
 def main(args=None) -> int:
     rclpy.init(args=args)

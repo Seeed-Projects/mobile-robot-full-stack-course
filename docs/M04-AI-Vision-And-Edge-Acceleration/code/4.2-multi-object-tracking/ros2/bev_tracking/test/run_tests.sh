@@ -17,8 +17,8 @@
 # need the shims and can call pytest directly.
 #
 # Usage:
-#   cd ros2_ws
-#   bash src/bev_tracking/test/run_tests.sh [extra pytest args]
+#   cd <repo-root>
+#   bash modules/m04-ai-vision-and-edge-acceleration/4.2-multi-object-tracking/ros2/bev_tracking/test/run_tests.sh [extra pytest args]
 set -eo pipefail
 
 # 1) Source ROS + workspace overlays.

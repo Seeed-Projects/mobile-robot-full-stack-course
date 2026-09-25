@@ -28,7 +28,7 @@ redistribution. Reproduce them on the target rather than copying them.
 ## How to produce
 
 ```bash
-cd modules/m04-ai-vision-and-edge-acceleration
+cd "$M4_CODE_ROOT"
 export HF_ENDPOINT=https://hf-mirror.com   # huggingface.co is unreachable from this Jetson
 ./scripts/m4/export_segformer.sh           # checkpoint -> ONNX
 ./scripts/m4/build_segformer_engine.sh     # ONNX -> FP16 engine
@@ -41,7 +41,7 @@ Then check the result rather than assuming it:
 ./scripts/m4/verify_segformer_parity.py \
     --image  output/m4/4.3/camera_frame.png \
     --engine models/m4/segmentation/engines/segformer_b0_fp16.engine \
-    --runner ros2_ws/install/bev_segmentation/lib/bev_segmentation/parity_runner
+    --runner install/bev_segmentation/lib/bev_segmentation/parity_runner
 ```
 
 ## Notes worth knowing before you rebuild

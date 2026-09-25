@@ -17,7 +17,7 @@ m4_demo_bringup:
         width: 1920
         height: 1536
         fps: 30
-        # source: csi matches the v4l2src mode in csi_camera_publisher.py
+        # source: csi matches the v4l2src mode in the installed camera publisher
         source: csi
 
     # Default tolerance 0 → exact stamp matching.

@@ -1,280 +1,149 @@
-# 4.3 语义分割与可通行区域分析
+# 4.3 语义分割：从像素类别到地面候选
 
-**[待实现]** 当前缺少完成推理所需的模型与 engine 产物：`models/m4/segmentation/` 下只有 `LICENSE.md`，`engines/` 与 `labels/` 都是空的。
+## 本章要解决什么
 
-**[待验证]** 已有代码路径尚未完成 correctness gate，也没有 latency / FPS 实测。
+### 课程代码入口
 
-本章提供的是**接口、骨架与验收方法**，不承诺可完成端到端推理。下面的步骤都会以「核对」而不是「运行后你将看到」的形式出现。
-
-## 课程概述
-
-4.1 让机器人知道「画面里有什么」，4.2 让同一个目标在连续帧里保持同一个编号。但导航真正要回答的是第三个问题：**哪里能走**。语义分割做的就是这件事：给画面里每一个像素贴一个类别标签，再把「哪些类别算能走」这张表贴上去，得到一张可行驶掩膜。
-
-实机的接口定义了**两路输出**：一路是 19 类的原始语义图 `/perception/semantic_mask`，一路是映射后的可行驶掩膜 `/perception/drivable_mask`。分成两路是有意的：上层如果想换一套「什么算能走」的定义，改的是映射，不用重新过一遍网络。
-
-本章实机侧的包是 `bev_segmentation`。它已经把节点、预处理、后处理、engine 封装、launch 与测试都写好了，但**推理所需的两份产物还没生成**。所以本章的重点是：看清这套接口长什么样、还差哪几步、以及补上之后按什么标准验收。
-
-### 先知道：这节课会带你完成什么
-
-| 阶段 | 你会理解什么 | 最终能做什么 |
-| --- | --- | --- |
-| 读懂 | 语义分割与实例分割的区别，以及导航为什么只需要前者 | 判断一个任务该用哪种分割 |
-| 看透 | 19 类语义怎么变成一张 0/255 的可行驶掩膜 | 读懂 `drivable_class_ids` 这类映射配置 |
-| 接入 | 两路掩膜各自的分工与消费方式 | 按正确语义接住 `/perception/semantic_mask` 与 `/perception/drivable_mask` |
-| 验收 | 这一章还差什么才算真的能跑 | 按 correctness gate 判断「什么时候可以把它当可运行章节」 |
-
-### 学完后，你能做到什么
-
-- 说清语义分割、实例分割、全景分割的判据，并说明导航为什么选语义分割。
-
-- 说清 mIoU、Pixel Accuracy、FW-IoU 各回答什么问题，以及小型类别会怎样影响 mIoU。
-
-- 说清 SegFormer 与 DeepLabV3+ 在编码器、多尺度上下文、解码器上的差异，以及为什么部署侧更偏向 SegFormer-B0。
-
-- 读懂 `config/segmentation.yaml` 的每一项，说清 `drivable_class_ids` 的取值意味着什么。
-
-- 复述「candidate-drivable 不等于 collision-free」这条边界，并说明它为什么必须保留。
-
-- 列出 `bev_segmentation` 从骨架到可运行还差哪三步，以及每步的验收判据。
-
-### 硬件与软件清单
-
-| ![硬件与软件清单](./images/R29abyTLHooQaSx8cBYcPRoVncj.png) | ![硬件与软件清单](./images/R45DbADhNoekD2xJmSBch3hLn5c.png) | ![硬件与软件清单](./images/Rti6b89EuoWbfIxA4P5cb3usnLb.png) |
-| --- | --- | --- |
-| reCImputer mini J501  + GMSL拓展板 |   | GMSL摄像头 / USB 摄像头 |
-
-### 前置基础
-
-- 4.1 / 4.2：检测与跟踪链路已跑通。本章与它们共用同一路相机图像输入。
-
-- [2.1 GMSL2 ：车载级多相机接入](https://seeedstudio.feishu.cn/docx/Takhd7wo5oPx3mx0ljhcfyxDnEe)：确认图像通路与驱动。
-
-- [2.2 深度相机与 3D 视觉感知](https://seeedstudio.feishu.cn/docx/Jj53dSSudoKyEdxk6jHcYnMHnOc)：使用 Orbbec Gemini 2 时需要。
-
-- 会用 `ros2 topic` 看话题与消息。本章不要求会写节点，也不要求会训练模型。
-
-## 先读懂：让每个像素带上「能不能走」的标签
-
-### 三种分割任务：谁区分实例，谁只认类别
-
-区分这三种任务的判据只有一条：同一类里的两个物体，输出能不能把它们分开。分不开的是语义分割，分得开的是实例分割，而全景分割把「分不开的 stuff」与「分得开的 thing」放进同一张输出。
-
-| 任务 | 输出 | 同类实例是否分开 | 本页的位置 |
-| --- | --- | --- | --- |
-| 语义分割 | 每个像素一个类别 ID | 不分开，两个行人都是 person | **主线**：产出两路掩膜 |
-| 实例分割 | 每个实例一副二值掩膜，另带实例 ID | 分开，person_1 与 person_2 各一副掩膜 | 本页不做 |
-| 全景分割 | stuff 的语义图 + thing 的实例图统一输出 | thing 分开，stuff 不分开 | 本页不做：两套后处理叠加，端侧要并发跑两个 engine |
-
-导航关心的是「哪片区域能走」。地面、墙体、植被属于 stuff，没有实例概念，硬做实例分割只会多花算力；反过来，抓取任务要的是某个具体物体的掩膜，语义分割给不出。选哪一条只看产物去向：产物要进代价地图就用语义分割，产物要进抓取规划的位姿估计才需要实例分割。
-
-### 三个指标各自回答什么问题
-
-指标选错，会把模型问题误判成数据集问题。
-
-| 指标 | 回答的问题 | 会被什么误导 |
-| --- | --- | --- |
-| mIoU | 每一类各自分对了多少 | 小类（行人、杆件）拉低整体，看不出「大类其实已经够用」 |
-| Pixel Accuracy | 全体像素里分对的比例 | 地面占 60% 时，全部预测成地面也能拿到 0.6 |
-| FW-IoU | 按像素占比加权后的 IoU | 与 Pixel Accuracy 同源，大类好它就好看 |
-
-三者的口径差别在于「谁说话响」：mIoU 对每个类别等权，一个小类分不好就明显压低总分；Pixel Accuracy 与 FW-IoU 都按像素数加权，谁像素多谁说话响。
-
-读到数字后的动作是固定的：**mIoU 与 FW-IoU 的差值超过 0.15，说明小类基本没学出来**，此时先补样本或加类别权重，不要先去试量化；如果 FW-IoU 高而 mIoU 低，去混淆矩阵里看小类被并进了哪个大类。部署侧还要单独看两个二分类召回率：**地面召回率低意味着把能走的地方判成不能走，障碍物召回率低意味着有碰撞风险**，它们比 mIoU 更接近「机器人会不会撞」。
-
-**一句话记忆：**mIoU 问「每一类都分对了吗」，Pixel Accuracy 问「整体对了多少」；前者看公平，后者看体量。
-
-### 编码器-解码器：SegFormer 与 DeepLabV3+ 的差异
-
-两者的大框架相同，都是「先降采样提语义、再升采样还分辨率」；差别在编码器用什么算子、多尺度上下文怎么拿、解码器多重。
-
-| 对比项 | SegFormer（MiT-B0） | DeepLabV3+（ResNet-101 / MobileNetV2） |
-| --- | --- | --- |
-| 编码器 | 分层 Transformer（MiT），4 个 stage 依次输出 1/4、1/8、1/16、1/32 特征；4×4 重叠 patch 嵌入，不使用位置编码 | CNN 主干加空洞卷积，输出 stride 16 的特征图 |
-| 多尺度上下文 | 自注意力本身覆盖全局，不需要额外模块 | ASPP：膨胀率 6、12、18 的空洞卷积加图像级池化，5 个分支拼接 |
-| 解码器 | 全 MLP：把 4 个 stage 特征统一到 256 通道，上采样后拼接，输出 1/4 分辨率 logits | 深度可分离卷积，融合 stride 4 的低层特征，输出 1/4 分辨率 logits |
-| 端侧友好度 | 算子以 MatMul、LayerNorm、GELU 为主，FP16 下 kernel 选择明确 | 大膨胀率空洞卷积在 FP16 下显存占用随膨胀率上升，ASPP 分支多、层数多 |
-
-选型判据按部署走：本页主线用 **SegFormer-B0**，理由很直接：它的解码器输出就是 H/4 × W/4 的 logits，后处理只需一次最近邻上采样；DeepLabV3+ 同样是 1/4 输出，但 ASPP 的 5 个分支让 engine 层数和显存都更大。已有 CNN 训练管线、或需要 ASPP 那种显式多尺度上下文时，再考虑换过去。
-
-**一句话记忆：**SegFormer 用注意力换掉了 ASPP；DeepLabV3+ 用空洞卷积换掉了自注意力。
-
-### 类别映射：19 类语义怎么变成一张可行驶掩膜
-
-分割网络输出的是数据集类别，机器人要的是「能不能走」。这一步是纯查表，但表定错，后面全是错的。
-
-实机的模型是 Cityscapes 19 类的 SegFormer-B0，输出 `/perception/semantic_mask` 是一张 19 类 uint8 图（取值 0 到 18）。可行驶掩膜由 `config/segmentation.yaml` 里的 `drivable_class_ids` 派生：
-
-| 来源类别 | 归入哪一档 | 理由与判据 |
-| --- | --- | --- |
-| road（trainId 0） | 可通行 | **实机默认只取这一类** |
-| sidewalk（trainId 1） | 可选加入 | 配置注释明确写出：`drivable_class_ids` 默认 `[0]`（仅 road），sidewalk 为 id=1，可选 |
-| terrain（trainId 9） | 条件可通行 | 草地、泥地取决于底盘：履带式可过、轮式需实测，默认按障碍处理更保守 |
-| building、wall、fence、pole、traffic light、traffic sign、vegetation（trainId 2 到 8） | 障碍（静态） | 几何障碍 |
-| person、rider、car、truck、bus、train、motorcycle、bicycle（trainId 11 到 18） | 障碍（动态） | 只标出当前位置；轨迹预测需要 4.2 的跟踪结果，本页不承担 |
-| sky（trainId 10） | 忽略 | 深度图在该区域无效，或不在机器人本体高度范围内 |
-
-映射在代码里写成一张长度等于类别数的常量数组，不要写成 if-else 链：类别顺序一变，if-else 会静默错位，而常量数组会直接报长度不匹配。
-
-**注意 `drivable_class_ids: [0]` 是个保守的默认值。** 它意味着人行道不进可行驶区域。换场景前先确认这张表，而不是直接调推理参数。
-
-### 两路掩膜：semantic_mask 与 drivable_mask 的分工
-
-实机发布两路掩膜，而不是把映射结果合成一路：
-
-| 话题 | 类型与取值 | 它的角色 |
-| --- | --- | --- |
-| `/perception/semantic_mask` | `sensor_msgs/Image`，19 类 uint8（0–18） | 原始语义结果，保留全部类别信息 |
-| `/perception/drivable_mask` | `sensor_msgs/Image`，0/255 uint8 | 由 `drivable_class_ids` 派生，供下游直接消费 |
-
-分成两路的好处是**映射与推理解耦**：上层要改「什么算能走」，改的是配置里的 `drivable_class_ids`，不需要重新推一遍网络；想调试映射对不对，两路掩膜并排看就能定位问题出在模型还是出在表。
-
-这里有一条必须原样保留的边界，它写在实机配置的注释里：
-
-> **`drivable_mask` 是 candidate-drivable semantic mask，不等价于 collision-free space（候选可行驶语义掩膜，不等价于无碰撞空间）。**
-
-差别在哪：掩膜只回答「这个像素的类别看起来能不能走」，它不知道前方有没有一个未被分类的悬空障碍、不知道地面承重、不知道动态目标下一秒在哪。把它直接当「可通行」用，等于把一张语义图当成了安全凭证。
-
-**一句话记忆：**`semantic_mask` 回答「这是什么」，`drivable_mask` 回答「按当前定义算不算能走」；两者都不回答「走过去安不安全」。
-
-### 深度反投影：这一章为什么不做点云
-
-源稿的后续是「把带标签的像素反投影成 3D 障碍物点云」。这条链路在数学上很短：
-
-$\begin{bmatrix} X \\ Y \\ Z \end{bmatrix}=d\,K^{-1}\begin{bmatrix} u \\ v \\ 1 \end{bmatrix}$
-
-展开就是 $X=(u-c_x)d/f_x$、$Y=(v-c_y)d/f_y$、$Z=d$，其中 $(u,v)$ 是像素坐标、$d$ 是该像素深度（米）、$f_x$、$f_y$、$c_x$、$c_y$ 取自 `camera_info` 的 K 矩阵。
-
-**但实机没有点云话题。** `bev_segmentation` 只发布上面那两路掩膜，不发布任何 `PointCloud2`。所以本节只保留公式作为延伸知识，不作为本章的动手内容。
-
-要真正做点云，还需要四个前置条件同时成立：深度图做过 D2C 对齐（深度像素与彩色像素一一对应）；深度图与彩色图分辨率相同且 `camera_info` 一致；K 来自与图像同一条标定线（本页用 2.3 主线的针孔 `plumb_bob` K；如果手上是鱼眼 `equidistant` 的 K，代入本式会得到系统性偏移）；深度单位换算正确（16UC1 编码一般以毫米存储，读进来要除以 1000）。这四条缺一条，点云就会和图像错位。
-
-## 动手：核对骨架、接口与验收门
-
-三步。所有命令在 J501 上执行，工作目录是 `/home/seeed/workspace/ros2_bev`。
-
-**提前说清楚**：这三步是**核对与定义**，不是「跑起来看结果」。本章的 engine 尚未生成，照下面的步骤做，你会得到一份「还差什么」的清单，而不是一张分割图。
-
-### 步骤 8：核对 segmentation 骨架与模型资产状态
-
-先看清代码到哪一步、模型到哪一步。
+本章命令都从你克隆的课程源码中的 M4 `code/` 目录运行：
 
 ```bash
-cd /home/seeed/workspace/ros2_bev
-
-# 代码骨架：节点 / 前后处理 / engine 封装 / launch / 测试是否齐备
-find ros2_ws/src/bev_segmentation -type f -name "*.cpp" -o -name "*.hpp" -o -name "*.py" | sort
-
-# 模型资产：这里应当只有 LICENSE.md
-find models/m4/segmentation -type f | sort
+export M4_CODE_ROOT="$HOME/mobile-robot-full-stack-course/docs/M04-AI-Vision-And-Edge-Acceleration/code"
+cd "$M4_CODE_ROOT"
+./scripts/setup_workspace.sh
+source /opt/ros/humble/setup.bash
+cd ros2_ws
+colcon build --symlink-install --packages-select \
+  bev_interfaces bev_detection bev_tracking bev_segmentation bev_pose m4_demo_bringup
+source install/setup.bash
+cd "$M4_CODE_ROOT"
 ```
 
-代码侧**骨架文件齐备**：`segmentation_node`、`segmentation_engine`、`preprocess`、`postprocess`，加上 `config/segmentation.yaml`、`launch/m4_segmentation.launch.py` 与一组测试。文件齐备不等于实现已验证，本章后面所有判断都以实跑结果为准。模型侧是空的：`models/m4/segmentation/` 下只有一个 `LICENSE.md`。
+目标检测给物体画框，语义分割则为图像中的**每个像素**预测类别。它能让我们看到道路、墙面、车辆分别占据哪些区域，也能把选定的类别映射为一张地面候选掩膜。类别预测回答“看起来是什么”，不能独自回答“机器人能否安全通过”。
 
-仓库提供三个脚本作为实施入口，按顺序：
+本章使用 Cityscapes 19 类的 SegFormer-B0，沿着输入图像、模型输出和类别映射讲清两路结果：`/perception/semantic_mask` 保存每个像素的类别 ID；`/perception/drivable_mask` 根据配置把选中的类别标成 255，其余标成 0。第二个话题沿用已有名称，但在理解和使用时应把它看作**地面候选**。
+
+读完后，你应能解释三种分割任务的区别，读懂分割指标和 logits，说明为什么要恢复图像几何后再确定类别，并判断两路掩膜各自能提供什么信息。
+
+### 运行预览
+
+在 Jetson 的 `$M4_CODE_ROOT` 目录运行以下命令，可独立查看分割结果：
 
 ```bash
-scripts/m4/export_segformer.sh        # 导出 ONNX
-scripts/m4/build_segformer_engine.sh  # 建 TensorRT engine
-scripts/m4/generate_labels_json.sh    # 生成 labels.json
+./scripts/m4/run_m4_3_demo.sh
 ```
 
-> **[待验证]** 这三个脚本本身还没有经过端到端实跑验证。跑之前先读一遍脚本内容确认路径参数；跑不通属当前预期，不是你的操作错误。
+需要在浏览器中切换模块时，改为运行 `./scripts/m4/run_m4_web_hub.sh`，打开 `http://<Jetson-IP>:8080/m4/3`。选择“4.3 分割”，可查看原图、语义图和地面候选视图。两种运行方式择一启动即可。
 
-### 步骤 9：核对两路输出接口
+![Jetson Hub 中的 M4.3 语义分割和地面候选视图](./images/m4_runtime_m43_segmentation.png)
 
-确认下游该按什么语义消费。
+*图：户外道路视频的分割示例。绿色表示模型预测为 road、并被映射进地面候选掩膜的像素。*
+
+## 一、像素类别与物体实例
+
+想象画面里有两辆车、一段路面和一面墙。不同分割任务对“两个车是否需要分开”有不同回答：
+
+| 任务   | 输出是什么                    | 两辆同类车能否区分        |
+| ---- | ------------------------ | ---------------- |
+| 语义分割 | 每个像素一个类别 ID              | 不能；两辆车的像素都是 car  |
+| 实例分割 | 每个物体一张掩膜和一个实例 ID         | 能；每辆车有自己的掩膜      |
+| 全景分割 | 把道路、墙等区域与可区分的物体实例放在同一结果中 | 能区分车，同时保留路面的语义类别 |
+
+这里需要的是**语义分割**：它把像素归到 road、wall、car 等类别，供后续理解场景结构。它没有目标 ID，也没有距离和高度信息；若要跟踪某一辆车，应使用带实例身份的结果。
+
+## 二、模型怎样从图像得到类别图
+
+![分割链路：原图 → letterbox → SegFormer-B0 logits → 还原到原图 → 语义掩膜与地面候选](./images/6a769168c7fb4465ce536068fb66a385a2afde28.png)
+
+一帧图像经过如下过程：
+
+```text
+原图 → 等比例缩放与 letterbox 填充 → 归一化的模型输入
+     → SegFormer-B0 → 每个类别的 logits
+     → 按 letterbox 几何恢复到原图 → 每像素 argmax
+     → 语义掩膜 → 按类别配置映射 → 地面候选掩膜
+```
+
+**缩放与填充。** 模型使用固定大小的输入，而相机画面有自己的宽高比。等比例缩放保留物体形状，letterbox 在剩余位置填充像素，并记录缩放比例与填充位置。当前实现用双线性采样缩放图像，再把颜色转为模型要求的通道顺序和归一化数值。记录的几何信息必须用于恢复输出，否则掩膜边界会偏离原图。
+
+若原图为 `W×H`、模型输入为 `Wm×Hm`，缩放比例取 `min(Wm/W, Hm/H)`。缩放后的尺寸要取整，剩余宽高分配给左右或上下填充。恢复时需使用**实际取整后的尺寸和填充位置**，不能把整张含填充的模型输入直接拉伸为原图。
+
+**logits。** 当前模型接收 `[1,3,512,1024]` 的输入，输出 `[1,19,128,256]` 的 logits：第一维是批量，第二维是 19 个类别，后两维是比输入小四倍的高和宽。每个位置都有 19 个分数；分数叫 logit，尚不是概率。某个位置的 road 分数最高时，最终类别才可能是 road。低分辨率使相邻位置之间仍有待恢复的边界信息。
+
+**恢复后再分类。** 当前实现先利用缩放与填充信息，把各类别的 logits 双线性恢复到原图对应位置，再对每个像素取分数最高的类别（argmax）。填充区不能当成真实画面。得到的类别 ID 才组成 `/perception/semantic_mask`。
+
+看一个只含 road 和 wall 的教学例子。低分辨率的左位置有 logits `road=4, wall=0`，右位置有 `road=0, wall=2`。两点之间距左侧 60% 的位置，线性插值得到 `road=1.6, wall=1.2`，所以仍应判为 road。如果先在两端取 argmax，再用最近邻放大类别图，该位置会直接继承右侧的 wall。**先插值分数、再决定类别**，保留了边界附近的竞争信息。
+
+这并不保证模型一定分对：几何恢复解决的是“预测画在哪里”，模型权重决定的是“预测成什么”。室内桌椅与道路数据集的类别和画面分布不同，正确的几何处理也不能消除这种场景差异。
+
+## 三、怎样读懂分割指标
+
+![TP / FP / FN 与 IoU 口径](./images/9cdd9d6e2fa9a2e0ee913415eb2c10e57ebf6560.png)
+
+评价一张类别图，需要有逐像素标注的参考答案。对某一类，例如 road：
+
+- **TP**：真实是 road，预测也是 road 的像素。
+- **FP**：真实不是 road，却预测成 road 的像素。
+- **FN**：真实是 road，却预测成其他类的像素。
+
+该类的 `IoU = TP / (TP + FP + FN)`。**mIoU** 先分别计算各类 IoU，再对类别取平均；**Pixel Accuracy** 是全部像素中预测正确的比例；**FW-IoU** 则按每个类别在参考图中的像素占比，对各类 IoU 加权平均，即 `Σ(该类像素占比 × 该类 IoU)`。
+
+用一张只有 ground、wall、person 三类的 100 像素教学图说明差别：参考图中分别有 80、15、5 个像素。如果模型把所有像素都预测为 ground，Pixel Accuracy 仍有 80%；ground 的 IoU 为 80%，wall 和 person 的 IoU 均为 0，因此 mIoU 约为 26.7%，FW-IoU 为 64%。同一结果的三个数字回答不同问题：总体像素是否分对、各类是否都分对，以及常见类别占多大权重。
+
+看指标时还要看**逐类 IoU 和混淆矩阵**。例如 person 被大量判成 wall，整体准确率可能变化很小，但该错误对任务可能很重要。指标描述类别预测质量；即便地面类别预测正确，也不能单凭这些数字证明安全通行。
+
+## 四、为什么使用 SegFormer-B0
+
+![SegFormer 与 DeepLabV3+ 结构对比](./images/aa16630b65003953c2aa5276a7a7bb82b2b29244.png)
+
+语义分割模型通常先提取图像特征，再把特征组合成类别分数图。两种常见设计的侧重点不同：
+
+| 结构         | 怎样获取上下文                       | 怎样形成分割结果                      |
+| ---------- | ----------------------------- | ----------------------------- |
+| SegFormer  | 分层的 MiT Transformer 从多个尺度提取特征 | 轻量的全 MLP 解码器融合多尺度特征，输出 logits |
+| DeepLabV3+ | 卷积主干配合空洞卷积与 ASPP，聚合不同感受野的信息   | 解码器结合较浅层特征，细化物体边界             |
+
+为什么要看多个尺度？大片路面需要较宽的上下文才能判断区域，细杆和物体边缘又需要局部细节。SegFormer 从不同分辨率的特征中汇集这两类信息；DeepLabV3+ 用不同空洞率的卷积分支观察不同范围，再结合浅层特征恢复边界。
+
+本章的运行链路使用 SegFormer-B0，因此重点理解它的**多尺度特征 → logits → 原图类别图**。上表说明结构差异，不代表某一个模型在所有设备或场景都更快、更准；具体选择要结合目标场景的标注数据和实际部署条件。
+
+延伸阅读：[SegFormer 原论文](https://arxiv.org/abs/2105.15203)、[DeepLabV3+ 原论文](https://arxiv.org/abs/1802.02611)、[SegFormer 模型说明](https://huggingface.co/docs/transformers/model_doc/segformer)。
+
+## 五、从语义掩膜到地面候选
+
+当前模型的类别 ID 来自 Cityscapes。配置 `drivable_class_ids: [0]` 选中 ID 0，即 `road`。实现先按配置建立查表，再逐像素查询：若语义掩膜中的 ID 被选中，候选掩膜该位置写 255；否则写 0。例如，road 像素会变成 255，sidewalk（ID 1）像素仍是 0。将 1 加入列表会改变映射结果，但不会改变模型原先预测出的类别。
+
+| 话题                          | 像素含义        | 读它时要问的问题         |
+| --------------------------- | ----------- | ---------------- |
+| `/perception/semantic_mask` | 0–18 的类别 ID | 模型把这个像素看成什么？     |
+| `/perception/drivable_mask` | 0 或 255     | 这个预测类别是否被选为地面候选？ |
+
+话题名中的 “drivable” 不等于安全可通行。掩膜不知道地面是否承重、是否有细线缆或悬空障碍，也不知道机器人本体能否从那里通过。它提供的是**语义线索**；安全运动还需要几何、障碍物和机器人尺寸等信息共同判断。
+
+## 六、查看两路输出
+
+独立运行时，在另一个已加载 ROS 2 环境的终端查看两路消息的头部：
 
 ```bash
-cat ros2_ws/src/bev_segmentation/config/segmentation.yaml
+source "$M4_CODE_ROOT/ros2_ws/install/setup.bash"
+ros2 topic echo /perception/semantic_mask --once --field header
+ros2 topic echo /perception/drivable_mask --once --field header
 ```
 
-逐项核对：
+在浏览器里切换原图、语义图和地面候选视图，找一处 road 与其他类别的边界：先看类别图如何划分，再看映射是否只选中了配置中的类别。若画面中的室内地面被预测成 road，应按“模型预测的 road 候选”理解，而不能据此规划机器人通行。
 
-- **输入**：`/perception/cameras/front/image`（彩色图，本章不消费深度）。
+### 想一想
 
-- **两路输出**：`/perception/semantic_mask`（19 类 uint8）与 `/perception/drivable_mask`（0/255 uint8）。
+1. 两辆相邻的 car 在语义掩膜里有不同 ID 吗？如果需要持续区分它们，应增加哪类信息？
+2. 为什么先把 logits 恢复到原图，再取 argmax？上面的两点边界例子中，先分类会造成什么差异？
+3. 全部像素都预测成最常见类别时，哪个指标仍可能看起来较高？还应查看什么？
+4. 把 sidewalk 加入 `drivable_class_ids` 后，语义掩膜与地面候选掩膜分别会发生什么变化？
 
-- **`drivable_class_ids: [0]`**：默认只有 road 算可行驶，sidewalk（id=1）需要显式加入。
+**参考答案**：
 
-- **`publish_debug`**：配置中存在该项，默认 `false`；它的调试输出能力尚未纳入本章已验证项。
+① 语义掩膜中的两辆车都只有 car 类别；要持续区分它们，需要实例或跟踪 ID。
 
-这里有两条使用边界：`drivable_mask` 是候选可行驶掩膜，不等价于无碰撞空间；映射改了之后两路掩膜要一起复核。
+② 先分类会让示例中间位置直接继承 wall，丢掉 road 仍占优的分数信息。
 
-### 步骤 10：定义 engine 就绪后的 correctness gate
+③ Pixel Accuracy 仍可能较高，应同时看逐类 IoU、mIoU 和混淆矩阵。
 
-步骤 10 定义 engine 就绪后的验收条件。这一章目前不算完成，所以这一步的产出不是读数，而是一道门：
-
-```bash
-scripts/m4/engine_correctness_gate.sh
-scripts/m4/run_m4_3_benchmark.sh
-```
-
-对着 `docs/M4.3_SEMANTIC_SEGMENTATION.md` 的 P0 清单逐条核对，三项都完成后本章才能升级为可运行章节：
-
-| 门 | 判据 | 当前状态 |
-| --- | --- | --- |
-| Engine Correctness Gate | PyTorch 与 TensorRT 输出对齐，阈值由实跑填入 | **[待验证]** 脚本已写，未跑 |
-| Latency / FPS 报告 | 用真实相机流跑 N 次推理，报 P50 / P95 | **[待验证]** 脚本已写，未跑 |
-| License 验证 | 见 `models/m4/segmentation/LICENSE.md` | **[待验证]** 未核 |
-
-在门通过之前，任何从这一章「优化」出来的数字都不成立，因为没有基线可比。
-
-## 产出物与验收标准
-
-### 交付清单
-
-**当前可交付（本章能兑现的）**
-
-1. 一份代码与资产状态记录：`bev_segmentation` 的文件清单 + `models/m4/segmentation/` 为空的事实。
-
-2. 一份接口契约记录：两路掩膜的话题、类型、取值范围，以及 `drivable_class_ids` 的当前取值。
-
-3. 一份 release gate 清单：Engine Correctness Gate / Latency-FPS 报告 / License 验证，各自的状态与触发条件。
-
-4. （可选）engine 构建尝试的日志与报错原文。这是本章当前最有价值的产出。
-
-**目标运行产物（`[待实现]` / `[待验证]`，本章不承诺产出）**
-
-- `/perception/semantic_mask` 与 `/perception/drivable_mask` 两路实际图像。
-
-**解锁后的执行链**（以下每一步都以对应 gate 通过为前提，不是当前步骤）：
-
-资产成功生成 → correctness gate 通过 → `[待验证]` `run_m4_3_demo.sh` 验证两路话题 → `run_m4_3_benchmark.sh` 出基线。
-
-### 验收标准
-
-| 检查项 | 通过标准 | 不通过时优先检查 |
-| --- | --- | --- |
-| 骨架核对 | 能列出 `bev_segmentation` 的节点、前后处理、engine 封装、launch 与测试文件 | 是否把 `bev_segmentation` 与别的包混了 |
-| 资产状态 | 能准确说出 `models/m4/segmentation/` 当前缺什么 | 是否把 `LICENSE.md` 当成了模型文件 |
-| 接口核对 | 两路掩膜的话题名、类型、取值范围与配置一致；能解释 `drivable_class_ids` 的作用 | 是否只记住了 0/255 而忘了 19 类那一路 |
-| 安全边界 | 能复述 candidate-drivable ≠ collision-free，并举例说明为什么 | — |
-| 未完成项 | 三项都写明了当前状态与「什么条件下算完成」 | 是否把「脚本存在」当成了「功能可用」 |
-
-## 常见问题与排障
-
-### 照着步骤做，但一帧图都出不来
-
-- **现象**：节点起不来，或者起来了但没有输出。
-
-- **原因**：**这是当前预期**。`models/m4/segmentation/` 下没有 engine 与 labels，推理无从开始。
-
-- **处理**：先跑步骤 8 里的三个生成脚本，并把报错原文记下来。在 engine 生成之前，把这一章当「接口与骨架说明」读，不要当操作教程读。
-
-### 地面类 IoU 明显低于其他类
-
-- **现象**：整图看着还行，但地面（road）这一类分得很差。
-
-- **原因**：地面在画面里占比大、纹理弱、受光照和反光影响明显；也可能是训练集里地面样本的多样性不足。注意这类问题要等 engine 就绪、能出评估指标之后才谈得上。
-
-- **处理**：先看混淆矩阵确认地面被并进了哪一类（常见是并进 sidewalk 或 terrain）；再检查训练集的机位与光照分布。本章不训练模型，所以这条排障的方向是「换上游权重或补数据」，不是「调推理参数」。
-
-### 两路掩膜对不上
-
-- **现象**：`semantic_mask` 里明明是 road，`drivable_mask` 却把它标成 0。
-
-- **原因**：`drivable_class_ids` 的取值与预期不一致，或者两路掩膜来自不同的两帧（时间戳没对齐）。
-
-- **处理**：先 `ros2 topic echo` 两路掩膜的 `header.stamp`，确认是同一帧；再回到 `config/segmentation.yaml` 核对 `drivable_class_ids`。这条排障的价值在于：它把「模型问题」和「映射问题」分开了。
-
-> **下一步：**4.4 姿态估计会用到同一台 Orbbec Gemini 2，并且**同时消费彩色与深度**两路数据，那是本模块里第一次真正需要 `depth`。4.3 留下的两路掩膜在 4.5 的集成里会与检测、跟踪并排出现。本章虽然跑不通，但接口是确定的：把 `/perception/semantic_mask` 与 `/perception/drivable_mask` 的语义记住，后面几章都会用到。
+④ 语义掩膜不变，原本预测为 sidewalk 的像素在候选掩膜中改为 255。

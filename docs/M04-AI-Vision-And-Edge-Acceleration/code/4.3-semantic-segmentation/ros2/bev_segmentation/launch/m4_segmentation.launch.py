@@ -17,7 +17,7 @@ def generate_launch_description():
     use_test_image = LaunchConfiguration("use_test_image", default="false")
     test_image_path = LaunchConfiguration(
         "test_image_path",
-        default="/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration/output/m4/4.3/test_input.png",
+        default=os.path.join(os.environ.get("M4_CODE_ROOT", ""), "output/m4/4.3/test_input.png"),
     )
 
     seg_node = Node(
@@ -27,7 +27,11 @@ def generate_launch_description():
         parameters=[
             os.path.join(
                 os.path.dirname(__file__), "..", "config", "segmentation.yaml"
-            )
+            ),
+            {
+                "engine_path": os.path.join(os.environ.get("M4_CODE_ROOT", ""), "models/m4/segmentation/engines/segformer_b0_fp16.engine"),
+                "labels_path": os.path.join(os.environ.get("M4_CODE_ROOT", ""), "models/m4/segmentation/labels/labels.json"),
+            },
         ],
         output="screen",
     )
@@ -45,7 +49,7 @@ def generate_launch_description():
         DeclareLaunchArgument("use_test_image", default_value="false"),
         DeclareLaunchArgument(
             "test_image_path",
-            default_value="/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration/output/m4/4.3/test_input.png",
+            default_value=os.path.join(os.environ.get("M4_CODE_ROOT", ""), "output/m4/4.3/test_input.png"),
         ),
         seg_node,
     ])

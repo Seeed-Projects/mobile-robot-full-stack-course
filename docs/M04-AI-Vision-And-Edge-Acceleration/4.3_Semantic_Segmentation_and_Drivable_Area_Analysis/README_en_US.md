@@ -1,280 +1,141 @@
-# 4.3 Semantic Segmentation and Drivable Area Analysis
+# 4.3 Semantic Segmentation: From Pixel Classes to Ground Candidates
 
-**[Not yet implemented]** The model and engine artifacts needed to complete inference are currently missing: under `models/m4/segmentation/` there is only `LICENSE.md`, while `engines/` and `labels/` are both empty.
+## What This Chapter Explains
 
-**[Not yet verified]** The existing code path has not yet completed the correctness gate, and there is no measured latency / FPS either.
+### Course code entry point
 
-This chapter provides **interfaces, a skeleton, and an acceptance method**; it does not promise that end-to-end inference can be completed. The steps below all appear in the form of "checking" rather than "after running, you will see".
-
-## Course Overview
-
-4.1 lets the robot know "what is in the frame", and 4.2 keeps the same target under the same ID across consecutive frames. But what navigation really has to answer is the third question: **where it can go**. Semantic segmentation does exactly this: attach a class label to every pixel in the image, then apply the table of "which classes count as drivable" to obtain a drivable mask.
-
-The on-robot interface defines **two outputs**: one is the 19-class raw semantic map `/perception/semantic_mask`, and the other is the mapped drivable mask `/perception/drivable_mask`. Splitting them into two paths is intentional: if an upper layer wants to switch to a different definition of "what counts as drivable", what it changes is the mapping, without running the network through again.
-
-The on-robot package in this chapter is `bev_segmentation`. It already has the node, preprocessing, postprocessing, the engine wrapper, the launch file, and the tests written, but **the two artifacts needed for inference have not been generated yet**. So the focus of this chapter is: see clearly what this interface looks like, which steps are still missing, and by what standard to accept it once they are filled in.
-
-### Before You Start: What This Lesson Will Walk You Through
-
-| Stage | What you will understand | What you can ultimately do |
-| --- | --- | --- |
-| Read | The difference between semantic segmentation and instance segmentation, and why navigation needs only the former | Judge which kind of segmentation a task should use |
-| See through | How 19-class semantics turn into one 0/255 drivable mask | Read mapping configurations such as `drivable_class_ids` |
-| Integrate | The separate roles of the two masks and how each is consumed | Consume `/perception/semantic_mask` and `/perception/drivable_mask` with the correct semantics |
-| Accept | What this chapter is still missing before it can really run | Use the correctness gate to judge "when it can be treated as a runnable chapter" |
-
-### Learning Outcomes
-
-- Explain the criterion for semantic, instance, and panoptic segmentation, and state why navigation chooses semantic segmentation.
-
-- Explain what mIoU, Pixel Accuracy, and FW-IoU each answer, and how small classes affect mIoU.
-
-- Explain how SegFormer and DeepLabV3+ differ in encoder, multi-scale context, and decoder, and why the deployment side leans toward SegFormer-B0.
-
-- Read every item of `config/segmentation.yaml`, and explain what the value of `drivable_class_ids` means.
-
-- Restate the boundary that "candidate-drivable is not equal to collision-free", and explain why it must be kept.
-
-- List the three steps `bev_segmentation` still needs to go from skeleton to runnable, and the acceptance criterion for each step.
-
-### Hardware and Software Checklist
-
-| ![Hardware and Software Checklist](./images/R29abyTLHooQaSx8cBYcPRoVncj.png) | ![Hardware and Software Checklist](./images/R45DbADhNoekD2xJmSBch3hLn5c.png) | ![Hardware and Software Checklist](./images/Rti6b89EuoWbfIxA4P5cb3usnLb.png) |
-| --- | --- | --- |
-| reCImputer mini J501  + GMSL expansion board |   | GMSL camera / USB camera |
-
-### Prerequisites
-
-- 4.1 / 4.2: the detection and tracking pipeline already runs end to end. This chapter shares the same camera image input with them.
-
-- [2.1 GMSL2: automotive-grade multi-camera integration](https://seeedstudio.feishu.cn/docx/Takhd7wo5oPx3mx0ljhcfyxDnEe): confirm the image path and the driver.
-
-- [2.2 Depth cameras and 3D visual perception](https://seeedstudio.feishu.cn/docx/Jj53dSSudoKyEdxk6jHcYnMHnOc): needed when using the Orbbec Gemini 2.
-
-- You can use `ros2 topic` to look at topics and messages. This chapter does not require you to write nodes, nor to train models.
-
-## Read First: Give Every Pixel a "Can It Be Driven On" Label
-
-### Three Segmentation Tasks: Which One Separates Instances, Which Only Knows Classes
-
-There is only one criterion that separates these three tasks: for two objects of the same class, whether the output can tell them apart. What cannot tell them apart is semantic segmentation, what can is instance segmentation, and panoptic segmentation puts "stuff that cannot be told apart" and "things that can be told apart" into the same output.
-
-| Task | Output | Are same-class instances separated | Place on this page |
-| --- | --- | --- | --- |
-| Semantic segmentation | One class ID per pixel | Not separated; two pedestrians are both person | **Main line**: produces the two masks |
-| Instance segmentation | One binary mask per instance, plus an instance ID | Separated; person_1 and person_2 each get their own mask | Not covered on this page |
-| Panoptic segmentation | Unified output of the semantic map for stuff + the instance map for things | things separated, stuff not separated | Not covered on this page: two postprocessing stacks overlaid, the edge side must run two engines concurrently |
-
-Navigation cares about "which region can be driven on". Ground, walls, and vegetation belong to stuff, which has no notion of instances, so forcing instance segmentation would only burn extra compute; conversely, a grasping task wants the mask of one specific object, which semantic segmentation cannot provide. Which route to pick depends only on where the output goes: if the output is to enter a costmap, use semantic segmentation; only if it is to enter the pose estimation of grasp planning do you need instance segmentation.
-
-### What Each of the Three Metrics Answers
-
-Choosing the wrong metric makes you misjudge a model problem as a dataset problem.
-
-| Metric | The question it answers | What can mislead it |
-| --- | --- | --- |
-| mIoU | How much of each class is classified correctly | Small classes (pedestrians, poles) drag down the overall score, hiding that "the large classes are already good enough" |
-| Pixel Accuracy | The proportion of all pixels classified correctly | When the ground covers 60%, predicting everything as ground still scores 0.6 |
-| FW-IoU | IoU weighted by pixel proportion | Same origin as Pixel Accuracy; it looks good whenever the large classes are good |
-
-The difference between the three is "whose voice is louder": mIoU weighs every class equally, so one small class classified badly clearly pulls the total score down; Pixel Accuracy and FW-IoU are both weighted by pixel count, so whoever has more pixels speaks louder.
-
-The action after reading the numbers is fixed: **if the gap between mIoU and FW-IoU exceeds 0.15, the small classes have essentially not been learned**; at that point add samples or add class weights first, rather than trying quantization first. If FW-IoU is high while mIoU is low, go to the confusion matrix and see which large class the small classes were merged into. On the deployment side you must also look at two binary recall rates separately: **a low ground recall rate means drivable places are judged non-drivable, and a low obstacle recall rate means there is a collision risk**; they are closer to "will the robot crash" than mIoU is.
-
-**One-line memory aid:** mIoU asks "is every class classified correctly", Pixel Accuracy asks "how much is right overall"; the former looks at fairness, the latter at volume.
-
-### Encoder-Decoder: How SegFormer and DeepLabV3+ Differ
-
-Both share the same overall framework, "downsample first to extract semantics, then upsample to restore resolution"; the differences lie in which operators the encoder uses, how multi-scale context is obtained, and how heavy the decoder is.
-
-| Item | SegFormer (MiT-B0) | DeepLabV3+ (ResNet-101 / MobileNetV2) |
-| --- | --- | --- |
-| Encoder | Hierarchical Transformer (MiT), 4 stages outputting 1/4, 1/8, 1/16, and 1/32 features in turn; 4×4 overlapping patch embedding, no positional encoding | CNN backbone plus atrous convolution, outputting a stride-16 feature map |
-| Multi-scale context | Self-attention itself covers the global range, so no extra module is needed | ASPP: atrous convolutions with dilation rates 6, 12, and 18 plus image-level pooling, 5 branches concatenated |
-| Decoder | All-MLP: unify the 4 stage features to 256 channels, upsample and concatenate, output 1/4-resolution logits | Depthwise separable convolution, fusing stride-4 low-level features, output 1/4-resolution logits |
-| Edge friendliness | The operators are mainly MatMul, LayerNorm, and GELU, with clear kernel choices under FP16 | Large-dilation atrous convolutions use more memory under FP16 as the dilation rate rises, and ASPP has many branches and many layers |
-
-The selection criterion follows deployment: this page's main line uses **SegFormer-B0**, for a direct reason: its decoder output is already H/4 × W/4 logits, so postprocessing needs only one nearest-neighbor upsample; DeepLabV3+ also outputs 1/4 resolution, but ASPP's 5 branches make the engine's layer count and memory footprint larger. Consider switching over only when you already have a CNN training pipeline, or need the explicit multi-scale context that ASPP provides.
-
-**One-line memory aid:** SegFormer replaces ASPP with attention; DeepLabV3+ replaces self-attention with atrous convolution.
-
-### Class Mapping: How 19-Class Semantics Become One Drivable Mask
-
-The segmentation network outputs dataset classes, while the robot wants "can it be driven on". This step is pure table lookup, but if the table is wrong, everything after it is wrong.
-
-The on-robot model is a Cityscapes 19-class SegFormer-B0, and its output `/perception/semantic_mask` is a 19-class uint8 image (values 0 to 18). The drivable mask is derived from `drivable_class_ids` in `config/segmentation.yaml`:
-
-| Source class | Which bucket it falls into | Reason and criterion |
-| --- | --- | --- |
-| road (trainId 0) | Drivable | **The on-robot default takes only this class** |
-| sidewalk (trainId 1) | Optionally added | The config comment states explicitly: `drivable_class_ids` defaults to `[0]` (road only), and sidewalk is id=1 and optional |
-| terrain (trainId 9) | Conditionally drivable | Grass and mud depend on the chassis: tracked vehicles can cross, wheeled ones need real-world testing, and treating it as an obstacle by default is more conservative |
-| building, wall, fence, pole, traffic light, traffic sign, vegetation (trainId 2 to 8) | Obstacle (static) | Geometric obstacles |
-| person, rider, car, truck, bus, train, motorcycle, bicycle (trainId 11 to 18) | Obstacle (dynamic) | Marks only the current position; trajectory prediction needs 4.2's tracking results and is not covered on this page |
-| sky (trainId 10) | Ignored | The depth map is invalid in that region, or it is outside the height range of the robot body |
-
-In code, the mapping is written as a constant array whose length equals the number of classes; do not write it as an if-else chain: if the class order changes, the if-else chain silently shifts out of place, whereas a constant array reports a length mismatch outright.
-
-**Note that `drivable_class_ids: [0]` is a conservative default.** It means the sidewalk does not enter the drivable area. Before switching scenes, confirm this table first, rather than tuning inference parameters directly.
-
-### The Two Masks: How semantic_mask and drivable_mask Divide the Work
-
-The on-robot system publishes two masks rather than merging the mapping result into one:
-
-| Topic | Type and value range | Its role |
-| --- | --- | --- |
-| `/perception/semantic_mask` | `sensor_msgs/Image`, 19-class uint8 (0–18) | The raw semantic result, keeping all class information |
-| `/perception/drivable_mask` | `sensor_msgs/Image`, 0/255 uint8 | Derived from `drivable_class_ids`, for downstream consumption directly |
-
-The benefit of splitting them into two paths is that **mapping and inference are decoupled**: when an upper layer wants to change "what counts as drivable", it changes `drivable_class_ids` in the config and does not need to run the network through again; and to debug whether the mapping is right, viewing the two masks side by side pinpoints whether the problem is in the model or in the table.
-
-There is one boundary here that must be preserved verbatim; it is written in the comment of the on-robot config:
-
-> **`drivable_mask` is a candidate-drivable semantic mask, not equivalent to collision-free space (a candidate-drivable semantic mask, not equivalent to collision-free space).**
-
-Where does the difference lie: the mask only answers "does this pixel's class look drivable"; it does not know whether there is an unclassified overhead obstacle ahead, does not know the load-bearing capacity of the ground, and does not know where a dynamic target will be a second later. Treating it directly as "passable" amounts to treating a semantic map as a safety certificate.
-
-**One-line memory aid:** `semantic_mask` answers "what is this", `drivable_mask` answers "by the current definition, does it count as drivable"; neither answers "is it safe to go through".
-
-### Depth Back-Projection: Why This Chapter Does Not Build a Point Cloud
-
-The source draft continued with "back-project the labeled pixels into a 3D obstacle point cloud". Mathematically this chain is very short:
-
-$\begin{bmatrix} X \\ Y \\ Z \end{bmatrix}=d\,K^{-1}\begin{bmatrix} u \\ v \\ 1 \end{bmatrix}$
-
-Expanded, this is $X=(u-c_x)d/f_x$, $Y=(v-c_y)d/f_y$, $Z=d$, where $(u,v)$ is the pixel coordinate, $d$ is that pixel's depth (meters), and $f_x$, $f_y$, $c_x$, $c_y$ come from the K matrix in `camera_info`.
-
-**But the on-robot system has no point cloud topic.** `bev_segmentation` publishes only the two masks above and does not publish any `PointCloud2`. So this section keeps the formula only as extended knowledge, not as hands-on content of this chapter.
-
-To really build a point cloud, four preconditions must hold at the same time: the depth map has undergone D2C alignment (depth pixels correspond one-to-one with color pixels); the depth map and the color image have the same resolution and a consistent `camera_info`; K comes from the same calibration line as the image (this page uses the pinhole `plumb_bob` K of the 2.3 main line; if what you have is the K of the fisheye `equidistant` model, substituting it into this formula gives a systematic offset); and the depth unit conversion is correct (16UC1 encoding generally stores millimeters, so divide by 1000 when reading it in). If any one of these four is missing, the point cloud will be misaligned with the image.
-
-## Hands-On: Check the Skeleton, the Interfaces, and the Acceptance Gates
-
-Three steps. All commands are executed on the J501, with the working directory `/home/seeed/workspace/ros2_bev`.
-
-**To be clear up front**: these three steps are **checking and defining**, not "run it and see the result". This chapter's engine has not been generated yet, so if you follow the steps below, you will get a checklist of "what is still missing", not a segmentation image.
-
-### Step 8: Check the Segmentation Skeleton and Model Asset Status
-
-First see clearly how far the code has come and how far the model has come.
+Run this chapter from the M4 `code/` directory in your cloned course source:
 
 ```bash
-cd /home/seeed/workspace/ros2_bev
-
-# 代码骨架：节点 / 前后处理 / engine 封装 / launch / 测试是否齐备
-find ros2_ws/src/bev_segmentation -type f -name "*.cpp" -o -name "*.hpp" -o -name "*.py" | sort
-
-# 模型资产：这里应当只有 LICENSE.md
-find models/m4/segmentation -type f | sort
+export M4_CODE_ROOT="$HOME/mobile-robot-full-stack-course/docs/M04-AI-Vision-And-Edge-Acceleration/code"
+cd "$M4_CODE_ROOT"
+./scripts/setup_workspace.sh
+source /opt/ros/humble/setup.bash
+cd ros2_ws
+colcon build --symlink-install --packages-select \
+  bev_interfaces bev_detection bev_tracking bev_segmentation bev_pose m4_demo_bringup
+source install/setup.bash
+cd "$M4_CODE_ROOT"
 ```
 
-On the code side, **the skeleton files are all present**: `segmentation_node`, `segmentation_engine`, `preprocess`, `postprocess`, plus `config/segmentation.yaml`, `launch/m4_segmentation.launch.py`, and a set of tests. Complete files do not mean the implementation is verified; all judgments later in this chapter are based on actual run results. The model side is empty: under `models/m4/segmentation/` there is only one `LICENSE.md`.
+Object detection draws boxes around objects. Semantic segmentation predicts a class for **every pixel** in an image. It shows which regions look like road, wall, or vehicle, and a class mapping can turn selected regions into a ground-candidate mask. A predicted class answers “what does this pixel resemble?” It does not, by itself, answer “can the robot cross here safely?”
 
-The repository provides three scripts as implementation entry points, in order:
+This chapter uses a SegFormer-B0 model with 19 Cityscapes classes to explain two outputs. `/perception/semantic_mask` stores a class ID for each pixel. `/perception/drivable_mask` writes 255 where the predicted class is selected by configuration and 0 elsewhere. The second topic keeps its existing name, but its useful interpretation is **ground candidate**.
+
+By the end, you should be able to distinguish three segmentation tasks, read segmentation metrics and logits, explain why geometry is restored before assigning final classes, and interpret the two masks correctly.
+
+### Runtime Preview
+
+From `$M4_CODE_ROOT` on the Jetson, run the standalone segmentation demo:
 
 ```bash
-scripts/m4/export_segformer.sh        # 导出 ONNX
-scripts/m4/build_segformer_engine.sh  # 建 TensorRT engine
-scripts/m4/generate_labels_json.sh    # 生成 labels.json
+./scripts/m4/run_m4_3_demo.sh
 ```
 
-> **[Not yet verified]** These three scripts themselves have not yet been validated by an end-to-end run. Before running them, read through the script contents once to confirm the path parameters; failing to run is currently expected, not an operating mistake on your part.
+To switch modules in a browser, run `./scripts/m4/run_m4_web_hub.sh` instead, then open `http://<Jetson-IP>:8080/m4/3`. Select “4.3 Segmentation” to view the source image, semantic view, and ground-candidate view. Run one mode at a time.
 
-### Step 9: Check the Two Output Interfaces
+![M4.3 semantic segmentation and ground-candidate view in the Jetson Hub](./images/m4_runtime_m43_segmentation.png)
 
-Confirm the semantics by which downstream should consume them.
+*An outdoor road video. Green marks pixels that the model predicts as road and that the mapping includes in the ground-candidate mask.*
 
-```bash
-cat ros2_ws/src/bev_segmentation/config/segmentation.yaml
-```
+## 1. Pixel Classes and Object Instances
 
-Check item by item:
+Imagine a frame with two cars, a stretch of road, and a wall. Segmentation tasks differ in whether they need to distinguish the two cars:
 
-- **Input**: `/perception/cameras/front/image` (color image; this chapter does not consume depth).
-
-- **Two outputs**: `/perception/semantic_mask` (19-class uint8) and `/perception/drivable_mask` (0/255 uint8).
-
-- **`drivable_class_ids: [0]`**: by default only road counts as drivable; sidewalk (id=1) must be added explicitly.
-
-- **`publish_debug`**: this item exists in the config and defaults to `false`; its debug output capability is not yet among this chapter's verified items.
-
-There are two usage boundaries here: `drivable_mask` is a candidate-drivable mask, not equivalent to collision-free space; and after the mapping is changed, the two masks must be re-checked together.
-
-### Step 10: Define the Correctness Gate Once the Engine Is Ready
-
-Step 10 defines the acceptance conditions once the engine is ready. This chapter does not currently count as complete, so the output of this step is not a reading but a gate:
-
-```bash
-scripts/m4/engine_correctness_gate.sh
-scripts/m4/run_m4_3_benchmark.sh
-```
-
-Check item by item against the P0 checklist in `docs/M4.3_SEMANTIC_SEGMENTATION.md`; only after all three items are complete can this chapter be upgraded to a runnable chapter:
-
-| Gate | Criterion | Current status |
+| Task | Output | Can it separate the two cars? |
 | --- | --- | --- |
-| Engine Correctness Gate | PyTorch and TensorRT outputs aligned, with the threshold filled in from actual runs | **[Not yet verified]** script written, not run |
-| Latency / FPS report | Run inference N times on a real camera stream and report P50 / P95 | **[Not yet verified]** script written, not run |
-| License verification | See `models/m4/segmentation/LICENSE.md` | **[Not yet verified]** not checked |
+| Semantic segmentation | One class ID per pixel | No; both cars have pixels labeled car |
+| Instance segmentation | One mask and instance ID per object | Yes; each car has its own mask |
+| Panoptic segmentation | A unified result for regions such as road and wall plus identifiable object instances | Yes, while retaining the road region's class |
 
-Before the gate passes, any number "optimized" out of this chapter does not hold, because there is no baseline to compare against.
+This chapter uses **semantic segmentation** to assign pixels to classes such as road, wall, and car. A semantic mask has no target ID, distance, or height. Following one particular car across frames requires information about object identity as well.
 
-## Deliverables and Acceptance Criteria
+## 2. How an Image Becomes a Class Map
 
-### Deliverables Checklist
+![Segmentation pipeline: source image → letterbox → SegFormer-B0 logits → restore to the original size → semantic mask and ground candidates](./images/6a769168c7fb4465ce536068fb66a385a2afde28.png)
 
-**Currently deliverable (what this chapter can honor)**
+A frame passes through this sequence:
 
-1. A code and asset status record: the file list of `bev_segmentation` + the fact that `models/m4/segmentation/` is empty.
+```text
+Original image → aspect-preserving resize and letterbox padding → normalized input
+               → SegFormer-B0 → class logits
+               → restore logits to the original image geometry → pixelwise argmax
+               → semantic mask → configured class mapping → ground-candidate mask
+```
 
-2. An interface contract record: the topics, types, and value ranges of the two masks, plus the current value of `drivable_class_ids`.
+**Resize and padding.** The model takes a fixed-size input, while the camera image has its own aspect ratio. Resizing without stretching preserves object shapes; letterbox padding fills the remaining area. The pipeline records the scale and padding so the output can be aligned with the original image. The current implementation samples the resized image bilinearly, then converts its colors to the model's channel order and normalized values. Losing the recorded geometry would shift mask boundaries in the original frame.
 
-3. A release gate checklist: Engine Correctness Gate / Latency-FPS report / License verification, each with its status and trigger conditions.
+For an original image `W×H` and model input `Wm×Hm`, the scale is `min(Wm/W, Hm/H)`. The resized dimensions are rounded, and the remaining width or height becomes padding. Restoration must use the **actual rounded dimensions and padding positions**; stretching the padded model canvas directly to the original image would misalign regions.
 
-4. (Optional) the log and the verbatim error output of an engine build attempt. This is the most valuable output this chapter currently has.
+**Logits.** This model takes an input of shape `[1,3,512,1024]` and produces logits of shape `[1,19,128,256]`: batch size, 19 classes, then height and width at one-quarter of the input resolution. Each output location has 19 scores. They are called logits and are not yet probabilities. The class with the highest score may become the final class once the result has been restored to the original image.
 
-**Target runtime artifacts (`[Not yet implemented]` / `[Not yet verified]`, which this chapter does not promise to produce)**
+**Restore before classifying.** The implementation uses the saved scale and padding to restore each class's logits to the corresponding original-image positions with bilinear interpolation. Padding is not part of the real scene. It then selects the highest-scoring class (argmax) at each pixel. Those class IDs form `/perception/semantic_mask`.
 
-- The actual images on the two channels `/perception/semantic_mask` and `/perception/drivable_mask`.
+Consider a teaching example with only road and wall. At the left output location the logits are `road=4, wall=0`; at the right they are `road=0, wall=2`. At a point 60% of the way from left to right, linear interpolation gives `road=1.6, wall=1.2`, so road still wins. If each endpoint is classified first and the class map is enlarged with nearest-neighbor sampling, that point inherits wall from the right. **Interpolate the scores before choosing a class** to retain the competition near a boundary.
 
-**The execution chain after unlocking** (each step below presumes the corresponding gate has passed; these are not current steps):
+Correct geometry does not guarantee a correct class. Geometry determines where a prediction is drawn; the model weights determine what is predicted. Indoor furniture and cables differ from the scenes and classes in a road dataset, so geometry alone cannot remove that scene mismatch.
 
-Assets successfully generated → correctness gate passed → `[Not yet verified]` `run_m4_3_demo.sh` verifies the two topics → `run_m4_3_benchmark.sh` produces the baseline.
+## 3. Reading Segmentation Metrics
 
-### Acceptance Criteria
+![TP / FP / FN and the IoU convention](./images/9cdd9d6e2fa9a2e0ee913415eb2c10e57ebf6560.png)
 
-| Check | Pass criterion | Check first when failing |
+Evaluating a class map requires a pixel-labeled reference image. For one class, such as road:
+
+- **TP:** a pixel is road in both the reference and prediction.
+- **FP:** a pixel is not road in the reference but is predicted as road.
+- **FN:** a road pixel is predicted as another class.
+
+That class's `IoU = TP / (TP + FP + FN)`. **mIoU** averages the per-class IoUs. **Pixel Accuracy** is the fraction of all pixels classified correctly. **FW-IoU** averages class IoUs with weights based on each class's share of reference pixels: `Σ(class frequency × class IoU)`.
+
+For a teaching image of 100 pixels, suppose the reference has 80 ground, 15 wall, and 5 person pixels. If a model predicts ground everywhere, Pixel Accuracy is still 80%. Ground IoU is 80%, while wall and person IoU are zero, so mIoU is about 26.7% and FW-IoU is 64%. The same prediction produces different numbers because the metrics ask different questions: how many pixels are right overall, how each class fares, and how much common classes contribute.
+
+Read **per-class IoU and the confusion matrix** as well. Misclassifying many person pixels as wall might barely change overall accuracy yet matter greatly for the task. These metrics describe class prediction quality; even a correctly predicted ground class does not prove safe passage.
+
+## 4. Why This Chapter Uses SegFormer-B0
+
+![SegFormer versus DeepLabV3+ architecture](./images/aa16630b65003953c2aa5276a7a7bb82b2b29244.png)
+
+Semantic segmentation models extract image features and combine them into a map of class scores. Two common designs obtain context in different ways:
+
+| Architecture | How it obtains context | How it forms a segmentation result |
 | --- | --- | --- |
-| Skeleton check | You can list `bev_segmentation`'s node, preprocessing and postprocessing, engine wrapper, launch, and test files | Whether you have mixed up `bev_segmentation` with another package |
-| Asset status | You can state accurately what `models/m4/segmentation/` is currently missing | Whether you have taken `LICENSE.md` for a model file |
-| Interface check | The topic names, types, and value ranges of the two masks match the config; you can explain what `drivable_class_ids` does | Whether you remembered only 0/255 and forgot the 19-class path |
-| Safety boundary | You can restate candidate-drivable ≠ collision-free and give an example of why | — |
-| Incomplete items | All three state their current status and "under what conditions they count as complete" | Whether you have taken "the script exists" for "the function works" |
+| SegFormer | A hierarchical MiT Transformer extracts features at multiple scales | A lightweight all-MLP decoder combines those features into logits |
+| DeepLabV3+ | A convolutional backbone uses atrous convolution and ASPP to combine information across receptive fields | A decoder combines shallower features to refine object boundaries |
 
-## FAQ and Troubleshooting
+Why use multiple scales? A broad road region benefits from wider context, while a thin pole or object boundary needs local detail. SegFormer gathers information from features at several resolutions. DeepLabV3+ uses atrous-convolution branches with different rates to observe different ranges, then combines shallower features to recover boundaries.
 
-### You Follow the Steps but Not One Frame Comes Out
+The running pipeline here uses SegFormer-B0, so the key idea is **multi-scale features → logits → original-image class map**. The table describes architecture, not a universal speed or accuracy ranking. Model selection depends on labeled data from the target scene and the deployment conditions.
 
-- **Symptom**: the node does not start, or it starts but produces no output.
+Further reading: [SegFormer paper](https://arxiv.org/abs/2105.15203), [DeepLabV3+ paper](https://arxiv.org/abs/1802.02611), and [SegFormer model documentation](https://huggingface.co/docs/transformers/model_doc/segformer).
 
-- **Cause**: **this is currently expected**. There is no engine and no labels under `models/m4/segmentation/`, so inference cannot begin.
+## 5. From Semantic Mask to Ground Candidates
 
-- **Solution**: run the three generation scripts from Step 8 first, and write down the verbatim error output. Before the engine is generated, read this chapter as an "interface and skeleton description", not as a step-by-step tutorial.
+The current model's class IDs come from Cityscapes. The setting `drivable_class_ids: [0]` selects ID 0, `road`. The implementation first builds a lookup table from the configuration, then checks each pixel's predicted class. A selected ID yields 255 in the candidate mask; any other ID yields 0. A road pixel therefore becomes 255, while a sidewalk pixel (ID 1) remains 0. Adding 1 to the list changes the mapping, not the model's original class prediction.
 
-### Ground-Class IoU Is Clearly Lower Than Other Classes
+| Topic | Pixel meaning | Question to ask |
+| --- | --- | --- |
+| `/perception/semantic_mask` | Class ID from 0 to 18 | What class did the model predict here? |
+| `/perception/drivable_mask` | 0 or 255 | Was that predicted class selected as a ground candidate? |
 
-- **Symptom**: the overall image looks acceptable, but the ground (road) class is classified very poorly.
+“Drivable” in the topic name does not mean safe to traverse. The mask does not know whether the surface can bear the robot, whether a thin cable or overhead obstacle is present, or whether the robot's body fits through the space. It provides a **semantic clue**; safe motion also needs geometry, obstacle information, and the robot's dimensions.
 
-- **Cause**: the ground occupies a large share of the frame, has weak texture, and is strongly affected by lighting and reflections; it may also be that the diversity of ground samples in the training set is insufficient. Note that this kind of problem can only be discussed once the engine is ready and evaluation metrics can be produced.
+## 6. Inspecting the Two Outputs
 
-- **Solution**: first look at the confusion matrix to confirm which class the ground was merged into (commonly sidewalk or terrain); then check the camera placement and lighting distribution of the training set. This chapter does not train models, so the direction of this troubleshooting is "swap the upstream weights or add data", not "tune inference parameters".
+With the standalone demo running, use another terminal with the ROS 2 environment loaded to inspect sample headers from the two topics:
 
-### The Two Masks Do Not Match
+```bash
+source "$M4_CODE_ROOT/ros2_ws/install/setup.bash"
+ros2 topic echo /perception/semantic_mask --once --field header
+ros2 topic echo /perception/drivable_mask --once --field header
+```
 
-- **Symptom**: something in `semantic_mask` is clearly road, yet `drivable_mask` marks it as 0.
+In the browser, switch among the source image, semantic map, and ground-candidate view. Find a boundary between road and another class: first see where the model assigns classes, then see whether the mapping selects only configured classes. If an indoor floor is predicted as road, interpret it as a **predicted road candidate**, not as a route approved for the robot.
 
-- **Cause**: the value of `drivable_class_ids` does not match expectations, or the two masks come from two different frames (timestamps not aligned).
+### Check Your Understanding
 
-- **Solution**: first `ros2 topic echo` the `header.stamp` of the two masks to confirm they are the same frame; then go back to `config/segmentation.yaml` and check `drivable_class_ids`. The value of this troubleshooting is that it separates a "model problem" from a "mapping problem".
+1. Do two neighboring cars have different IDs in a semantic mask? What extra information is needed to keep them distinct across frames?
+2. Why restore logits to the original image before argmax? What changes if the boundary example is classified first?
+3. Which metric may still look high when every pixel is predicted as the most common class? What else should you inspect?
+4. If sidewalk is added to `drivable_class_ids`, what changes in the semantic mask and in the ground-candidate mask?
 
-> **Next step:** 4.4 pose estimation uses the same Orbbec Gemini 2 and **consumes both color and depth** channels at once, which is the first time in this module that `depth` is genuinely needed. The two masks left behind by 4.3 will appear side by side with detection and tracking in the 4.5 integration. Although this chapter cannot be run end to end, its interfaces are fixed: remember the semantics of `/perception/semantic_mask` and `/perception/drivable_mask`, because the following chapters all use them.
+**Answers:** 1. Both cars have the class car; instance or tracking IDs are needed to distinguish them over time. 2. Classifying first makes the example's intermediate point inherit wall and loses the score information that still favors road. 3. Pixel Accuracy may remain high; inspect per-class IoU, mIoU, and the confusion matrix. 4. The semantic mask is unchanged; pixels predicted as sidewalk become 255 in the candidate mask.

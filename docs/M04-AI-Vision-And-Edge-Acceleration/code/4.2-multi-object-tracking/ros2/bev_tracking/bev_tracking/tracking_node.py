@@ -31,6 +31,8 @@ import time
 import rclpy
 from rclpy.node import Node
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy
+from rcl_interfaces.msg import SetParametersResult
+from std_srvs.srv import Trigger
 
 from vision_msgs.msg import Detection2DArray
 
@@ -49,22 +51,21 @@ class TrackingNode(Node):
 
         # ByteTrack parameters (must match config/bytetrack.yaml)
         self.declare_parameter('track_activation_threshold', 0.25)
-        self.declare_parameter('lost_track_buffer', 30)
+        self.declare_parameter('lost_track_buffer', 90)
         self.declare_parameter('minimum_matching_threshold', 0.8)
-        self.declare_parameter('frame_rate', 10)
+        self.declare_parameter('frame_rate', 30)
         self.declare_parameter('minimum_consecutive_frames', 1)
         self.declare_parameter('publish_log_throttle_ms', 1000)
 
         self.input_topic = self.get_parameter('input_topic').value
         self.output_topic = self.get_parameter('output_topic').value
 
-        self._tracker = ByteTrack(
-            track_activation_threshold=self.get_parameter('track_activation_threshold').value,
-            lost_track_buffer=self.get_parameter('lost_track_buffer').value,
-            minimum_matching_threshold=self.get_parameter('minimum_matching_threshold').value,
-            frame_rate=self.get_parameter('frame_rate').value,
-            minimum_consecutive_frames=self.get_parameter('minimum_consecutive_frames').value,
-        )
+        self._tracker = self._make_tracker(self._tracker_values())
+        self._tracker_generation = 0
+        self._parameter_callback = self.add_on_set_parameters_callback(
+            self._on_set_parameters)
+        self._reset_service = self.create_service(
+            Trigger, 'reset_tracker', self._on_reset_tracker)
 
         # QoS: matches bev_detection (BEST_EFFORT, KEEP_LAST, depth=10)
         qos = QoSProfile(
@@ -94,6 +95,81 @@ class TrackingNode(Node):
             f'tracking_node ready: sub={self.input_topic} pub={self.output_topic} '
             f'frame_rate={self.get_parameter("frame_rate").value}'
         )
+
+    def _tracker_values(self):
+        return {
+            'track_activation_threshold': float(
+                self.get_parameter('track_activation_threshold').value),
+            'lost_track_buffer': int(self.get_parameter('lost_track_buffer').value),
+            'minimum_matching_threshold': float(
+                self.get_parameter('minimum_matching_threshold').value),
+            'frame_rate': int(self.get_parameter('frame_rate').value),
+            'minimum_consecutive_frames': int(
+                self.get_parameter('minimum_consecutive_frames').value),
+        }
+
+    @staticmethod
+    def _make_tracker(values):
+        return ByteTrack(**values)
+
+    def _on_set_parameters(self, params):
+        result = SetParametersResult(successful=True, reason='')
+        tracked_keys = {
+            'track_activation_threshold', 'lost_track_buffer',
+            'minimum_matching_threshold', 'minimum_consecutive_frames',
+        }
+        values = self._tracker_values()
+        changed = False
+        for param in params:
+            if param.name in tracked_keys:
+                values[param.name] = param.value
+                changed = True
+
+        if not changed:
+            return result
+        if not isinstance(values['lost_track_buffer'], int) or \
+                not isinstance(values['minimum_consecutive_frames'], int):
+            result.successful = False
+            result.reason = 'tracking frame parameters must be integers'
+            return result
+        if not (0.10 <= float(values['track_activation_threshold']) <= 0.90):
+            result.successful = False
+            result.reason = 'track_activation_threshold must be between 0.10 and 0.90'
+            return result
+        if not (0.10 <= float(values['minimum_matching_threshold']) <= 0.99):
+            result.successful = False
+            result.reason = 'minimum_matching_threshold must be between 0.10 and 0.99'
+            return result
+        if not (1 <= values['lost_track_buffer'] <= 300):
+            result.successful = False
+            result.reason = 'lost_track_buffer must be between 1 and 300'
+            return result
+        if not (1 <= values['minimum_consecutive_frames'] <= 30):
+            result.successful = False
+            result.reason = 'minimum_consecutive_frames must be between 1 and 30'
+            return result
+        try:
+            self._tracker = self._make_tracker(values)
+            self._tracker_generation += 1
+            self.get_logger().info(
+                f'tracker reconfigured (generation={self._tracker_generation}); track IDs reset')
+        except Exception as exc:
+            result.successful = False
+            result.reason = f'could not rebuild ByteTrack: {exc}'
+        return result
+
+    def _on_reset_tracker(self, _request, response):
+        try:
+            self._tracker = self._make_tracker(self._tracker_values())
+            self._tracker_generation += 1
+            response.success = True
+            response.message = (
+                f'tracker reset (generation={self._tracker_generation}); track IDs restarted')
+            self.get_logger().info(response.message)
+        except Exception as exc:
+            response.success = False
+            response.message = f'could not reset ByteTrack: {exc}'
+        return response
 
     def _on_detections(self, msg: Detection2DArray) -> None:
         t0 = time.perf_counter()

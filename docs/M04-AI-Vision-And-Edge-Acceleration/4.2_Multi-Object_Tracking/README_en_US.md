@@ -1,23 +1,39 @@
 # 4.2 Multi-Object Tracking
 
-## Course Overview
+## Overview
+
+### Course code entry point
+
+Start in the M4 `code/` directory from your cloned course source and build the workspace once:
+
+```bash
+export M4_CODE_ROOT="$HOME/mobile-robot-full-stack-course/docs/M04-AI-Vision-And-Edge-Acceleration/code"
+cd "$M4_CODE_ROOT"
+./scripts/setup_workspace.sh
+source /opt/ros/humble/setup.bash
+cd ros2_ws
+colcon build --symlink-install --packages-select \
+  bev_interfaces bev_detection bev_tracking bev_segmentation bev_pose m4_demo_bringup
+source install/setup.bash
+cd "$M4_CODE_ROOT"
+```
 
 ![Course Overview](./images/XCQhblwpeo0Zu1x2vOecGZLcnyb.gif)
 
 4.1 got the model to draw boxes in every frame, but the boxes have no names: the same little car looks almost identical in frame 10 and frame 40, and the detector will not tell you they are the same target. Multi-Object Tracking (MOT) fills in exactly this gap of identity continuity: it takes in per-frame detection boxes and outputs tracks with stable IDs.
 
-This chapter is about "integrating" rather than "implementing": the ROS 2 package `bev_tracking` feeds the detection boxes on `/perception/detections` to a ByteTrack tracker and publishes the results on `/perception/tracks`. You do not have to write the tracker itself; what you need to do is understand what it is tracking, what each of the five parameters changes, and which parameter to touch for which symptom.
+Course code: the ROS 2 package `bev_tracking` feeds the detection boxes on `/perception/detections` to a ByteTrack tracker and publishes the results on `/perception/tracks`. You do not have to write the tracker itself; what you need to do is understand what it is tracking, what each of the five parameters changes, and which parameter to touch for which symptom.
 
 The input to tracking is 4.1's detection results, so detection quality directly determines the ceiling of tracking. If 4.1's detection is still missing targets, this chapter's tuning can only spin its wheels on bad input. Get the 4.1 pipeline running smoothly first, then come back and read this chapter.
 
 ### Before You Start: What This Lesson Will Walk You Through
 
-| Stage | What you will understand | What you can ultimately do |
-| --- | --- | --- |
-| Read | Why detection boxes are not enough: at which step an ID Switch arises, and what prediction and matching each solve | Understand the tracker's entry configuration and know which step each parameter affects |
-| See through | The motivation for two-stage matching: why low-score boxes cannot simply be thrown away | Explain why an ID can be recovered after occlusion, and when it cannot |
-| Run | How tracking results become one ROS 2 topic, and where the `id` field comes from | Get `bev_tracking` running on the J501 and verify track continuity with `ros2 topic` |
-| Tune | What each of the five real-machine parameters changes | Locate which parameter to touch from the symptom, instead of tuning blindly |
+| Stage       | What you will understand                                                                                           | What you can ultimately do                                                              |
+| ----------- | ------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------- |
+| Read        | Why detection boxes are not enough: at which step an ID Switch arises, and what prediction and matching each solve | Understand the tracker's entry configuration and know which step each parameter affects |
+| See through | The motivation for two-stage matching: why low-score boxes cannot simply be thrown away                            | Explain why an ID can be recovered after occlusion, and when it cannot                  |
+| Run         | How tracking results become one ROS 2 topic, and where the `id` field comes from                                   | Get `bev_tracking` running on the J501 and verify track continuity with `ros2 topic`    |
+| Tune        | What each of the five real-machine parameters changes                                                              | Locate which parameter to touch from the symptom, instead of tuning blindly             |
 
 ### Learning Outcomes
 
@@ -35,20 +51,26 @@ The input to tracking is 4.1's detection results, so detection quality directly 
 
 ### Hardware and Software Checklist
 
-| ![Hardware and Software Checklist](./images/DZpMbztkboYasBxmLKAcONE3n7g.png) | ![Hardware and Software Checklist](./images/ANiLbHaMqoNYgoxYejvcJTprnyh.png) | ![Hardware and Software Checklist](./images/TYlcbqU2LoGC2jxJwhUcuN0Anzc.png) |
-| --- | --- | --- |
-
-Note on the real-machine choice: `bev_tracking` explicitly rejects Ultralytics' `BYTETracker`, because it would drag in an entire training stack of dependencies such as torch, whereas tracking itself only needs to associate boxes and does not need a neural network. This is also why this chapter does not require a PyTorch environment.
+- Platform: reComputer Robotics J501 (Jetson AGX Orin 32GB)
+- JetPack 6.2.1
+- ROS 2 Humble
+- GMSL or USB camera
 
 ### Prerequisites
 
-- 4.1: the detection pipeline is already running and `/perception/detections` outputs stably. This chapter does not retrain the detection model, nor does it change the detection results.
+- 4.1: understand the detection message contract first. The one-click script starts detection and tracking together; only a standalone tracking node needs an existing `/perception/detections` stream. This chapter does not retrain the detector.
 
 - [1.4 Robot software middleware: getting started with ROS 2 Humble](https://seeedstudio.feishu.cn/docx/QdL7dbITroR6btxqesrcNJE9nib): you can use `ros2 topic` to look at topics and messages. This chapter does not require you to write nodes.
 
-- [2.1 GMSL2: automotive-grade multi-camera integration](https://seeedstudio.feishu.cn/docx/Takhd7wo5oPx3mx0ljhcfyxDnEe): needed when using GMSL2 cameras, to confirm the image path and driver.
-
 - Linear algebra basics: being able to read matrix multiplication and to accept a representation like "state plus covariance" is enough. This chapter does not derive the Kalman gain.
+
+### Runtime Preview
+
+From `$M4_CODE_ROOT` on the Jetson, run `./scripts/m4/run_m4_2_demo.sh`; the script starts the detection and tracking pipeline it needs, so there is no need to launch the 4.1 demo separately. For browser mode, run `./scripts/m4/run_m4_web_hub.sh`, open `http://<Jetson-IP>:8080/m4/2`, and select “4.2 Tracking.” Confirm that `/perception/tracks` keeps publishing, then observe the target IDs on screen.
+
+![M4.2 tracking preview from a local video on the Jetson, with IDs on vehicle boxes](./images/m4_runtime_m42_tracking.png)
+
+*Jetson Hub playing the local `test_seg.mp4` on 2026-09-23. This single frame shows how IDs appear; it does not establish that an ID remains stable across frames.*
 
 ## Read First: From a Pile of Detection Boxes to Individual Tracks
 
@@ -56,56 +78,279 @@ Note on the real-machine choice: `bev_tracking` explicitly rejects Ultralytics' 
 
 The gap between detection and tracking can be stated in one sentence: detection answers "what is in this frame", tracking answers "the box in this frame is which target from which frame". Answering the second question requires handling three things at once.
 
-A target moves between two frames, and the motion model must be able to predict roughly where it will be in the next frame, otherwise matching is out of the question. A newly appearing target needs a new track opened, one leaving the frame must be closed, and repeatedly opening and closing in between is an ID Switch (IDSW). Occlusion, motion blur, and crossing targets can also make detection boxes disappear or land on someone else; what the association layer must do is stop these errors in the current frame and not let them spread to the next one.
+![Detection versus tracking](./images/fig-detection-vs-tracking.png)
+
+A target moves between two frames, so the motion model must be able to predict roughly where it will be in the next frame, otherwise matching is out of the question. A newly appearing target needs a new track opened, one leaving the frame must be closed, and repeatedly opening and closing in between is an ID Switch (IDSW). Occlusion, motion blur, and crossing targets can also make detection boxes disappear or land on someone else; what the association layer must do is stop these errors in the current frame and not let them spread to the next one.
 
 **One-line memory aid:** detection gives "what is in this frame", tracking gives "which numbered target this is".
 
-### Tracking-by-Detection and the Track State Machine
+#### Tracking-by-Detection and the Track State Machine
 
-This page uses the Tracking-by-Detection paradigm: the detector produces boxes frame by frame, and the tracker is only responsible for stringing the boxes into tracks. The per-frame flow is fixed at four steps.
+This page uses the **Tracking-by-Detection** paradigm.
 
-1. Prediction: for each existing track, extrapolate its position and uncertainty in the current frame with the motion model.
+The detector finds targets frame by frame; the tracker decides whether detections in different frames belong to the same target, and keeps the corresponding Track ID.
 
-2. Association: match the current frame's detection boxes against the predicted positions, seeking the pairing with the minimum total cost.
+> **The detector answers "what is in this frame"; the tracker answers "is it still the same target as before".**
 
-3. Creation: a detection box that matches no track is treated as a new target, and a tentative track is opened.
+For example, when a person walks from the left of the frame to the right, the detector outputs a fresh box in every frame. Taken on their own, these boxes have no relationship; the tracker must associate them and keep the same ID for the person throughout.
 
-4. Deletion: a track that fails to match a detection for several consecutive frames is judged to have left, and is deleted.
+## What Happens in Each Frame
 
-The difference between the four steps lies in what cost "association" uses, and how strict a threshold "creation / deletion" uses. Every state in the state machine corresponds to one real-machine parameter:
+One complete tracking pass usually consists of four steps:
 
-| State | Entry condition | Exit condition and observed symptom |
-| --- | --- | --- |
-| Tentative | A new detection box matches no track, so a track is created | If it matches for `minimum_consecutive_frames` consecutive frames it becomes confirmed; losing a match once within the window deletes it. Symptom: a false detection does not immediately become a track |
-| Confirmed | A tentative track reaches `minimum_consecutive_frames` consecutive hits | If it fails to match in some frame it becomes lost; symptom: the stable ID output externally is produced in this state |
-| Lost | A confirmed track fails to match a detection in some frame, and is still extrapolated with its predicted value | If the number of lost frames exceeds the actual lost window it is deleted; if it matches again in the meantime it recovers its original ID. Symptom: this is the only window in which the original ID can be "reconnected" after occlusion |
-| Deleted | The number of lost frames exceeds the limit, or the track was never confirmed | Unrecoverable. When the target reappears it can only get a new ID |
+![Per-frame tracking pipeline](./images/fig-per-frame-pipeline.png)
 
-The lost window is determined jointly by `lost_track_buffer` and `frame_rate`, and is the pair of parameters that directly decides "whether the original ID can be reconnected" in occlusion scenarios: turning them up can reconnect a target occluded for a long time, at the cost that a ghost track still lingers for a while after the target has really left the frame; turning them down does exactly the opposite. See the "From Algorithm to Real-Machine Parameters" section for how the two convert.
+1. **Predict track positions:** using each target's previous position and motion trend, predict where it may appear in the current frame.
 
-### Kalman Prediction and Hungarian Matching: What Each Solves
+2. **Match the current detections:** associate the current frame's detection boxes with existing tracks. On a successful match, update the track's position and motion state with the new detection.
 
-These two things are often lumped together, but their division of labor is actually very clear.
+3. **Create new tracks:** if a detection box matches no existing track, create a new tentative track for it.
 
-**The motion model answers "roughly where it is".** With only noisy detection boxes, "where is it most likely to be now, and how uncertain is that" requires two things: a state (position, size, velocity) and an uncertainty. Each frame first extrapolates the previous frame's state to the current frame with the motion model (the uncertainty grows accordingly, because one more frame of extrapolation has been added), then pulls it back to the observed position with the matched detection box (the uncertainty shrinks accordingly). "How far to pull back" is determined by weighting the two uncertainties, not by averaging at a fixed ratio.
+4. **Keep temporarily unmatched tracks:** if an existing track finds no corresponding detection in the current frame, do not delete it immediately; keep it for a while and wait for a re-match in later frames.
 
-**Matching answers "which box belongs to which track".** Given N tracks and M detection boxes, how to pair them so that the total cost is minimized. The real difference among the four generations of the SORT family lies entirely in how the cost is computed:
+This mechanism handles occasional missed detections and brief occlusions, and it is the reason the track state machine exists.
 
-- **Overlap cost**: it only asks "how much do the predicted box and the detection box overlap". A pairing whose cost exceeds the threshold is directly ruled invalid. The real machine's `minimum_matching_threshold` is exactly this cost threshold for the first stage.
+## The Track State Machine (Conceptual)
 
-- **Appearance cost**: it asks "does this box look like the target I remember", and requires an additional ReID network. **Not enabled** on the real machine.
+The Tentative / Confirmed / Lost / Deleted labels in the figure below are a teaching abstraction; the real machine calls `supervision.ByteTrack`, so do not treat these English labels as project-defined message fields or as a real ROS interface.
 
-- **Mahalanobis distance**: it asks "how many standard deviations is this detection box away from my predicted position", and loosens or tightens automatically with the state uncertainty. Not directly exposed on the real machine.
+![Track lifecycle](./images/fig-track-state-machine.png)
 
-The four generations diverge here: SORT uses only IoU, and changes the ID as soon as occlusion lasts more than one frame; DeepSORT adds appearance features, at the cost of running a network once per box per frame; ByteTrack bypasses the network and instead uses low-score boxes (next section); BoT-SORT further adds camera motion compensation.
+A track does not keep existing forever once it is created.
 
-> Here is the pitfall you are most likely to step into when reading the code: **a parameter with the same name has a different meaning in different implementations**. Writing "threshold 0.8" without the library name is as good as writing nothing. This chapter always includes the library name and the real-machine parameter name.
+From a target's first appearance, through stable tracking, to temporary disappearance or final exit, a track passes through different lifecycle states:
+
+```text
+                    consecutive hits reach the threshold
+new detection ──→ Tentative ─────────────→ Confirmed
+              │                         │
+              │ unmatched before        │ unmatched in the
+              │ confirmation            │ current frame
+              ↓                         ↓
+           Deleted                    Lost
+                                       │
+                         ┌─────────────┴─────────────┐
+                         │                           │
+                     re-matched                window exceeded
+                         │                           │
+                         ↓                           ↓
+                     Confirmed                    Deleted
+```
+
+The four states can be summarized as:
+
+| State         | Meaning                                        |
+| ------------- | ---------------------------------------------- |
+| **Tentative** | Target just found; needs further observation   |
+| **Confirmed** | Target confirmed; can be output stably         |
+| **Lost**      | No detection for now, but the track is retained |
+| **Deleted**   | Track lifecycle over; no longer matched        |
+
+### Tentative: Provisional Tracks
+
+When a new target appears for the first time, it is usually not treated as a reliable track immediately; it first enters the **Tentative** state.
+
+The reason is simple: a single-frame detection may just be a false positive. Only after consecutive hits reach `minimum_consecutive_frames` does the track become Confirmed. If a mismatch occurs before the confirmation condition is met, the track is deleted outright.
+
+For example:
+
+| `minimum_consecutive_frames` | Effect                                                          |
+| ---------------------------- | --------------------------------------------------------------- |
+| `1`                          | Fast response, but false detections more easily become tracks    |
+| `3`                          | More stable, but a new target waits several frames for confirmation |
+
+What this parameter really controls is the **trade-off between how fast a track is confirmed and how strongly false detections are suppressed**.
+
+### Confirmed: Stable Tracks
+
+Once a Tentative track has hit enough consecutive frames, it enters the **Confirmed** state.
+
+At this point the tracker considers the target real and stable, and the Track ID is output normally.
+
+As long as subsequent detections keep matching, the ID is retained continuously:
+
+```text
+Frame 120    ID = 7
+Frame 121    ID = 7
+Frame 122    ID = 7
+```
+
+If no corresponding detection box is found in some frame, the track does not disappear immediately; it enters Lost.
+
+### Lost: Temporarily Missing
+
+**Lost does not mean the target has left.**
+
+It means no target was detected in the current frame, but the tracker still retains this track.
+
+Common reasons include:
+
+- the target is briefly occluded by another object;
+
+- the detector occasionally misses a detection;
+
+- motion blur;
+
+- lighting changes;
+
+- the target briefly leaves the effective detection area.
+
+In the Lost state, the tracker can still keep predicting the target's position from its historical motion state.
+
+For example:
+
+```text
+Frame 100    ID = 5
+Frame 101    not detected
+Frame 102    not detected
+Frame 103    detected again → ID = 5
+```
+
+As long as the track has not been deleted, a target reappearing in frame 103 has a chance to keep using its original ID. Therefore, **the Lost state decides whether the original track can be reconnected after a brief occlusion.**
+
+### Deleted: Track Ends
+
+Once a track enters **Deleted**, it no longer takes part in later matching.
+
+There are usually two cases:
+
+- the Tentative track was unmatched before it was confirmed;
+
+- the Lost state lasted longer than the allowed retention window.
+
+Once a track is deleted, its original Track ID ends with it. Even if the same target reappears later, it is treated as a new target:
+
+```text
+original track: ID = 5
+        ↓
+long absence
+        ↓
+track deleted
+        ↓
+reappears: ID = 12
+```
+
+From a person's point of view it may still be the same target; but for the tracker, the original track has ended.
+
+![ID changes after brief occlusion and track deletion](./images/fig-id-continuity.png)
+
+### How Long a Lost Track Is Kept
+
+`lost_track_buffer` controls how many frames a Lost track can be retained when no detection results arrive.
+
+This parameter directly affects ID continuity in occlusion scenarios.
+
+| `lost_track_buffer` | Advantage                                                                          | Cost                                                                                              |
+| ------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| **Larger**          | After a longer occlusion, the original ID can still be recovered; better continuity | Targets that have left the frame stay longer; brief “ghost tracks” may appear                      |
+| **Smaller**         | Invalid tracks are cleaned up faster; the picture looks cleaner                    | Even a brief occlusion may delete the track; a reappearing target more easily gets a new ID         |
+
+Think of it as a direct trade-off:
+
+> **Longer retention → better ID continuity**
+> **Shorter retention → faster track cleanup**
+
+### Do Not Read the Buffer as Seconds
+
+`lost_track_buffer` is a lost buffer counted in frames; the actual elapsed seconds also depend on the input frame rate. The current configuration base is **90**, with `frame_rate` set to **30**. The table below only shows how long “the same 90 processed frames” lasts at different actual throughputs:
+
+How long an occlusion can actually be tolerated also depends on the video frame rate:
+
+| Actual frame rate | Track retention time |
+| ----------------- | -------------------- |
+| 30 FPS            | about 3 s            |
+| 15 FPS            | about 6 s            |
+| 10 FPS            | about 9 s            |
+
+So when tuning on the real machine you cannot look at the value of `lost_track_buffer` alone; you must also take the system's actual frame rate into account.
+
+## Kalman Prediction and Hungarian Matching: What Each Solves
+
+In target tracking, the Kalman filter and the Hungarian algorithm often appear together, but they solve completely different problems:
+
+> **The Kalman filter predicts "roughly where the target is"; the Hungarian algorithm decides "which detection box belongs to which track".**
+
+### Kalman Prediction: Where the Target Will Be
+
+The boxes a detector produces jitter, and it occasionally misses detections, so you cannot rely on the current frame's position alone. A tracker usually keeps a state for each track, such as the target's **position, size, and velocity**. Entering a new frame, the Kalman filter mainly does two things:
+
+1. **Predict**: estimate where the target may appear now, based on the previous frame's motion state;
+
+2. **Update**: if a detection box is matched successfully in the current frame, use that new observation to correct the prediction.
+
+It can be understood as:
+
+```text
+previous frame's state
+    ↓
+motion-model prediction
+    ↓
+predicted position
+    ↓
+match the current detection box
+    ↓
+correct the state with the detection
+```
+
+The Kalman filter maintains not only "where the target is" but also the **uncertainty** of that estimate. When several consecutive frames bring no observation, the prediction becomes less and less reliable and the uncertainty grows; once a detection arrives again, the new observation helps the track converge again.
+
+So it is not simply averaging "the predicted position" and "the detected position"; it decides which side to trust more based on their uncertainties.
+
+### Hungarian Matching: Which Detection Box Belongs to Which Track
+
+After prediction, another question remains:
+
+Suppose there are currently `N` tracks and `M` detected targets at the same time; how should they be paired up one to one?
+
+For example:
+
+```text
+existing tracks              current detections
+
+Track 1  ─────────────── Detection A
+Track 2  ─────────────── Detection B
+Track 3  ─────────────── Detection C
+```
+
+In reality, of course, these connections are not known in advance. The tracker first computes the **matching cost** of every "track–detection" pair to form a cost matrix, and then the Hungarian algorithm looks for the set of pairings with the smaller total cost. The Hungarian algorithm itself does not know what a target is, nor what IoU is. **It is only responsible for completing the assignment from costs that have already been computed.** One of the keys to tracking quality is therefore:
+
+> **How the cost between a track and a detection box is actually computed.**
+
+### Common Matching Criteria
+
+There are mainly three kinds of matching criteria:
+
+| Criterion                 | What it judges                                            | Characteristics                                              |
+| ------------------------- | --------------------------------------------------------- | ------------------------------------------------------------ |
+| **IoU / overlap**         | Whether predicted and detection boxes overlap enough      | Simple to compute and fast                                   |
+| **Appearance features**   | Whether the current target looks similar to past targets  | Better under occlusion and crossing, but requires ReID       |
+| **Mahalanobis distance**  | Whether the detection lies within a plausible range of the predicted track | Can incorporate the Kalman filter's uncertainty |
+
+Among them, **IoU is the most direct approach**. The more a predicted box and a detection box overlap, the more likely they belong to the same target; if the match is below the allowed threshold, the pairing is ruled out. The `minimum_matching_threshold` in this chapter's code takes part in filtering such match results.
+
+But position alone is not always reliable. When several people cross or occlude one another, different targets' boxes can be very close, which is why DeepSORT introduced **ReID appearance features**. It extracts additional visual features to judge whether the person detected now is still the same person as before. This chapter's setup does not enable ReID, so it uses no such appearance information.
+
+**Mahalanobis distance** solves a different problem: a detection box deviates from the predicted position, but is that deviation actually abnormal? It looks not only at the distance itself but also at the uncertainty maintained by the Kalman filter. The more stable the track prediction, the tighter the matching range can be; after several frames of lost observations the prediction's uncertainty grows, and the reasonable search range changes with it.
+
+These criteria are not independent "algorithm schools" from which a tracker picks one; in practice a tracker selects one or a combination according to its association strategy. The differences among SORT, DeepSORT, ByteTrack, and BoT-SORT are not just a different distance function either; they make different design choices for **motion prediction, matching criteria, and the association flow**.
+
+| Algorithm     | Main idea                                                                                                                          |
+| ------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
+| **SORT**      | Uses Kalman filtering for motion prediction and IoU to associate tracks with detection boxes                                        |
+| **DeepSORT**  | Adds ReID appearance features on top of motion and position matching to strengthen identity association                             |
+| **ByteTrack** | Does not rely on ReID; makes full use of low-confidence detection boxes to reduce track breaks caused by falling detection confidence |
+| **BoT-SORT**  | Further adds camera motion compensation to the association strategy and can combine ReID appearance features                         |
+
+ByteTrack deserves special attention. Its key is not that it invented a new matching distance, but that it changed **how detection boxes take part in association**: high-confidence boxes complete the main matching first, and tracks still unmatched are then associated a second time with low-confidence boxes.
+
+This way, even if a target's detection confidence temporarily drops because of occlusion or blur, as long as the box's position is still reasonable it can keep the original track instead of being discarded immediately for a "score that is too low". The next section expands on this two-stage association mechanism.
+
+> **A parameter name cannot be read without its implementation.**
+> Different tracking libraries may use similar parameter names with different meanings, directions, and ranges. For example, "matching threshold = 0.8" does not necessarily describe the same condition in different implementations. So whenever this chapter refers to a threshold, it also names the specific implementation and the real-machine parameter.
 
 ### ByteTrack's Two-Stage Matching: Why Low-Score Boxes Are Still Used
 
-Earlier we said "match predicted boxes against detection boxes", but did not answer one question: **which boxes are eligible to enter this matching table**.
-
-An occluded target can often still be detected, only with its confidence dropping to between 0.1 and 0.3. The conventional approach throws these away during score filtering, so the track breaks. ByteTrack's core observation is that among these low-score boxes, some are precisely the position of the occluded target. Throwing them away means giving up the very observation you need most.
+Earlier we said "match predicted boxes against detection boxes", but did not answer one question: **which boxes are eligible to enter this matching table**. An occluded target can often still be detected, only with its confidence dropping to between 0.1 and 0.3. The conventional approach throws these away during score filtering, so the track breaks. ByteTrack's core observation is that among these low-score boxes, some are precisely the position of the occluded target. Throwing them away means giving up the very observation you need most.
 
 So it splits matching into two rounds:
 
@@ -131,13 +376,13 @@ If the robot has its own odometry or IMU, there is a more reliable route: use th
 
 The five parameters in `config/bytetrack.yaml` correspond directly to the constructor parameters of `supervision.ByteTrack`:
 
-| Parameter | Real-machine value | What it changes | Symptom |
-| --- | --- | --- | --- |
-| `track_activation_threshold` | 0.25 | The threshold for a **high-score detection**, and the score that activating a new track depends on | Turn it up: tracks are cleaner and more stable, but weak targets are missed; turn it down: weak targets can also start tracks, but noise and instability come in with them. It is **not** "the minimum confidence for a detection to take part in tracking" — a box below it may still take part in second-stage association |
-| `lost_track_buffer` | 30 | The **buffer base** for lost tracks | Turn it up: occlusion tolerance grows longer and tracks break less easily, at the cost of longer-lasting ghost tracks; turn it down: tracks are cleaned up neatly, but the ID easily changes after occlusion. **The actual window is not equal to this number**; it is scaled by `frame_rate` |
-| `minimum_matching_threshold` | 0.8 | The **maximum matching cost** allowed in first-stage association | Turn it up: matching is looser, pairings with worse overlap are accepted, and tracks break less easily; turn it down: stricter, and when a target moves fast or box overlap is poor it easily breaks into a new ID. It governs only the first stage and is not a threshold shared by all stages |
-| `frame_rate` | 10 | The scaling factor corresponding to the actual processing frame rate | It takes part in computing the lost window, see the formula below; if the input throughput changes but this is not changed, the actual occlusion tolerance window will deviate from expectations |
-| `minimum_consecutive_frames` | 1 | How many consecutive matches a track needs before it is used externally as a **stable track** | Turn it up: it suppresses accidental tracks produced by brief false detections, but a new target has to wait several frames before getting a stable ID |
+| Parameter                    | Real-machine value | What it changes                                                                                    | Symptom                                                                                                                                                                                                                                                                                                                      |
+| ---------------------------- | ------------------ | -------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `track_activation_threshold` | 0.25               | The threshold for a **high-score detection**, and the score that activating a new track depends on | Turn it up: tracks are cleaner and more stable, but weak targets are missed; turn it down: weak targets can also start tracks, but noise and instability come in with them. It is **not** "the minimum confidence for a detection to take part in tracking" — a box below it may still take part in second-stage association |
+| `lost_track_buffer`          | 90                 | The **buffer base** for lost tracks                                                                | Turn it up: occlusion tolerance grows longer and tracks break less easily, at the cost of longer-lasting ghost tracks; turn it down: tracks are cleaned up sooner, but IDs may change after occlusion. The actual duration also depends on `frame_rate`                                                                      |
+| `minimum_matching_threshold` | 0.8                | The **maximum matching cost** allowed in first-stage association                                   | Turn it up: matching is looser, pairings with worse overlap are accepted, and tracks break less easily; turn it down: stricter, and when a target moves fast or box overlap is poor it easily breaks into a new ID. It governs only the first stage and is not a threshold shared by all stages                              |
+| `frame_rate`                 | 30                 | The scaling factor corresponding to the actual processing frame rate                               | It participates in lost-window calculation; if throughput changes without updating it, motion prediction and occlusion tolerance can deviate from expectations                                                                                                                                                               |
+| `minimum_consecutive_frames` | 1                  | How many consecutive matches a track needs before it is used externally as a **stable track**      | Turn it up: it suppresses accidental tracks produced by brief false detections, but a new target has to wait several frames before getting a stable ID                                                                                                                                                                       |
 
 There are two more parameters that do not affect tracking behavior but that you will encounter when reading logs: `tracker_type` (fixed at `bytetrack`, the only tracker on the real machine) and `publish_log_throttle_ms` (log throttling, 1000 ms).
 
@@ -147,36 +392,24 @@ There are two more parameters that do not affect tracking behavior but that you 
 max_time_lost = int(frame_rate / 30 × lost_track_buffer)
 ```
 
-Substituting the real-machine configuration (`frame_rate = 10`, `lost_track_buffer = 30`), the actual window is 10 frames. Reading `lost_track_buffer` directly as "keep 30 frames" overestimates it threefold.
+Substituting the current configuration (`frame_rate = 30`, `lost_track_buffer = 90`) gives 90 processed frames. At about 30 FPS that is 3 seconds; if actual throughput falls to about 15 FPS while the configuration is unchanged, the same 90 frames span about 6 seconds.
 
 The comment in `config/bytetrack.yaml` states that `frame_rate` corresponds to the observed throughput of `bev_detection` on the Orin. If you switch detection to another input source and the frame rate changes, this value must change with it, otherwise the actual occlusion tolerance window will deviate from expectations.
 
-### Metric Definitions: Why This Chapter Does Not Produce These Numbers
-
-The standard metrics for tracking quality are MOTA and IDF1:
-
-- **MOTA** leans toward the errors of detection and track creation, penalizing missed detections, false detections, and ID switches together. It is more easily affected by detection quality, and the result can even be negative.
-
-- **IDF1** cares only about whether identities are recognized correctly, and is more informative when there is a lot of occlusion and crossing and the ID jumps repeatedly.
-
-The two metrics must be read together: a high MOTA with a low IDF1 means positions were followed but identities were mistaken.
-
-**But this chapter does not produce these two numbers**, because both require frame-by-frame human-annotated ground truth, and the real machine has neither this annotation nor an evaluation script. The available substitute observation is "whether the same target's ID is maintained across consecutive frames", which is exactly what Step 7 asks you to observe. To really quantify it, you must first supply an annotated test sequence; that is another matter.
-
 ## Hands-On: Wire Detection Boxes into a Track Topic
 
-Three steps. All commands run on the J501, and the working directory is `/home/seeed/workspace/ros2_bev`. The prerequisite is that 4.1's detection pipeline is already running, or that you use the repository's bundled `mock_detection_publisher` to generate a detection stream.
+Three steps. All commands run on the J501 from `$M4_CODE_ROOT`. The prerequisite is that the 4.1 detection pipeline is already running, or that you use the repository's `mock_detection_publisher` to produce a detection stream.
 
 ### Step 5: Launch the Tracking Pipeline
 
 Wire 4.1's detection output into tracks. The least effort is to run the one-click script directly:
 
 ```bash
-cd /home/seeed/workspace/ros2_bev
-scripts/m4/run_m4_2_demo.sh
+cd "$M4_CODE_ROOT"
+./scripts/m4/run_m4_2_demo.sh
 ```
 
-The script takes the GMSL2 path of the course hardware, brings up `camera_adapter_node` itself to convert the upstream image into the topic the tracking node expects, then starts `tracking_node` and the visualization node. If you only want to run the tracking node alone, use `tracking_demo.launch.py`; its parameter defaults already configure the input and output topics.
+The script follows the course hardware's GMSL2 path, starts `camera_adapter_node` itself to convert the upstream images into the topic the tracking node expects, then starts `tracking_node` and the visualizer. To run the tracking node alone, use `tracking_demo.launch.py`, whose parameter defaults already configure the input and output topics.
 
 ### Step 6: Verify `/perception/tracks`
 
@@ -203,25 +436,25 @@ Check each item:
 Run the same scene, observe the following symptoms, then locate the problem by the corresponding parameter:
 
 ```bash
-# 改参数后重启节点，对比同一段场景
-vim ros2_ws/src/bev_tracking/config/bytetrack.yaml
+# Restart after changing a parameter, then compare the same scene
+vim 4.2-multi-object-tracking/ros2/bev_tracking/config/bytetrack.yaml
 ```
 
-| Symptom | Which parameter to look at first |
-| --- | --- |
-| The ID changes immediately after occlusion | Turn `lost_track_buffer` up (and at the same time confirm `frame_rate` matches the actual frame rate) |
-| The target has left the frame but the box still drifts in place | Turn `lost_track_buffer` down |
-| Tracks break frequently when the target moves fast | First check whether the detection boxes are stable; if first-stage association is indeed too strict, turn `minimum_matching_threshold` **up** |
-| Noise in the frame becomes a track | Turn `track_activation_threshold` up, or turn `minimum_consecutive_frames` up |
-| The occlusion tolerance duration differs greatly from expectations | Check whether `frame_rate` matches the actual input frame rate |
+| Symptom                                                            | Which parameter to look at first                                                                                                              |
+| ------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| The ID changes immediately after occlusion                         | Turn `lost_track_buffer` up (and at the same time confirm `frame_rate` matches the actual frame rate)                                         |
+| The target has left the frame but the box still drifts in place    | Turn `lost_track_buffer` down                                                                                                                 |
+| Tracks break frequently when the target moves fast                 | First check whether the detection boxes are stable; if first-stage association is indeed too strict, turn `minimum_matching_threshold` **up** |
+| Noise in the frame becomes a track                                 | Turn `track_activation_threshold` up, or turn `minimum_consecutive_frames` up                                                                 |
+| The occlusion tolerance duration differs greatly from expectations | Check whether `frame_rate` matches the actual input frame rate                                                                                |
 
-Changing `lost_track_buffer` is the most intuitive experiment: it is originally 30 frames, and after turning it up the ID is more easily reconnected within the same occlusion, but it also lingers a while longer after the target has really walked out of the frame. Writing down the symptoms from both runs is more useful than memorizing what the parameters mean.
+Changing `lost_track_buffer` is the most intuitive experiment: the current setting is 90, and increasing it may reconnect an ID after a longer occlusion, but also retains a departed target longer. Record both effects in the same scene.
 
 ## Deliverables and Acceptance Criteria
 
 ### Deliverables Checklist
 
-1. A running tracking pipeline: `scripts/m4/run_m4_2_demo.sh` starts normally, and `/perception/tracks` keeps publishing.
+1. A running tracking pipeline: `./scripts/m4/run_m4_2_demo.sh` starts normally, and `/perception/tracks` keeps publishing.
 
 2. A verification record of the track contract: the type and QoS from `ros2 topic info -v`, and an excerpt of detection boxes carrying an `id` from `ros2 topic echo`.
 
@@ -231,14 +464,14 @@ Changing `lost_track_buffer` is the most intuitive experiment: it is originally 
 
 ### Acceptance Criteria
 
-| Check | Pass criterion | When failing, inspect first |
-| --- | --- | --- |
-| Pipeline connectivity | `tracking_node` starts normally, `/perception/tracks` has data and its rate matches the detection input | Whether the upstream `/perception/detections` is publishing; whether `camera_adapter_node` was missed at startup |
-| Message contract | The type is `vision_msgs/msg/Detection2DArray`; QoS is the same as 4.1 | Whether the subscriber used the default RELIABLE QoS |
-| ID ownership | Every detection box on `/perception/tracks` carries a non-empty `id`; those on `/perception/detections` are still empty | Whether the two topics were mixed up |
-| Continuity | The same continuous track keeps the same `id` before and after occlusion (within the duration covered by `lost_track_buffer`) | Whether `lost_track_buffer` is too small; whether `frame_rate` does not match the actual frame rate |
-| Parameters take effect | After changing `config/bytetrack.yaml` and restarting, the behavior changes accordingly | Whether you changed the copy belonging to `bev_tracking`; whether the package was reinstalled (after changing a Python package's config you must reinstall, or edit the copy under install directly) |
-| Symptom record | At least one before/after comparison, stating clearly what was changed and what was seen | — |
+| Check                  | Pass criterion                                                                                                                | When failing, inspect first                                                                                                                                                                          |
+| ---------------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Pipeline connectivity  | `tracking_node` starts normally, `/perception/tracks` has data and its rate matches the detection input                       | Whether the upstream `/perception/detections` is publishing; whether `camera_adapter_node` was missed at startup                                                                                     |
+| Message contract       | The type is `vision_msgs/msg/Detection2DArray`; QoS is the same as 4.1                                                        | Whether the subscriber used the default RELIABLE QoS                                                                                                                                                 |
+| ID ownership           | Every detection box on `/perception/tracks` carries a non-empty `id`; those on `/perception/detections` are still empty       | Whether the two topics were mixed up                                                                                                                                                                 |
+| Continuity             | The same continuous track keeps the same `id` before and after occlusion (within the duration covered by `lost_track_buffer`) | Whether `lost_track_buffer` is too small; whether `frame_rate` does not match the actual frame rate                                                                                                  |
+| Parameters take effect | After changing `config/bytetrack.yaml` and restarting, the behavior changes accordingly                                       | Whether you changed the copy belonging to `bev_tracking`; whether the package was reinstalled (after changing a Python package's config you must reinstall, or edit the copy under install directly) |
+| Symptom record         | At least one before/after comparison, stating clearly what was changed and what was seen                                      | —                                                                                                                                                                                                    |
 
 ## FAQ and Troubleshooting
 
@@ -274,4 +507,4 @@ Changing `lost_track_buffer` is the most intuitive experiment: it is originally 
 
 - **Solution**: go back to 4.1 and confirm the empty-frame contract still holds: publish every frame, and publish an empty array for empty frames. When modifying the detection node, do not casually add "early return on empty boxes".
 
-> **Next step:** 4.3 semantic segmentation takes over the question of "whether each pixel can be driven on". The ID given by tracking and the drivable area given by segmentation will be placed on the same pipeline in 4.5, and there you will see that the two have the same requirement for timestamps: both rely on the detection and the camera image sharing the same `header.stamp`. If you observe IDs clearly in this chapter, the integration in 4.5 will go much more smoothly.
+> **Next step:** 4.3 assigns a semantic class to each pixel and derives a ground-candidate mask; it cannot prove collision-free space. Tracking IDs and segmentation masks are currently independent outputs, so any later integration must align their timestamps explicitly, and a planned integration must not be written up as if it were already done.

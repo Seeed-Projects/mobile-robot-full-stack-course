@@ -12,12 +12,15 @@
 #
 # Adds the bev_pose source path so the package is importable without a
 # full colcon install. If the package was already installed under
-# ros2_ws/install, that one is preferred (m4_setup_env-like ordering).
+# install, that one is preferred (m4_setup_env-like ordering).
 
 set -euo pipefail
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-REPO="$(cd "$SCRIPT_DIR/../.." && pwd)"
+# --- module anchors: derived from this script's own location, never hardcoded ---
+# M4_ROOT is this M04 module; WS_ROOT is the repository root.
+M4_ROOT="${M4_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+WS_ROOT="${WS_ROOT:-$(cd "$M4_ROOT/../.." && pwd)}"
 
 # ---- CLI ---------------------------------------------------------------
 OBJ_PATH=""
@@ -39,18 +42,18 @@ fi
 
 # Resolve output
 [ -z "$OBJ_NAME" ] && OBJ_NAME="$(basename "$OBJ_PATH" .obj)"
-[ -z "${OUT_PATH:-}" ] && OUT_PATH="$REPO/models/m4/pose/processed/${OBJ_NAME}.npz"
+[ -z "${OUT_PATH:-}" ] && OUT_PATH="$M4_ROOT/models/m4/pose/processed/${OBJ_NAME}.npz"
 [ -z "${FRAME_ID:-}" ] && FRAME_ID="$OBJ_NAME"
 
 mkdir -p "$(dirname "$OUT_PATH")"
 
 # ---- Run ----------------------------------------------------------------
-if [ -d "$REPO/ros2_ws/install/bev_pose" ]; then
+if [ -d "$WS_ROOT/install/bev_pose" ]; then
     echo "[preprocess_mesh] using installed bev_pose"
-    set +u; source "$REPO/ros2_ws/install/setup.bash"; set -u
+    set +u; source "$WS_ROOT/install/setup.bash"; set -u
 else
     echo "[preprocess_mesh] using source-tree bev_pose"
-    export PYTHONPATH="$REPO/ros2_ws/src/bev_pose:${PYTHONPATH:-}"
+    export PYTHONPATH="$M4_ROOT/4.5-native-foundationpose/ros2/bev_pose:${PYTHONPATH:-}"
 fi
 
 python3 -m bev_pose.mesh_preprocessor \

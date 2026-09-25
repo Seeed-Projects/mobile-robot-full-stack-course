@@ -39,7 +39,7 @@
  *
  * \code{.sh}
  *   source /opt/ros/humble/setup.bash
- *   cd ros2_ws
+ *   cd <repo-root>
  *   colcon build --packages-select bev_tracking
  *   colcon test --packages-select bev_tracking --ctest-args -V
  * \endcode

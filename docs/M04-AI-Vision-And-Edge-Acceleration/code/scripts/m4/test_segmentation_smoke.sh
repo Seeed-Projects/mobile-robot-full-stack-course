@@ -11,17 +11,20 @@
 
 set -uo pipefail
 
-REPO_ROOT="${REPO_ROOT:-/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration}"
+# --- module anchors: derived from this script's own location, never hardcoded ---
+# M4_ROOT is this M04 module; WS_ROOT is the repository root.
+M4_ROOT="${M4_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+WS_ROOT="${WS_ROOT:-$(cd "$M4_ROOT/../.." && pwd)}"
 ROS_DISTRO="${ROS_DISTRO:-humble}"
 PKG="bev_segmentation"
-TEST_IMAGE="${TEST_IMAGE:-$REPO_ROOT/output/m4/4.3/test_input.png}"
-OUT_DIR="$REPO_ROOT/output/m4/4.3"
+TEST_IMAGE="${TEST_IMAGE:-$M4_ROOT/output/m4/4.3/test_input.png}"
+OUT_DIR="$M4_ROOT/output/m4/4.3"
 SEMANTIC_DIR="$OUT_DIR/semantic_masks"
 DRIVABLE_DIR="$OUT_DIR/drivable_masks"
 LOG_DIR="$OUT_DIR/logs"
-ENGINE="$REPO_ROOT/models/m4/segmentation/engines/segformer_b0_fp16.engine"
-ONNX="$REPO_ROOT/models/m4/segmentation/onnx/segformer_b0.onnx"
-LABELS="$REPO_ROOT/models/m4/segmentation/labels/labels.json"
+ENGINE="$M4_ROOT/models/m4/segmentation/engines/segformer_b0_fp16.engine"
+ONNX="$M4_ROOT/models/m4/segmentation/onnx/segformer_b0.onnx"
+LABELS="$M4_ROOT/models/m4/segmentation/labels/labels.json"
 
 mkdir -p "$SEMANTIC_DIR" "$DRIVABLE_DIR" "$LOG_DIR"
 
@@ -31,14 +34,19 @@ for f in "$ENGINE" "$ONNX" "$LABELS"; do
 done
 [[ -f "$TEST_IMAGE" ]] || { echo "[smoke] FAIL: missing test image $TEST_IMAGE"; exit 2; }
 
+# ROS's setup.bash reads variables that are unset here, and 'set -u'
+# turns that into a fatal error: the script would die before its first
+# echo. The other M4 scripts already guard their source this way.
+set +u
 source /opt/ros/$ROS_DISTRO/setup.bash 2>/dev/null
-source $REPO_ROOT/ros2_ws/install/setup.bash 2>/dev/null || true
+source $WS_ROOT/install/setup.bash 2>/dev/null || true
+set -u
 
 # ---- launch ----
 echo "[smoke] starting segmentation_node (logs -> $LOG_DIR/node.log)"
 ros2 run $PKG segmentation_node \
     --ros-args \
-    --params-file "$REPO_ROOT/ros2_ws/src/$PKG/config/segmentation.yaml" \
+    --params-file "$WS_ROOT/src/$PKG/config/segmentation.yaml" \
     > "$LOG_DIR/node.log" 2>&1 &
 NODE_PID=$!
 trap "kill $NODE_PID 2>/dev/null || true" EXIT
@@ -57,7 +65,7 @@ echo "[smoke] node up."
 
 # ---- publish test image once ----
 echo "[smoke] publishing test image -> $TEST_IMAGE"
-python3 "$REPO_ROOT/ros2_ws/src/$PKG/test/image_republisher.py" \
+python3 "$WS_ROOT/src/$PKG/test/image_republisher.py" \
     --image "$TEST_IMAGE" \
     --once \
     > "$LOG_DIR/repub.log" 2>&1 &

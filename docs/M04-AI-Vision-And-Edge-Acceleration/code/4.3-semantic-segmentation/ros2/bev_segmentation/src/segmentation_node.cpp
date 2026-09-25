@@ -6,6 +6,7 @@
 // drivable_mask 是 candidate-drivable semantic mask, 不等价于 collision-free space.
 
 #include "bev_segmentation/config.hpp"
+#include "bev_segmentation/inference_rate_limiter.hpp"
 #include "bev_segmentation/postprocess.hpp"
 #include "bev_segmentation/preprocess.hpp"
 #include "bev_segmentation/segmentation_engine.hpp"
@@ -15,6 +16,7 @@
 #include <sensor_msgs/msg/image.hpp>
 
 #include <cctype>
+#include <chrono>
 #include <fstream>
 #include <memory>
 #include <sstream>
@@ -85,11 +87,21 @@ public:
             "semantic_mask_topic", cfg_.semantic_mask_topic);
         cfg_.drivable_mask_topic = declare_parameter<std::string>(
             "drivable_mask_topic", cfg_.drivable_mask_topic);
+        selected_image_topic_ = declare_parameter<std::string>(
+            "selected_image_topic", "/perception/segmentation/source_image");
         // ROS param vector<int64_t> -> vector<int>
         const auto ids64 = declare_parameter<std::vector<int64_t>>(
             "drivable_class_ids", std::vector<int64_t>{0});
         cfg_.drivable_class_ids.clear();
         for (auto v : ids64) cfg_.drivable_class_ids.push_back(static_cast<int>(v));
+        const double max_inference_fps = declare_parameter<double>(
+            "max_inference_fps", 30.0);
+        try {
+            rate_limiter_.set_max_fps(max_inference_fps);
+        } catch (const std::invalid_argument& e) {
+            throw std::invalid_argument(std::string(e.what()) +
+                                        "; refusing to start segmentation_node");
+        }
         // (publish_debug / debug_topic were declared here but never read by any
         // code path. Removed rather than implemented: colourising a mask is
         // visualisation, and M4 visualisation belongs to m4_demo_bringup
@@ -123,11 +135,15 @@ public:
             cfg_.semantic_mask_topic, rclcpp::SensorDataQoS());
         drivable_pub_ = this->create_publisher<sensor_msgs::msg::Image>(
             cfg_.drivable_mask_topic, rclcpp::SensorDataQoS());
+        selected_image_pub_ = this->create_publisher<sensor_msgs::msg::Image>(
+            selected_image_topic_, rclcpp::SensorDataQoS());
 
         RCLCPP_INFO(this->get_logger(),
-                    "segmentation_node ready | engine=%s | topic=%s | drivable_class_ids=[%s] | labels=%zu",
+                    "segmentation_node ready | engine=%s | topic=%s | selected_image=%s | max_inference_fps=%.1f | drivable_class_ids=[%s] | labels=%zu",
                     cfg_.engine_path.c_str(),
                     cfg_.input_image_topic.c_str(),
+                    selected_image_topic_.c_str(),
+                    max_inference_fps,
                     join_ids(cfg_.drivable_class_ids).c_str(),
                     labels_.size());
     }
@@ -144,10 +160,18 @@ private:
 
     void on_image(const sensor_msgs::msg::Image::SharedPtr msg) {
         if (!engine_->is_loaded()) return;
+        // The limiter only decides whether to begin inference.  It does not
+        // alter this message, so masks retain the camera's original stamp.
+        if (!rate_limiter_.should_process(std::chrono::steady_clock::now())) return;
 
         const int orig_h = static_cast<int>(msg->height);
         const int orig_w = static_cast<int>(msg->width);
         if (orig_h <= 0 || orig_w <= 0) return;
+
+        // The visualizer consumes only accepted frames, not the full camera
+        // rate.  This keeps its Python subscriber from deserialising 30 full
+        // 1080p images per second in Hub mode and preserves this exact stamp.
+        selected_image_pub_->publish(*msg);
 
         // ---- 预处理: 原图 -> [1,3,512,1024] float32 ----
         LetterboxMeta meta;
@@ -224,10 +248,13 @@ private:
     std::unique_ptr<SegmentationEngine> engine_;
     LabelMap labels_;
     bool logged_geometry_ = false;   // one-shot letterbox geometry log
+    InferenceRateLimiter rate_limiter_{30.0};
 
     rclcpp::Subscription<sensor_msgs::msg::Image>::SharedPtr image_sub_;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr semantic_pub_;
     rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr drivable_pub_;
+    rclcpp::Publisher<sensor_msgs::msg::Image>::SharedPtr selected_image_pub_;
+    std::string selected_image_topic_;
 };
 
 }  // namespace bev_segmentation

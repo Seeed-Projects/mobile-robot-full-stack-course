@@ -5,7 +5,7 @@
 #   4.1-yolo-object-detection/ros2/bev_detection
 #   4.2-multi-object-tracking/ros2/bev_tracking
 #   4.3-semantic-segmentation/ros2/bev_segmentation
-#   4.4-foundationpose/ros2/bev_pose
+#   4.5-native-foundationpose/ros2/bev_pose
 #   common/ros2/m4_demo_bringup
 #
 # This script creates ros2_ws/src/<pkg> SYMLINKS pointing at those directories.
@@ -25,7 +25,7 @@ declare -A PKGS=(
   [bev_detection]="../../4.1-yolo-object-detection/ros2/bev_detection"
   [bev_tracking]="../../4.2-multi-object-tracking/ros2/bev_tracking"
   [bev_segmentation]="../../4.3-semantic-segmentation/ros2/bev_segmentation"
-  [bev_pose]="../../4.4-foundationpose/ros2/bev_pose"
+  [bev_pose]="../../4.5-native-foundationpose/ros2/bev_pose"
   [m4_demo_bringup]="../../common/ros2/m4_demo_bringup"
   [bev_interfaces]="../../common/ros2/bev_interfaces"
 )
