@@ -16,7 +16,7 @@ using namespace bev_segmentation;
 
 static std::string engine_path() {
     if (const char* p = std::getenv("SEG_ENGINE_PATH")) return p;
-    return "/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration/models/m4/segmentation/engines/segformer_b0_fp16.engine";
+    return {};
 }
 
 TEST(EngineSmokeTest, LoadEngineFile) {

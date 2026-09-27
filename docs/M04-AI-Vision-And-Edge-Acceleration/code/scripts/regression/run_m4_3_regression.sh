@@ -10,21 +10,29 @@
 
 set -uo pipefail
 
-REPO_ROOT="${REPO_ROOT:-/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration}"
+# --- module anchors: derived from this script's own location, never hardcoded ---
+# M4_ROOT is this M04 module; WS_ROOT is the repository root.
+M4_ROOT="${M4_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+WS_ROOT="${WS_ROOT:-$(cd "$M4_ROOT/../.." && pwd)}"
 ROS_DISTRO="${ROS_DISTRO:-humble}"
-LOG_DIR="$REPO_ROOT/output/m4/4.3/logs"
+LOG_DIR="$M4_ROOT/output/m4/4.3/logs"
 LOG="$LOG_DIR/regression_$(date +%Y%m%d_%H%M%S).log"
 mkdir -p "$LOG_DIR"
 
+# ROS's setup.bash reads variables that are unset here, and 'set -u'
+# turns that into a fatal error: the script would die before its first
+# echo. The other M4 scripts already guard their source this way.
+set +u
 source /opt/ros/$ROS_DISTRO/setup.bash 2>/dev/null
+set -u
 
-cd "$REPO_ROOT/ros2_ws"
+cd "$WS_ROOT"
 source install/setup.bash 2>/dev/null || true
 
 fail_count=0
 
 echo "[reg] === 1/3 Engine Correctness Gate ==="
-if bash "$REPO_ROOT/scripts/m4/engine_correctness_gate.sh" >> "$LOG" 2>&1; then
+if bash "$M4_ROOT/scripts/m4/engine_correctness_gate.sh" >> "$LOG" 2>&1; then
     echo "[reg] PASS engine_correctness_gate"
 else
     echo "[reg] FAIL engine_correctness_gate (non-fatal — record for release gate)"
@@ -48,7 +56,7 @@ else
 fi
 
 echo "[reg] === 3/3 smoke test ==="
-if bash "$REPO_ROOT/scripts/m4/test_segmentation_smoke.sh" >> "$LOG" 2>&1; then
+if bash "$M4_ROOT/scripts/m4/test_segmentation_smoke.sh" >> "$LOG" 2>&1; then
     echo "[reg] PASS smoke"
 else
     echo "[reg] FAIL smoke"; fail_count=$((fail_count+1))

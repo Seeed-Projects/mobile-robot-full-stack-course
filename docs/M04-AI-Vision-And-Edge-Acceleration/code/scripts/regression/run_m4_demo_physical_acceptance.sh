@@ -26,9 +26,12 @@
 
 set -uo pipefail
 
-REPO_ROOT="${REPO_ROOT:-/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration}"
+# --- module anchors: derived from this script's own location, never hardcoded ---
+# M4_ROOT is this M04 module; WS_ROOT is the repository root.
+M4_ROOT="${M4_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+WS_ROOT="${WS_ROOT:-$(cd "$M4_ROOT/../.." && pwd)}"
 ROS_DISTRO="${ROS_DISTRO:-humble}"
-LOG_DIR="$REPO_ROOT/output/m4/demo_physical_acceptance"
+LOG_DIR="$M4_ROOT/output/m4/demo_physical_acceptance"
 mkdir -p "$LOG_DIR"
 
 CYCLES=3
@@ -62,8 +65,8 @@ pass() { log "  [PASS] $*"; PASS=$((PASS+1)); }
 fail() { log "  [FAIL] $*"; FAIL=$((FAIL+1)); }
 
 # Workspace presence check
-if [ ! -d "$REPO_ROOT/ros2_ws/install" ]; then
-    log "[acc] FATAL: ros2_ws/install missing; build first."
+if [ ! -d "$WS_ROOT/install" ]; then
+    log "[acc] FATAL: install missing; build first."
     exit 2
 fi
 
@@ -84,7 +87,7 @@ for demo in "${DEMOS[@]}"; do
         # Honour user DISPLAY but force DURATION 6s so each cycle ends
         # automatically without requiring interactive Ctrl-C.
         (CAMERA_SOURCE=auto DURATION=6 \
-            bash "$REPO_ROOT/scripts/m4/run_m4_${demo}_demo.sh" \
+            bash "$M4_ROOT/scripts/m4/run_m4_${demo}_demo.sh" \
             >> "$OUT" 2>&1) &
         CHILD=$!
 

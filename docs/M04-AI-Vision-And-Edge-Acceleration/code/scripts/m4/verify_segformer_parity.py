@@ -23,7 +23,7 @@ Usage
   python3 verify_segformer_parity.py \
       --image    output/m4/4.3/semantic_snapshot.png \
       --engine   models/m4/segmentation/engines/segformer_b0_fp16.engine \
-      --runner   ros2_ws/install/bev_segmentation/lib/bev_segmentation/parity_runner \
+      --runner   install/bev_segmentation/lib/bev_segmentation/parity_runner \
       --out-dir  output/m4/4.3/parity \
       --json     output/m4/4.3/parity.json
 

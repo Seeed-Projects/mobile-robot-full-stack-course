@@ -15,6 +15,12 @@
 #   output/m4/m4_4_perf/perf_report.json
 #   output/m4/m4_4_perf/perf.log
 
+# --- module anchors: derived from this script's own location, never hardcoded ---
+# M4_ROOT is this M04 module; WS_ROOT is the repository root.
+M4_ROOT="${M4_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+WS_ROOT="${WS_ROOT:-$(cd "$M4_ROOT/../.." && pwd)}"
+export M4_ROOT WS_ROOT
+
 set -u
 
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
@@ -25,7 +31,7 @@ DEMO_NAME="4.4_perf"
 m4_lib_init "$DEMO_NAME"
 m4_setup_env
 
-OUT_DIR="$REPO/output/m4/m4_4_perf"
+OUT_DIR="$M4_ROOT/output/m4/m4_4_perf"
 mkdir -p "$OUT_DIR"
 LOG="$OUT_DIR/perf.log"
 REPORT="$OUT_DIR/perf_report.json"
@@ -33,7 +39,7 @@ REPORT="$OUT_DIR/perf_report.json"
 
 m4_section "M4.4 perf + acceptance"
 m4_note "preflight: FoundationPose depends on Phase 0"
-if [ ! -f "$REPO/output/m4/phase0/phase0_report.json" ]; then
+if [ ! -f "$M4_ROOT/output/m4/phase0/phase0_report.json" ]; then
     m4_warn "Phase 0 report missing; run scripts/m4/phase0_foundationpose_verify.sh"
 fi
 
@@ -88,7 +94,7 @@ report = {
 
 # ---- Phase 0 (informational) ----
 import pathlib
-phase0_path = pathlib.Path('$REPO/output/m4/phase0/phase0_report.json')
+phase0_path = pathlib.Path('$M4_ROOT/output/m4/phase0/phase0_report.json')
 if phase0_path.exists():
     try:
         d = json.loads(phase0_path.read_text())

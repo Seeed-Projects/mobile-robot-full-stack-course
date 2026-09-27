@@ -113,10 +113,10 @@ class H264GstBackend(StreamBackend):
     def __init__(
         self,
         slot: LockFreeLatestFrameSlot,
-        width: int = 1280,
-        height: int = 720,
+        width: int = 1920,
+        height: int = 1080,
         fps: int = 30,
-        bitrate: int = 6_000_000,
+        bitrate: int = 8_000_000,
     ) -> None:
         super().__init__(slot)
         if not _GST_OK:
@@ -170,7 +170,9 @@ class H264GstBackend(StreamBackend):
             "! nvvidconv "
             f"! video/x-raw(memory:NVMM),width={self._width},height={self._height} "
             f"! nvv4l2h264enc maxperf-enable=1 bitrate={self._bitrate} "
-            "preset-level=1 iframeinterval=30 ratecontrol-enable=0 "
+            f"vbv-size={max(self._bitrate // 2, 1_000_000)} "
+            f"preset-level=1 iframeinterval={self._fps} idrinterval={self._fps} "
+            "control-rate=1 ratecontrol-enable=1 insert-vui=1 "
             # Baseline (profile=0) + SPS/PPS in-band: the combination every
             # browser accepts. config-interval=-1 repeats them per IDR.
             "insert-sps-pps=1 profile=0 "
@@ -249,6 +251,12 @@ class H264GstBackend(StreamBackend):
         """Push one BGR frame into the pipeline (asyncio loop only)."""
         if self._appsrc is None:
             return
+        # `nvvidconv` will obey a fixed output caps box by stretching a source
+        # with a different aspect ratio.  M4.3 deliberately publishes a
+        # side-by-side 32:9 teaching view, so fit it into the 16:9 WebRTC box
+        # ourselves and use the lab's dark background as letterbox padding.
+        # A normal M4.1/M4.2 1920x1080 frame takes this fast path unchanged.
+        bgr = self._fit_to_encode_box(bgr)
         h, w = bgr.shape[:2]
         # I420 needs even dimensions; a one-pixel crop is invisible here and
         # far cheaper than a resize.
@@ -269,6 +277,21 @@ class H264GstBackend(StreamBackend):
             self._pull_warned = True
             _log.warning("H264GstBackend: push-buffer returned %s", ret)
         self._pushed += 1
+
+    def _fit_to_encode_box(self, bgr: np.ndarray) -> np.ndarray:
+        h, w = bgr.shape[:2]
+        if (w, h) == (self._width, self._height):
+            return bgr
+        scale = min(self._width / float(w), self._height / float(h))
+        resized_w = max(2, int(round(w * scale)) // 2 * 2)
+        resized_h = max(2, int(round(h * scale)) // 2 * 2)
+        resized = cv2.resize(bgr, (resized_w, resized_h),
+                             interpolation=cv2.INTER_AREA if scale < 1.0 else cv2.INTER_LINEAR)
+        canvas = np.full((self._height, self._width, 3), (24, 28, 34), dtype=np.uint8)
+        x = (self._width - resized_w) // 2
+        y = (self._height - resized_h) // 2
+        canvas[y:y + resized_h, x:x + resized_w] = resized
+        return canvas
 
     # ---- pump: slot -> pipeline -----------------------------------------
 

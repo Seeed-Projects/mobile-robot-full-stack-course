@@ -11,15 +11,21 @@
 #
 # Exits 0 only if all cycles pass.
 
+# --- module anchors: derived from this script's own location, never hardcoded ---
+# M4_ROOT is this M04 module; WS_ROOT is the repository root.
+M4_ROOT="${M4_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+WS_ROOT="${WS_ROOT:-$(cd "$M4_ROOT/../.." && pwd)}"
+export M4_ROOT WS_ROOT
+
 set -u
 # NOTE: do NOT enable 'set -e'; we want every cycle attempted. Also do not
 # source ROS under 'set -u' — /opt/ros/humble/setup.bash touches unbound vars.
 
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
-WS="$REPO_ROOT/ros2_ws"
+WS="$WS_ROOT/"
 CYCLES="${CYCLES:-3}"
 PORT="${PORT:-8091}"
-LOG_DIR="${LOG_DIR:-$REPO_ROOT/output/regression/m4_web_hub_$(date +%Y%m%d_%H%M%S)}"
+LOG_DIR="${LOG_DIR:-$M4_ROOT/output/regression/m4_web_hub_$(date +%Y%m%d_%H%M%S)}"
 
 mkdir -p "$LOG_DIR"
 
@@ -30,7 +36,7 @@ source /opt/ros/humble/setup.bash
 source "$WS/install/setup.bash"
 set -u
 
-TEST_PY="$WS/src/m4_demo_bringup/test/m4_web_hub_regression.py"
+TEST_PY="$M4_ROOT/common/ros2/m4_demo_bringup/test/m4_web_hub_regression.py"
 if [ ! -f "$TEST_PY" ]; then
     echo "[FAIL] missing test: $TEST_PY"
     exit 2

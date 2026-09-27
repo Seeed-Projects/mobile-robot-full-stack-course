@@ -3,23 +3,18 @@
 <package format="3">
   <name>bev_tracking</name>
   <version>0.1.0</version>
-  <description>ByteTrack multi-object tracking ROS2 node for M4.2 course content. Consumes /perception/detections (Detection2DArray) from bev_detection (M4.1) and publishes /perception/tracks with stable track_id.</description>
+  <description>ByteTrack multi-object tracking ROS2 node for M4.2 course content.</description>
   <maintainer email="dev@jetson.local">bev-dev</maintainer>
   <license>MIT</license>
-
   <depend>rclpy</depend>
   <depend>std_msgs</depend>
+  <depend>std_srvs</depend>
   <depend>vision_msgs</depend>
-
   <exec_depend>python3-supervision</exec_depend>
   <exec_depend>python3-numpy</exec_depend>
-
   <test_depend>ament_cmake</test_depend>
   <test_depend>ament_pep257</test_depend>
   <test_depend>python3-pytest</test_depend>
   <test_depend>python3-pytest-cov</test_depend>
-
-  <export>
-    <build_type>ament_python</build_type>
-  </export>
+  <export><build_type>ament_python</build_type></export>
 </package>

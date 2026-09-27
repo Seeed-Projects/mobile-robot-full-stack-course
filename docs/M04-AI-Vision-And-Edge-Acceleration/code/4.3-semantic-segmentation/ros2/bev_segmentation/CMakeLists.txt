@@ -69,6 +69,7 @@ if(BUILD_TESTING)
   ament_add_gmock(test_engine_smoke      test/test_engine_smoke.cpp)
   ament_add_gmock(test_segmentation_node test/test_segmentation_node.cpp)
   ament_add_gmock(test_unletterbox       test/test_unletterbox.cpp)
+  ament_add_gmock(test_rate_limiter      test/test_rate_limiter.cpp)
 
   target_link_libraries(test_postprocessing     bev_segmentation_core)
   target_link_libraries(test_drivable_mask      bev_segmentation_core)
@@ -83,11 +84,16 @@ if(BUILD_TESTING)
   set_tests_properties(test_drivable_mask     PROPERTIES LABELS "unit")
   set_tests_properties(test_segmentation_node PROPERTIES LABELS "unit")
   set_tests_properties(test_unletterbox       PROPERTIES LABELS "unit")
+  set_tests_properties(test_rate_limiter      PROPERTIES LABELS "unit")
   set_tests_properties(test_engine_smoke      PROPERTIES LABELS "unit;engine_gate")
 
   # test_engine_smoke 在 engine 缺失时 GTEST_SKIP, 而 gtest 把 skip 记成 pass;
   # 这个 gate 让"engine 不存在"变成 FAIL, 而不是一片绿.
-  get_filename_component(M4_MODULE_ROOT "${CMAKE_CURRENT_SOURCE_DIR}/../../.." ABSOLUTE)
+  # Resolve the REAL package directory before walking up. This package is built
+  # through the src symlink, and from there the extra path components
+  # make a plain "../../.." land on the repository root instead of this module.
+  get_filename_component(_m4_pkg_real "${CMAKE_CURRENT_SOURCE_DIR}" REALPATH)
+  get_filename_component(M4_MODULE_ROOT "${_m4_pkg_real}/../../.." ABSOLUTE)
   set(SEGFORMER_ENGINE_PATH
       "${M4_MODULE_ROOT}/models/m4/segmentation/engines/segformer_b0_fp16.engine")
   configure_file(

@@ -12,8 +12,8 @@ namespace bev_segmentation {
 
 struct SegmentationConfig {
     // 模型文件
-    std::string engine_path = "/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration/models/m4/segmentation/engines/segformer_b0_fp16.engine";
-    std::string labels_path = "/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration/models/m4/segmentation/labels/labels.json";
+    std::string engine_path;
+    std::string labels_path;
 
     // ROS topics (共享 M4.1/M4.2/M4.3 camera contract)
     std::string input_image_topic  = "/perception/cameras/front/image";

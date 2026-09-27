@@ -39,6 +39,7 @@ from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
 from launch.substitutions import LaunchConfiguration
 from launch_ros.actions import Node
+from m4_demo_bringup.control_settings import load_settings
 
 
 def generate_launch_description() -> LaunchDescription:
@@ -55,6 +56,11 @@ def generate_launch_description() -> LaunchDescription:
     detections_topic = LaunchConfiguration('detections_topic')
     tracks_topic = LaunchConfiguration('tracks_topic')
     yolo_model_path = LaunchConfiguration('yolo_model_path')
+    segmentation_max_fps = LaunchConfiguration('segmentation_max_fps')
+    segmentation_view_mode = LaunchConfiguration('segmentation_view_mode')
+    runtime_settings, runtime_warning = load_settings()
+    if runtime_warning:
+        print(f'm4_all_demo: {runtime_warning}; using course defaults')
 
     # ---- 4.1: YOLO detection (single instance, shared with 4.2) ----
     # Includes yolo.launch.py directly (not m4_detection.launch.py) because
@@ -69,7 +75,10 @@ def generate_launch_description() -> LaunchDescription:
             'debug_image_topic': '/perception/demo/m4_1',
             'publish_debug_image': 'true',
             'model_path': yolo_model_path,
+            'confidence_threshold': str(runtime_settings['confidence_threshold']),
+            'nms_threshold': str(runtime_settings['nms_threshold']),
         }.items(),
+        condition=IfCondition(LaunchConfiguration('enable_detection')),
     )
 
     # ---- 4.2: tracking on the SAME detections ----
@@ -84,6 +93,10 @@ def generate_launch_description() -> LaunchDescription:
         parameters=[tracking_config, {
             'input_topic': detections_topic,
             'output_topic': tracks_topic,
+            'track_activation_threshold': runtime_settings['track_activation_threshold'],
+            'lost_track_buffer': runtime_settings['lost_track_buffer'],
+            'minimum_matching_threshold': runtime_settings['minimum_matching_threshold'],
+            'minimum_consecutive_frames': runtime_settings['minimum_consecutive_frames'],
         }],
     )
 
@@ -111,6 +124,10 @@ def generate_launch_description() -> LaunchDescription:
             'input_image_topic': camera_topic,
             'semantic_mask_topic': '/perception/semantic_mask',
             'drivable_mask_topic': '/perception/drivable_mask',
+            'selected_image_topic': '/perception/segmentation/source_image',
+            # Hub shares CPU with detection, tracking and WebRTC.  The node
+            # itself preserves original frame stamps for the frames it takes.
+            'max_inference_fps': segmentation_max_fps,
         }],
     )
 
@@ -121,10 +138,12 @@ def generate_launch_description() -> LaunchDescription:
         output='screen',
         condition=IfCondition(LaunchConfiguration('enable_segmentation')),
         parameters=[config_path, {
-            'image_topic': camera_topic,
+            'image_topic': '/perception/segmentation/source_image',
             'semantic_topic': '/perception/semantic_mask',
             'drivable_topic': '/perception/drivable_mask',
             'debug_image_topic': '/perception/demo/m4_3',
+            'view_mode': segmentation_view_mode,
+            'max_width': 1920,
         }],
     )
 
@@ -140,8 +159,11 @@ def generate_launch_description() -> LaunchDescription:
             description='Tracker output with ids'),
         DeclareLaunchArgument(
             'yolo_model_path',
-            default_value='/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration/models/m4/detection/engines/yolo11n_fp16.engine',
+            default_value=os.path.join(os.environ.get('M4_CODE_ROOT', ''), 'models/m4/detection/engines/yolo11n_fp16.engine'),
             description='YOLO TensorRT engine path'),
+        DeclareLaunchArgument(
+            'enable_detection', default_value='true',
+            description='Start the shared YOLO detector (required by 4.1 and 4.2)'),
         DeclareLaunchArgument(
             'enable_tracking', default_value='true',
             description='Start 4.2 tracking node + visualizer'),
@@ -149,6 +171,12 @@ def generate_launch_description() -> LaunchDescription:
             'enable_segmentation', default_value='true',
             description='Start 4.3 segmentation node + visualizer '
                         '(set false when the engine is not built yet)'),
+        DeclareLaunchArgument(
+            'segmentation_max_fps', default_value='10.0',
+            description='M4.3 TensorRT inference cap in the shared Hub (1..30)'),
+        DeclareLaunchArgument(
+            'segmentation_view_mode', default_value='semantic',
+            description='M4.3 view: original|semantic|drivable'),
         yolo_launch,
         tracking_node,
         tracking_visualizer,

@@ -30,7 +30,7 @@ def generate_launch_description() -> LaunchDescription:
         # ---- arguments ----
         DeclareLaunchArgument(
             'mesh_npz_path',
-            default_value='/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration/models/m4/pose/processed/cup.npz',
+            default_value=os.path.join(os.environ.get('M4_CODE_ROOT', ''), 'models/m4/pose/processed/cup.npz'),
             description='Pre-computed mesh .npz.'),
         DeclareLaunchArgument(
             'frame_id', default_value='cup',

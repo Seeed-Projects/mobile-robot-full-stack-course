@@ -13,8 +13,11 @@
 
 set -euo pipefail
 
-REPO_ROOT="${REPO_ROOT:-/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration}"
-OUT_DIR="$REPO_ROOT/models/m4/segmentation/onnx"
+# --- module anchors: derived from this script's own location, never hardcoded ---
+# M4_ROOT is this M04 module; WS_ROOT is the repository root.
+M4_ROOT="${M4_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+WS_ROOT="${WS_ROOT:-$(cd "$M4_ROOT/../.." && pwd)}"
+OUT_DIR="$M4_ROOT/models/m4/segmentation/onnx"
 OUT_FILE="$OUT_DIR/segformer_b0.onnx"
 CHECKPOINT="nvidia/segformer-b0-finetuned-cityscapes-512-1024"
 
@@ -22,12 +25,8 @@ CHECKPOINT="nvidia/segformer-b0-finetuned-cityscapes-512-1024"
 # An explicit HF_ENDPOINT from the caller always wins.
 export HF_ENDPOINT="${HF_ENDPOINT:-https://hf-mirror.com}"
 
-# Use conda py310 env (export-only) if available; otherwise system python3.
-if [[ -x "/home/seeed/miniconda3/envs/py310/bin/python" ]]; then
-    PYTHON="/home/seeed/miniconda3/envs/py310/bin/python"
-else
-    PYTHON="python3"
-fi
+# Use the caller-selected export environment, or system python3.
+PYTHON="${PYTHON:-python3}"
 
 echo "[export_segformer] python:    $($PYTHON --version 2>&1)"
 echo "[export_segformer] endpoint:  $HF_ENDPOINT"

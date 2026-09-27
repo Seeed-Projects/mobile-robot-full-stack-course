@@ -1,6 +1,6 @@
 """Unit tests for m4_demo_bringup.sync_utils.BoundedStampCache.
 
-Run with: pytest-3 ros2_ws/src/m4_demo_bringup/test/test_sync_utils.py
+Run with: pytest-3 modules/m04-ai-vision-and-edge-acceleration/common/ros2/m4_demo_bringup/test/test_sync_utils.py
 """
 from m4_demo_bringup.sync_utils import BoundedStampCache
 

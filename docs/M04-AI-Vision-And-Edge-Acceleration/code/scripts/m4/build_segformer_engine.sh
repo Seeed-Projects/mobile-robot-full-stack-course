@@ -13,9 +13,12 @@
 
 set -euo pipefail
 
-REPO_ROOT="${REPO_ROOT:-/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration}"
-ONNX="$REPO_ROOT/models/m4/segmentation/onnx/segformer_b0.onnx"
-ENGINE_DIR="$REPO_ROOT/models/m4/segmentation/engines"
+# --- module anchors: derived from this script's own location, never hardcoded ---
+# M4_ROOT is this M04 module; WS_ROOT is the repository root.
+M4_ROOT="${M4_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+WS_ROOT="${WS_ROOT:-$(cd "$M4_ROOT/../.." && pwd)}"
+ONNX="$M4_ROOT/models/m4/segmentation/onnx/segformer_b0.onnx"
+ENGINE_DIR="$M4_ROOT/models/m4/segmentation/engines"
 ENGINE="$ENGINE_DIR/segformer_b0_fp16.engine"
 TRTEXEC="${TRTEXEC:-/usr/src/tensorrt/bin/trtexec}"
 

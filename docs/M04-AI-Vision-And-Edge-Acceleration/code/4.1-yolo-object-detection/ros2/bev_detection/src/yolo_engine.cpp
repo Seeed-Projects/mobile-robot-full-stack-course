@@ -314,116 +314,6 @@ bool YoloEngine::inferFromImage(
 }
 
 // ============================================================================
-// YoloPostprocess
-// ============================================================================
-
-YoloPostprocess::YoloPostprocess(int num_classes, float conf_thresh, float nms_thresh)
-  : num_classes_(num_classes), conf_thresh_(conf_thresh), nms_thresh_(nms_thresh)
-{}
-
-std::vector<BBox> YoloPostprocess::parse(
-  const float * output, int output_size,
-  int img_h, int img_w, const LetterBox & letterbox) const
-{
-  // YOLO11n output format: [1, 84, 8400]
-  // 84 = 4 (bbox: cx, cy, w, h) + 80 (class scores)
-  // Each column is one detection candidate.
-
-  const int num_anchors = 8400;
-
-  std::vector<BBox> candidates;
-
-  // CHANNEL-MAJOR [1, channels, num_anchors] ("each column is one candidate",
-  // as the comment above already said): element (c, i) lives at
-  // c * num_anchors + i. The old anchor-major walk (output + i*stride) read
-  // box coordinates where class scores live, so nearly all 8400 anchors
-  // cleared the threshold and the UI flooded with boxes labelled "69696%".
-  for (int i = 0; i < num_anchors; ++i) {
-
-    // Find max class score
-    float max_score = 0.f;
-    int max_class = 0;
-    for (int c = 0; c < num_classes_; ++c) {
-      float score = output[(4 + c) * num_anchors + i];
-      if (score > max_score) {
-        max_score = score;
-        max_class = c;
-      }
-    }
-
-    // Confidence threshold
-    if (max_score < conf_thresh_) continue;
-
-    // bbox in model space [0, 640]
-    const float cx = output[0 * num_anchors + i];
-    const float cy = output[1 * num_anchors + i];
-    const float w  = output[2 * num_anchors + i];
-    const float h  = output[3 * num_anchors + i];
-
-    // Convert from center format to corner format
-    float x1 = cx - w * 0.5f;
-    float y1 = cy - h * 0.5f;
-    float x2 = cx + w * 0.5f;
-    float y2 = cy + h * 0.5f;
-
-    // Clip to model bounds
-    x1 = std::max(0.f, std::min(640.f, x1));
-    y1 = std::max(0.f, std::min(640.f, y1));
-    x2 = std::max(0.f, std::min(640.f, x2));
-    y2 = std::max(0.f, std::min(640.f, y2));
-
-    BBox box;
-    box.x1 = x1;
-    box.y1 = y1;
-    box.x2 = x2;
-    box.y2 = y2;
-    box.confidence = max_score;
-    box.class_id = max_class;
-
-    candidates.push_back(box);
-  }
-
-  // Sort by confidence (descending)
-  std::sort(candidates.begin(), candidates.end(),
-    [](const BBox & a, const BBox & b) { return a.confidence > b.confidence; });
-
-  // NMS per class
-  std::vector<bool> suppressed(candidates.size(), false);
-  std::vector<BBox> result;
-
-  for (size_t i = 0; i < candidates.size(); ++i) {
-    if (suppressed[i]) continue;
-
-    const BBox & box = candidates[i];
-    result.push_back(letterbox.restore(box));  // restore to original image space
-
-    // Suppress overlapping boxes of same class
-    for (size_t j = i + 1; j < candidates.size(); ++j) {
-      if (suppressed[j]) continue;
-      if (candidates[j].class_id != box.class_id) continue;
-
-      // IoU calculation
-      float inter_x1 = std::max(box.x1, candidates[j].x1);
-      float inter_y1 = std::max(box.y1, candidates[j].y1);
-      float inter_x2 = std::min(box.x2, candidates[j].x2);
-      float inter_y2 = std::min(box.y2, candidates[j].y2);
-
-      float inter_area = std::max(0.f, inter_x2 - inter_x1) * std::max(0.f, inter_y2 - inter_y1);
-      float box_area = (box.x2 - box.x1) * (box.y2 - box.y1);
-      float other_area = (candidates[j].x2 - candidates[j].x1) * (candidates[j].y2 - candidates[j].y1);
-      float union_area = box_area + other_area - inter_area;
-
-      float iou = (union_area > 0.f) ? (inter_area / union_area) : 0.f;
-      if (iou > nms_thresh_) {
-        suppressed[j] = true;
-      }
-    }
-  }
-
-  return result;
-}
-
-// ============================================================================
 // YoloInferencer
 // ============================================================================
 
@@ -475,6 +365,14 @@ YoloResult YoloInferencer::detect(const uint8_t * h_image, int img_h, int img_w)
     img_h, img_w, letterbox);
 
   return result;
+}
+
+void YoloInferencer::setPostprocessThresholds(float conf_thresh, float nms_thresh)
+{
+  config_.conf_thresh = conf_thresh;
+  config_.nms_thresh = nms_thresh;
+  postprocess_ = std::make_unique<YoloPostprocess>(
+    config_.num_classes, config_.conf_thresh, config_.nms_thresh);
 }
 
 // ============================================================================

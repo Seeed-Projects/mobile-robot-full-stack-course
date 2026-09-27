@@ -24,9 +24,12 @@
 
 set -uo pipefail
 
-REPO_ROOT="${REPO_ROOT:-/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration}"
+# --- module anchors: derived from this script's own location, never hardcoded ---
+# M4_ROOT is this M04 module; WS_ROOT is the repository root.
+M4_ROOT="${M4_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+WS_ROOT="${WS_ROOT:-$(cd "$M4_ROOT/../.." && pwd)}"
 ROS_DISTRO="${ROS_DISTRO:-humble}"
-LOG_DIR="$REPO_ROOT/output/m4/demo_regression"
+LOG_DIR="$M4_ROOT/output/m4/demo_regression"
 mkdir -p "$LOG_DIR"
 
 CYCLES=1
@@ -60,8 +63,8 @@ pass() { log "  [PASS] $*"; PASS=$((PASS+1)); }
 fail() { log "  [FAIL] $*"; FAIL=$((FAIL+1)); }
 
 # Workspace presence check
-if [ ! -d "$REPO_ROOT/ros2_ws/install" ]; then
-    log "[reg] FATAL: ros2_ws/install missing; build first."
+if [ ! -d "$WS_ROOT/install" ]; then
+    log "[reg] FATAL: install missing; build first."
     exit 2
 fi
 
@@ -72,7 +75,7 @@ for demo in "${DEMOS[@]}"; do
         log "  --- cycle ${cyc}/${CYCLES} ---"
         # 1. dry-run
         if CAMERA_SOURCE=test VIEWER=none \
-            bash "$REPO_ROOT/scripts/m4/run_m4_${demo}_demo.sh" --no-gui --dry-run \
+            bash "$M4_ROOT/scripts/m4/run_m4_${demo}_demo.sh" --no-gui --dry-run \
             >> "$OVERALL_LOG" 2>&1; then
             pass "demo=${demo} cycle=${cyc} dry-run"
         else
@@ -83,7 +86,7 @@ for demo in "${DEMOS[@]}"; do
         # 2. live test run with a tight duration
         OUT="$LOG_DIR/demo_${demo}_cyc${cyc}_$(date +%H%M%S).log"
         (CAMERA_SOURCE=test VIEWER=none DURATION=6 \
-            bash "$REPO_ROOT/scripts/m4/run_m4_${demo}_demo.sh" --no-gui \
+            bash "$M4_ROOT/scripts/m4/run_m4_${demo}_demo.sh" --no-gui \
             >> "$OUT" 2>&1) &
         CHILD=$!
         # Watch the metadata and the demo log
@@ -100,7 +103,7 @@ for demo in "${DEMOS[@]}"; do
 
         # 4. No orphan demo-owned PIDs from this cycle
         #    (best-effort: scan for python scripts with our paths)
-        ORPHANS=$(pgrep -af "ros2_ws/src/.*\(demo_bringup\|csi_camera_publisher\)" || true)
+        ORPHANS=$(pgrep -af "src/.*\(demo_bringup\|csi_camera_publisher\)" || true)
         if [ -z "$ORPHANS" ]; then
             pass "demo=${demo} cycle=${cyc} no orphan demo-owned processes"
         else

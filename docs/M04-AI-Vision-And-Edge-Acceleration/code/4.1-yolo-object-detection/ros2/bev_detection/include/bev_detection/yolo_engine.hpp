@@ -10,6 +10,7 @@
 #include <NvInfer.h>
 
 #include "types.hpp"
+#include "postprocessing.hpp"
 
 namespace bev::detection
 {
@@ -91,27 +92,6 @@ private:
   void ** bindings_{nullptr};    // bindings array for executeV2
 };
 
-/// YOLO11n output parser + NMS.
-class YoloPostprocess
-{
-public:
-  YoloPostprocess(int num_classes, float conf_thresh, float nms_thresh);
-
-  /// Parse raw TensorRT output into detections.
-  std::vector<BBox> parse(
-    const float * output, int output_size,
-    int img_h, int img_w, const LetterBox & letterbox) const;
-
-  int numClasses() const { return num_classes_; }
-  float confThresh() const { return conf_thresh_; }
-  float nmsThresh() const { return nms_thresh_; }
-
-private:
-  int num_classes_;
-  float conf_thresh_;
-  float nms_thresh_;
-};
-
 /// Full YOLO inference pipeline.
 class YoloInferencer
 {
@@ -133,6 +113,9 @@ public:
 
   /// Run full inference on BGR image.
   YoloResult detect(const uint8_t * h_image, int img_h, int img_w);
+
+  /// Update only the CPU postprocessor; the TensorRT engine stays loaded.
+  void setPostprocessThresholds(float conf_thresh, float nms_thresh);
 
   bool ready() const { return engine_ != nullptr; }
 

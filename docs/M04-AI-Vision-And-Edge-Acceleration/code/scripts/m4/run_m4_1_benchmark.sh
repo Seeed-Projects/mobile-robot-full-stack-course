@@ -4,10 +4,13 @@
 # Usage: ./run_m4_1_benchmark.sh [duration_seconds]
 set -uo pipefail
 
-REPO="${REPO:-/home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration}"
-ENGINE="$REPO/models/m4/detection/engines/yolo11n_fp16.engine"
-TEST_IMAGE="$REPO/datasets/nuscenes/samples/CAM_FRONT/$(ls $REPO/datasets/nuscenes/samples/CAM_FRONT/ 2>/dev/null | head -1)"
-OUT="$REPO/output/m4/4.1"
+# --- module anchors: derived from this script's own location, never hardcoded ---
+# M4_ROOT is this M04 module; WS_ROOT is the repository root.
+M4_ROOT="${M4_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+WS_ROOT="${WS_ROOT:-$(cd "$M4_ROOT/../.." && pwd)}"
+ENGINE="$M4_ROOT/models/m4/detection/engines/yolo11n_fp16.engine"
+TEST_IMAGE="$WS_ROOT/shared/datasets/nuscenes/samples/CAM_FRONT/$(ls $WS_ROOT/shared/datasets/nuscenes/samples/CAM_FRONT/ 2>/dev/null | head -1)"
+OUT="$M4_ROOT/output/m4/4.1"
 DURATION="${1:-30}"
 
 # Compute valid pub window (hz --window must be > total collect time)
@@ -28,19 +31,19 @@ if [ ! -f "$ENGINE" ]; then
   exit 1
 fi
 if [ -z "$TEST_IMAGE" ] || [ ! -f "$TEST_IMAGE" ]; then
-  echo "ERROR: no test image in $REPO/datasets/nuscenes/samples/CAM_FRONT/" >&2
+  echo "ERROR: no test image in $WS_ROOT/shared/datasets/nuscenes/samples/CAM_FRONT/" >&2
   exit 1
 fi
 
 # Source ROS environment (avoid set -u issues)
 set +u
 source /opt/ros/humble/setup.bash
-cd "$REPO/ros2_ws"
+cd "$WS_ROOT"
 source install/setup.bash
 set -u
 
 # Extend LD_LIBRARY_PATH for opencv + CUDA + TensorRT
-export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$REPO/ros2_ws/install/bev_detection/lib:/home/seeed/src/opencv-4.14.0-cuda-build/lib:/usr/local/cuda-12.6/lib64:/usr/lib/aarch64-linux-gnu"
+export LD_LIBRARY_PATH="$LD_LIBRARY_PATH:$WS_ROOT/install/bev_detection/lib:${OPENCV_CUDA_LIB:-}:/usr/local/cuda/lib64:/usr/lib/aarch64-linux-gnu"
 
 # Launch YOLO node
 ros2 run bev_detection yolo_trt_node \
@@ -54,7 +57,7 @@ echo "yolo_pid=$YOLO_PID"
 sleep 6
 
 # Launch image publisher at ~30 FPS
-python3 src/bev_detection/test/image_republisher.py "$TEST_IMAGE" \
+python3 "$M4_ROOT/4.1-yolo-object-detection/ros2/bev_detection/test/image_republisher.py" "$TEST_IMAGE" \
   > "$OUT/pub.log" 2>&1 &
 PUB_PID=$!
 echo "pub_pid=$PUB_PID"

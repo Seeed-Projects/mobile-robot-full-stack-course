@@ -24,7 +24,7 @@
 ### Build Command
 
 ```bash
-cd /home/seeed/mobile-robot-full-stack-course/modules/m04-ai-vision-and-edge-acceleration
+cd "$M4_CODE_ROOT"
 
 /usr/src/tensorrt/bin/trtexec \
   --onnx=models/m4/detection/onnx/yolo11n.onnx \

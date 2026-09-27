@@ -17,7 +17,7 @@ from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, LogInfo
 from launch.conditions import IfCondition
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import LaunchConfiguration
+from launch.substitutions import LaunchConfiguration, PythonExpression
 
 
 def generate_launch_description() -> LaunchDescription:
@@ -33,8 +33,10 @@ def generate_launch_description() -> LaunchDescription:
     gmsl_camera_include = IncludeLaunchDescription(
         PythonLaunchDescriptionSource(
             os.path.join(pkg_detection, 'launch', 'm4_detection.launch.py')),
+        # ROS 2 has no $(eval ...) substitution - that is roslaunch syntax.
+        # PythonExpression evaluates the concatenated substitutions as Python.
         condition=IfCondition(
-            '$(eval camera_source == "gmsl")'),
+            PythonExpression(["'", camera_source, "' == 'gmsl'"])),
         launch_arguments={
             'use_camera_sync': 'true',
             'use_yolo': 'false',       # YOLO is started by tracking_demo_include below

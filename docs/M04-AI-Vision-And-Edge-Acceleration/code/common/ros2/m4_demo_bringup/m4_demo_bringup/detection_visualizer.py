@@ -102,7 +102,7 @@ class DetectionVisualizer(Node):
         # MUST be array.array (buffer protocol), never bytes: assigning bytes
         # to the uint8[] field costs ~149 ns/byte (927 ms for a 1080p frame)
         # and pinned this visualizer to ~1 fps. See
-        # bev_detection/test/csi_camera_publisher.py:numpy_to_image_msg.
+        # m4_demo_bringup/csi_camera_publisher.py:numpy_to_image_msg.
         out.data = array.array('B', arr.tobytes())
         self._out_pub.publish(out)
         self._frames += 1

@@ -15,6 +15,12 @@
 #   tracking_visualizer (from tracking_demo.launch.py)
 #     → /perception/demo/m4_2
 
+# --- module anchors: derived from this script's own location, never hardcoded ---
+# M4_ROOT is this M04 module; WS_ROOT is the repository root.
+M4_ROOT="${M4_ROOT:-$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)}"
+WS_ROOT="${WS_ROOT:-$(cd "$M4_ROOT/../.." && pwd)}"
+export M4_ROOT WS_ROOT
+
 set -u
 
 LIB_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)/lib"
@@ -27,9 +33,11 @@ m4_lib_init "$DEMO_NAME"
 # ---- CLI / env overrides ----
 : "${CAMERA_SOURCE:=auto}"
 : "${CAMERA_DEVICE:=/dev/video0}"
-: "${CAMERA_WIDTH:=1280}"
-: "${CAMERA_HEIGHT:=720}"
-: "${CAMERA_FPS:=15}"
+# /dev/video0 enumerates 1920x1536, 1920x1080 and 3840x2160, all at 30 fps;
+# the course material specifies 1080p, so every M4 demo shares that default.
+: "${CAMERA_WIDTH:=1920}"
+: "${CAMERA_HEIGHT:=1080}"
+: "${CAMERA_FPS:=30}"
 : "${VIEWER:=auto}"
 : "${DURATION:=0}"
 
@@ -40,11 +48,11 @@ m4_setup_env
 m4_log_open
 
 # ---- preflight ----
-M4_PREFLIGHT_PATHS="$REPO/models/m4/detection/engines/yolo11n_fp16.engine \
-  $REPO/ros2_ws/install/bev_detection/lib/bev_detection/yolo_trt_node \
-  $REPO/ros2_ws/install/bev_detection/lib/bev_detection/camera_adapter_node \
-  $REPO/ros2_ws/install/bev_tracking/lib/bev_tracking/tracking_node \
-  $REPO/ros2_ws/install/bev_tracking/lib/bev_tracking/tracking_visualizer"
+M4_PREFLIGHT_PATHS="$M4_ROOT/models/m4/detection/engines/yolo11n_fp16.engine \
+  $WS_ROOT/install/bev_detection/lib/bev_detection/yolo_trt_node \
+  $WS_ROOT/install/bev_detection/lib/bev_detection/camera_adapter_node \
+  $WS_ROOT/install/bev_tracking/lib/bev_tracking/tracking_node \
+  $WS_ROOT/install/bev_tracking/lib/bev_tracking/tracking_visualizer"
 m4_preflight
 m4_section "Preflight OK"
 
@@ -78,31 +86,8 @@ m4_algorithm_duplicate_probe "yolo_trt_node,tracking_node" \
 # ---- camera bringup (non-gmsl owned modes only) ----
 if [ "$M4_CAMERA_OWNED" = "true" ] && [ "$M4_CAMERA_MODE" != "gmsl" ]; then
     m4_section "Camera ($M4_CAMERA_MODE) starting"
-    case "$M4_CAMERA_MODE" in
-        csi|usb)
-            setsid python3 "$REPO/ros2_ws/src/bev_detection/test/csi_camera_publisher.py" \
-                --source "$M4_CAMERA_MODE" \
-                --device "$M4_CAMERA_DEVICE" \
-                --width  "$M4_CAMERA_WIDTH" \
-                --height "$M4_CAMERA_HEIGHT" \
-                --fps    "$M4_CAMERA_FPS" \
-                --timeout 0 \
-                --topic /perception/cameras/front/image \
-                > "$M4_LOG_DIR/camera.log" 2>&1 &
-            ;;
-        test)
-            setsid python3 "$REPO/ros2_ws/src/bev_detection/test/csi_camera_publisher.py" \
-                --source test \
-                --width  "$M4_CAMERA_WIDTH" \
-                --height "$M4_CAMERA_HEIGHT" \
-                --fps    "$M4_CAMERA_FPS" \
-                --timeout 0 \
-                --topic /perception/cameras/front/image \
-                > "$M4_LOG_DIR/camera.log" 2>&1 &
-            ;;
-    esac
+    m4_spawn_camera_publisher "$M4_CAMERA_MODE"
     sleep 1
-    m4_note "camera publisher spawned (see $M4_LOG_DIR/camera.log)"
 fi
 
 # ---- launch the demo ----

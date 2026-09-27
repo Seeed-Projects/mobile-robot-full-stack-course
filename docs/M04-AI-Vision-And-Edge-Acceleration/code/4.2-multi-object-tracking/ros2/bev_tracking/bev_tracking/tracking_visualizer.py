@@ -158,11 +158,6 @@ def _build_id_palette(n: int = 64) -> list:
 
 _ID_PALETTE = _build_id_palette()
 
-# HUD panel fill (BGR), matching yolo_trt_node.cpp's drawHudPanel().
-_HUD_BG_BGR = (24, 28, 34)
-_HUD_ACCENT_BGR = (120, 230, 255)
-
-
 def _style_for(
     canvas: np.ndarray,
     min_thickness: int = 0,
@@ -280,8 +275,6 @@ class TrackingVisualizer(Node):
         self._tracks_seen = 0
         self._tracks_with_id = 0
         self._last_latency_ms = 0.0
-        self._hud_fps = 0.0
-        self._last_draw_t = 0.0
 
         self.get_logger().info(
             f'tracking_visualizer ready: '
@@ -451,47 +444,6 @@ class TrackingVisualizer(Node):
             lineType=cv2.LINE_AA,
         )
 
-    def _draw_hud(
-        self, canvas: np.ndarray, drawn: int, note: str = '',
-    ) -> None:
-        """Opaque top-left HUD, drawn LAST so nothing bleeds through it.
-
-        Replaces the old 0.55-scale "no tracks (waiting)" banner, which was
-        both tiny and only shown when there were no tracks at all.
-        """
-        h, w = canvas.shape[:2]
-        short = float(min(w, h))
-        fs = max(0.5, short / 1600.0)
-        font = cv2.FONT_HERSHEY_DUPLEX
-        pad = max(6, int(round(14.0 * fs)))
-        gap = max(2, int(round(6.0 * fs)))
-
-        line1 = 'M4.2  ByteTrack'
-        line2 = f'FPS {self._hud_fps:.1f}    tracks {drawn}'
-        if note:
-            line2 += f'    {note}'
-
-        (t1w, t1h), b1 = cv2.getTextSize(line1, font, fs, 1)
-        (t2w, t2h), b2 = cv2.getTextSize(line2, font, fs, 1)
-        panel_w = max(t1w, t2w) + 2 * pad
-        panel_h = t1h + b1 + gap + t2h + b2 + 2 * pad
-        panel_w = min(panel_w, w)
-        panel_h = min(panel_h, h)
-        if panel_w < 4 or panel_h < 4:
-            return
-
-        cv2.rectangle(canvas, (0, 0), (panel_w - 1, panel_h - 1),
-                      _HUD_BG_BGR, -1)
-        cv2.line(canvas, (0, panel_h - 1), (panel_w - 1, panel_h - 1),
-                 _HUD_ACCENT_BGR, 2, cv2.LINE_AA)
-
-        y = pad + t1h
-        cv2.putText(canvas, line1, (pad, y), font, fs,
-                    (255, 255, 255), 1, cv2.LINE_AA)
-        y += b1 + gap + t2h
-        cv2.putText(canvas, line2, (pad, y), font, fs,
-                    _HUD_ACCENT_BGR, 1, cv2.LINE_AA)
-
     # ---- callbacks -------------------------------------------------------
 
     def on_tracks(self, msg: Detection2DArray) -> None:
@@ -519,24 +471,8 @@ class TrackingVisualizer(Node):
         image_ns = _stamp_to_ns(msg.header.stamp)
         tracks = self._find_matching_track(image_ns)
         drawn = 0
-        note = ''
         if tracks is not None and len(tracks.detections) > 0:
             drawn = self._draw_tracks(canvas, tracks)
-        else:
-            note = 'waiting for tracks'
-
-        # Smoothed draw rate for the HUD (independent of the throttled log).
-        now = time.monotonic()
-        if self._last_draw_t > 0.0:
-            dt = now - self._last_draw_t
-            if dt > 1e-6:
-                inst = 1.0 / dt
-                self._hud_fps = (
-                    inst if self._hud_fps <= 0.0
-                    else 0.9 * self._hud_fps + 0.1 * inst
-                )
-        self._last_draw_t = now
-        self._draw_hud(canvas, drawn, note)
 
         out = self._numpy_to_image_msg(canvas, msg.header)
         self._debug_pub.publish(out)
