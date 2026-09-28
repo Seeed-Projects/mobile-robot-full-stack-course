@@ -1,11 +1,10 @@
-# 5.1 Getting started with SLAM and Building Your First Occupancy Grid Map
+# 5.1 Understanding SLAM and Building Your First Occupancy Grid Map
 
 SLAM is a core capability for mobile-robot navigation and environment perception. It estimates the robot pose and builds a reusable spatial model of the surroundings at the same time. Without that joint estimate, a robot may sense local geometry, but it cannot maintain a consistent world frame for planning, relocalization, and repeated operation.
 
 This lesson introduces the SLAM problem, the main sensing families used in practice, and a first 2D LiDAR mapping workflow on `reComputer Robotics J501` with RPLIDAR A1 and **SLAM Toolbox**. The conceptual framework comes first; the 2D exercise provides the first runnable baseline for the rest of M5.
 
-> **Image placeholder:** `images/slam_big_picture_to_2d_lab.png`
-> **Fill with:** a tech-style SLAM navigation visualization. A mobile robot moves through a scene, senses the surroundings with a camera and LiDAR, and follows a planned path.
+![M5-1.jpg](./images/M5-1.jpg)
 
 ## Learning Objectives
 
@@ -28,12 +27,12 @@ This lesson introduces the SLAM problem, the main sensing families used in pract
 
 ## 5.1.1 Definition and Required Outputs
 
-A single sensor observation answers only a local question. A laser scan describes nearby geometry at the current time. A camera frame describes appearance in the current image. Wheel odometry describes estimated motion since the previous update. Navigation requires two stronger results:
+A single sensor observation answers only a local question. A laser scan describes nearby geometry at the current time. A camera frame describes the image in the current field of view. Wheel odometry describes estimated motion since the previous time. Robot navigation needs two more reliable pieces of information:
 
 1. the robot pose in an environment that may already have been partially observed;
 2. a spatial model of that environment that can be reused later.
 
-SLAM estimates both quantities jointly. If the map were already perfect, the problem would reduce to localization. If the robot pose were already perfect, the problem would reduce to mapping. Neither condition holds on a real robot, so pose and map must be estimated together.
+SLAM jointly estimates both. If the map were already perfect, the problem would reduce to localization. If the robot pose were already perfect, the problem would reduce to mapping. In real environments, both are usually imperfect, so pose and map must be estimated together and used to corroborate each other.
 
 | Output                           | Role                                                                      |
 | -------------------------------- | ------------------------------------------------------------------------- |
@@ -49,8 +48,7 @@ sensors                         SLAM / localization                 downstream u
 /scan, /odom, camera, IMU  ->   pose + map (+ TF)            ->    Nav2, planning, semantics
 ```
 
-> **Image placeholder:** `images/slam_task_pose_and_map.png`
-> **Fill with:** a scientific-paper style diagram with one robot, partial wall observations, an uncertain pose distribution, and a growing map. Annotate "estimate pose", "update map", and the combined output "consistent world model".
+![M5-2.png](./images/M5-2.png)
 
 ## 5.1.2 From State Estimation to Practical Mapping
 
@@ -69,9 +67,6 @@ Modern SLAM systems therefore concentrate on four requirements:
 - reliable association between new measurements and the current map;
 - loop closure that reduces drift after place revisits;
 - a map representation that can be stored and reused.
-
-> **Image placeholder:** `images/slam_short_origin_to_modern_graph.png`
-> **Fill with:** a scientific-paper style flowchart of the SLAM timeline: early joint-state filters -> practical indoor mapping -> modern pose-graph / multi-sensor SLAM.
 
 ## 5.1.3 Shared Estimation Loop
 
