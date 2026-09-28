@@ -1,0 +1,30 @@
+# YOLO TensorRT detection node parameters
+# M4.1: YOLO11n parallel perception pipeline
+
+yolo_trt_node:
+  ros__parameters:
+
+    # Model
+    # The launch file supplies paths relative to M4_CODE_ROOT.
+    model_path: ""
+    class_names_path: ""
+
+    # ROS Topics
+    image_topic: "/perception/cameras/front/image"
+    detections_topic: "/perception/detections"
+    debug_image_topic: "/perception/debug/detection_image"
+
+    # Model input
+    input_width: 640
+    input_height: 640
+    num_classes: 80
+
+    # Detection thresholds
+    confidence_threshold: 0.25
+    nms_threshold: 0.45
+
+    # Debug
+    publish_debug_image: true
+
+    # Validation
+    expected_trt_version: "10.3"

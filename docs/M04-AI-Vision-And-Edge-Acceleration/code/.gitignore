@@ -1,0 +1,12 @@
+# M4 module - local build and runtime state
+ros2_ws/build/
+ros2_ws/install/
+ros2_ws/log/
+# The workspace is assembled from the chapter sources by scripts/setup_workspace.sh.
+# Unlike the working course repo, this published copy does not commit the symlinks
+# as files - so ignore the directory the script populates.
+ros2_ws/src/
+output/
+__pycache__/
+*.py[cod]
+.pytest_cache/

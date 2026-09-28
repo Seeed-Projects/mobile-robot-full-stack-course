@@ -97,11 +97,6 @@ flowchart LR
 
 ---
 
-## 综合项目
-规划中...
-
----
-
 ## 核心硬件
 
 | 类别 | 推荐配置 |
@@ -114,6 +109,8 @@ flowchart LR
 | 供电 | 机器人移动供电系统 |
 
 无需一次购买全部硬件。前期模块可以仅使用 J501 和单路相机，导航和机械臂相关硬件可在后续逐步增加。
+
+![image](./assets/images/amr_structural_frame.jpg)
 
 ### DM-H65 底盘 Python SDK
 

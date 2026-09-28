@@ -1,0 +1,55 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>bev_pose</name>
+  <version>0.1.0</version>
+  <description>
+    bev_pose: 6D object pose estimation using NVlabs/FoundationPose.
+
+    Provides:
+      * foundationpose_node      — RGB + Depth + CameraInfo + object_mask → /perception/object_pose
+      * object_mask_node         — P0 single-object initialization helper (ROI + depth threshold)
+      * mesh_preprocessor        — offline OBJ → vertices / bbox / diameter .npz
+      * orbbec_gemini2.launch.py — Orbbec Gemini 2 RGB-D bringup (serial_number first)
+
+    Topic map (primary):
+      in : /perception/cameras/front/{image, depth, camera_info}
+      in : /perception/object_mask                 (mono8 0/255)
+      out: /perception/object_pose                (geometry_msgs/PoseStamped)
+      out: /perception/object_poses_3d            (vision_msgs/Detection3DArray) [optional]
+      out: /tf                                     (camera_frame → object_frame)
+      out: /perception/mesh_meta                   (precomputed mesh metadata for visualizer)
+
+    Requirements:
+      * NVIDIA Jetson AGX Orin (or any GPU that runs NVlabs/FoundationPose)
+      * PyTorch + nvdiffrast.torch (see FoundationPose README)
+      * trimesh (for offline preprocessing)
+      * orbbec_camera ROS2 driver (for the camera bringup)
+  </description>
+
+  <maintainer email="seeed@seeed.local">seeed</maintainer>
+  <license>Apache-2.0</license>
+
+  <depend>rclpy</depend>
+  <depend>sensor_msgs</depend>
+  <depend>geometry_msgs</depend>
+  <depend>vision_msgs</depend>
+  <depend>std_msgs</depend>
+  <depend>nav_msgs</depend>
+  <depend>cv_bridge</depend>
+  <depend>tf2_ros</depend>
+  <depend>tf2_geometry_msgs</depend>
+  <depend>message_filters</depend>
+
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>

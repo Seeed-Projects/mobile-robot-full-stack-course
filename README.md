@@ -86,7 +86,7 @@ The course is planned as **11 modules, about 43 class hours** in total. Starting
 | M1 | Platform Introduction and Development Environment | J501, JetPack, Docker, ROS 2 | ✅ Completed |
 | M2 | Vision System Foundations | CSI, GMSL2, RGB-D, calibration, BEV | ✅ Completed |
 | M3 | LiDAR and Sensor Fusion | LiDAR, IMU, GNSS, CAN-FD, PTP, EKF | ✅ Completed |
-| M4 | AI Vision and Edge Acceleration | YOLO, tracking, segmentation, 6D pose, Isaac ROS | 🚧 ing 09-25 |
+| M4 | AI Vision and Edge Acceleration | YOLO, tracking, segmentation, 6D pose, Isaac ROS | ✅ Completed |
 | M5 | 3D Reconstruction and SLAM | ORB-SLAM3, Fast-LIO, R3LIVE, 3DGS, semantic maps | ⏳ Planned 10-02 |
 | M6 | Localization, Navigation, and Path Planning | Nav2, planning, dynamic obstacle avoidance, multi-robot collaboration | ⏳ Planned  |
 | M7 | VLN Semantic Navigation | instruction parsing, topological maps, semantic landmarks | ⏳ Planned |
@@ -96,12 +96,6 @@ The course is planned as **11 modules, about 43 class hours** in total. Starting
 | M11 | Deployment Optimization and Engineering | ONNX, TensorRT, DeepStream, monitoring, OTA | ⏳ Planned |
 
 > The progress status will be updated to `✅ Completed` after each module is released, together with the corresponding documentation, code, configurations, test results, and demo videos.
-
----
-
-## Integrated Projects
-
-Planned...
 
 ---
 
@@ -119,6 +113,8 @@ Planned...
 | Power | Mobile robot power supply system |
 
 You do not need to purchase all hardware at once. Early modules can be completed with only the J501 and a single camera. Navigation- and robotic-arm-related hardware can be added gradually later.
+
+![image](./assets/images/amr_structural_frame.jpg)
 
 ### DM-H65 Chassis Python SDK
 
