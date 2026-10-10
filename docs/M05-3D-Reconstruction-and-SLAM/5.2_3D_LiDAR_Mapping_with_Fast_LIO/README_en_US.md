@@ -276,7 +276,7 @@ Confirm these parameters:
 ```yaml
 extrinsic_est_en: false
 
-map_file_path: "/home/YOUR_USERNAME/maps/fast_lio/mid360_current.pcd"
+map_file_path: "/home/username/maps/fast_lio/mid360_current.pcd"
 
 pcd_save:
     pcd_save_en: true
@@ -302,9 +302,6 @@ common:
 ```
 
 If `livox_ros_driver2` has not changed the default topic names, these usually do not need adjustment.
-
-> **Image placeholder:** `images/mid360_extrinsic_check.png`  
-> **Suggested content:** show the key `mid360.yaml` fields for extrinsics, `map_file_path`, and `pcd_save_en`.
 
 ## 5.2.7 Launch Fast-LIO2 Mapping
 
@@ -360,12 +357,9 @@ ros2 topic hz /livox/imu
 ros2 topic hz /Odometry
 ```
 
-> **Image placeholder:** `images/j501_fastlio_rviz.jpg`  
-> **Suggested content:** show the RViz view while Fast-LIO2 is running normally, including the live cloud, the growing map, and the trajectory.
+![simplescreenrecorder-2026-10-09_16.17.21 (1).gif](./images/simplescreenrecorder-2026-10-09_16.17.21%20%281%29.gif)
 
 ## 5.2.8 Save Trajectory and Map
-
-### 1. Save the PCD map
 
 If `pcd_save_en` is already enabled in `mid360.yaml`, call the map-saving service after mapping:
 
@@ -376,129 +370,325 @@ ros2 service call /map_save std_srvs/srv/Trigger {}
 ls -lh ~/maps/fast_lio/
 ```
 
-### 2. Record a ROS 2 bag in parallel
+## 5.2.9 Optimize IMU Parameters to Improve Mapping Accuracy
 
-To keep the original experiment data, record a ROS 2 bag while mapping:
+Fast-LIO2 uses the IMU as an important input for high-rate state prediction. IMU noise parameters affect the estimation of motion states and bias, which can lead to drift and inaccurate localization. Therefore, before dynamic mapping experiments, you can first perform a static noise calibration of the MID-360 built-in IMU.
+
+This section uses an Allan Variance tool under ROS 2 Humble to analyze IMU data. The tool reads long-duration static IMU data from a ROS 2 bag, computes Allan Deviation, and obtains parameters such as noise density and random walk for the gyroscope and accelerometer. The ROS 2 version can process `rosbag2` data directly and does not need conversion into a ROS 1 bag.
+
+### 1. Get the Allan Variance tool
+
+Enter the workspace and clone the ROS 2 version:
+
+```bash
+cd ~/ros2_ws/src
+git clone https://github.com/cwha0212/allan_variance_ros2.git
+```
+
+Install the related dependencies:
+
+```bash
+cd ~/ros2_ws
+source /opt/ros/humble/setup.bash
+rosdep install --from-paths src --ignore-src -r -y
+```
+
+Build the tool:
+
+```bash
+colcon build --packages-select allan_variance_ros
+source install/setup.bash
+```
+
+### 2. Check MID-360 IMU data
+
+Launch the Livox driver:
+
+```bash
+cd ~/ros2_ws
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch livox_ros_driver2 msg_MID360_launch.py
+```
+
+Confirm that IMU data is publishing normally:
+
+```bash
+ros2 topic hz /livox/imu
+```
+
+Inspect a single message:
+
+```bash
+ros2 topic echo /livox/imu --once
+```
+
+Under normal conditions, a `sensor_msgs/msg/Imu` message should contain:
+
+- `angular_velocity`: 3-axis angular velocity;
+
+- `linear_acceleration`: 3-axis linear acceleration;
+
+- `header.stamp`: message timestamp.
+
+### 3. Collect static IMU data
+
+Place the J501 and MID-360 on a stable platform and keep the whole device completely still. During recording, avoid touching the device or introducing other obvious mechanical vibration.
+
+Record the IMU data:
+
+```bash
+mkdir -p ~/imu_calib
+
+ros2 bag record \
+    -o ~/imu_calib/mid360_imu_static \
+    /livox/imu
+```
+
+For Allan Variance analysis, long-duration static recording is recommended. Short recordings can only support a quick look at noise characteristics and cannot estimate low-frequency random walk and bias stability well. In practice, follow the tool requirements and collect several hours of data. Recording about 2 hours is recommended; longer recordings usually produce more stable estimates of low-frequency parameters.
+
+After recording finishes, stop with `Ctrl+C`.
+
+Inspect the bag:
+
+```bash
+ros2 bag info ~/imu_calib/mid360_imu_static
+```
+
+Confirm that it contains:
+
+```text
+/livox/imu
+```
+
+### 4. Run Allan Variance analysis
+
+If the recorded data has out-of-order timestamps, first clean the data:
+
+```bash
+ros2 run allan_variance_ros cookbag.py \
+    --input ~/imu_calib/mid360_imu_static \
+    --output ~/imu_calib/mid360_imu_cooked
+```
+
+Then run the Allan Variance computation:
+
+```bash
+ros2 run allan_variance_ros allan_variance \
+    ~/imu_calib/mid360_imu_cooked \
+    ~/ros2_ws/src/allan_variance_ros/config/realsense_d425i.yaml
+```
+
+In real use, choose a config file from the tool repository that matches the MID-360 IMU data rate. The tool outputs Allan Deviation data and generates the corresponding CSV file.
+
+Then run the analysis script:
+
+```bash
+ros2 run allan_variance_ros analysis.py \
+    --data allan_variance.csv
+```
+
+The analysis results mainly include:
+
+| Parameter | Meaning |
+| --- | --- |
+| Angle Random Walk (ARW) | gyroscope angle random walk |
+| Gyroscope Bias Instability | gyroscope bias instability |
+| Gyroscope Random Walk | gyroscope random walk |
+| Velocity Random Walk (VRW) | accelerometer velocity random walk |
+| Accelerometer Bias Instability | accelerometer bias instability |
+| Accelerometer Random Walk | accelerometer random walk |
+
+Different regions of the Allan Deviation curve correspond to different IMU noise types. Use the MID-360 calibration result as the actual parameters, and do not directly reuse default parameters from another IMU.
+
+### 5. Apply the results to Fast-LIO2
+
+After calibration, check the IMU noise-related parameters in Fast-LIO2 according to the output, and adjust them following the parameter definitions of the current FAST_LIO_ROS2 version.
+
+Edit:
+
+```bash
+nano ~/ros2_ws/src/FAST_LIO_ROS2/config/mid360.yaml
+```
+
+Then relaunch Fast-LIO2:
 
 ```bash
 source ~/ros2_ws/install/setup.bash
-mkdir -p ~/maps/fast_lio
-ros2 bag record -o ~/maps/fast_lio/mid360_loop_bag \
-  /Odometry \
-  /path \
-  /cloud_registered \
-  /tf \
-  /tf_static
+
+ros2 launch fast_lio mapping.launch.py \
+    config_file:=mid360.yaml \
+    rviz:=true
 ```
 
-If the topic names on the current system differ from the example above, first confirm the real names with `ros2 topic list` and then replace them.
+First run a static test. Keep the MID-360 completely still and observe `/Odometry` together with the trajectory change in RViz.
 
-### 3. Export the trajectory
-
-If you need further analysis of the mapping result, export a TUM-format trajectory from `/path` or from the ROS 2 bag:
-
-```text
-timestamp tx ty tz qx qy qz qw
+```bash
+ros2 topic hz /Odometry
 ```
 
-This format can later be used for trajectory visualization, error analysis, and comparisons across algorithms.
+If clear continuous drift still appears while the device is stationary, further check the IMU timestamps, noise parameters, LiDAR-IMU extrinsic, and whether the point cloud and IMU data are healthy.
 
-> **Image placeholder:** `images/pcd_map_and_projected_2d.png`  
-> **Suggested content:** show the saved PCD 3D map and compare it with the 2D occupancy grid from Lesson 5.1.
+## 5.2.10 Dynamic Moving LiDAR Mapping Verification
 
-## 5.2.9 Mapping Quality Checks and Common Issues
+After IMU parameter calibration, move into a real motion environment and verify Fast-LIO2 with dynamic mapping. This section completes an indoor loop mapping run by moving the J501 + MID-360 combination, with a focus on localization stability and map consistency during translation, turning, and revisiting the same area.
 
-A mapping result should not be judged only by how it looks in RViz. At least also check runtime stability, geometric consistency of the map, drift in revisited regions, and whether processing keeps up in realtime.
+### 1. Launch the Livox driver
 
-### Minimum checks
+Open the first terminal:
 
-1. **Still stability:** after the device stays still for 5–10 seconds, the trajectory should remain basically stable.
+```bash
+cd ~/ros2_ws
+source /opt/ros/humble/setup.bash
+source install/setup.bash
 
-2. **Geometric consistency:** in regular environments such as corridors, walls should stay reasonably straight.
+ros2 launch livox_ros_driver2 msg_MID360_launch.py
+```
 
-3. **Revisit error:** when returning to a previously visited area, the same structure should overlap well.
-
-4. **Realtime performance:** during mapping, processing should keep up with the sensor stream and should not keep accumulating a clear backlog.
-
-### Useful check commands
+Confirm that LiDAR and IMU data are normal:
 
 ```bash
 ros2 topic hz /livox/lidar
 ros2 topic hz /livox/imu
-ros2 topic hz /Odometry
-ros2 run tf2_ros tf2_echo camera_init body
-top
 ```
 
-If the world-frame name in the actual system is not `camera_init`, replace it with the real name from the current TF tree.
+### 2. Launch Fast-LIO2
 
-### Common issues
-
-| Symptom | Likely cause | Fix |
-| --- | --- | --- |
-| the cloud shows clear smear or a “jelly” effect | timestamp, deskewing, or IMU data issue | check point-cloud timing and IMU publish rate, and confirm mapping uses `msg_MID360_launch.py` |
-| the map tilts clearly after the first motion | wrong extrinsic or axis-direction setup | check the extrinsic and LiDAR frame definition in `mid360.yaml` |
-| odometry jumps clearly near doorways | motion that is too fast or insufficient geometric structure | slow down and choose regions with more structure for testing |
-| Livox driver build fails | missing `package.xml` or wrong build method | run `cp package_ROS2.xml package.xml` and build with `./build.sh humble` |
-| Fast-LIO2 build is missing files | submodules were not fetched correctly | run `git submodule update --init --recursive` |
-| Fast-LIO2 build fails | `colcon build` was run from the wrong directory | return to the `~/ros2_ws` root and rebuild |
-| the LiDAR can be pinged, but there is no cloud or IMU | inconsistent network configuration | check the host IP, `MID360_config.json`, and the LiDAR IP |
-| residual processes remain after nodes exit | ROS 2 nodes did not shut down cleanly | inspect and terminate leftover processes |
-| a rebuild still uses old build products | old artifacts remain in `build` / `install` | delete the corresponding package build directories and rebuild |
-
-For further debugging, you can use:
+Open the second terminal:
 
 ```bash
-# refresh the dynamic library cache
-sudo ldconfig
+cd ~/ros2_ws
+source /opt/ros/humble/setup.bash
+source install/setup.bash
 
-# temporarily disable the firewall for network troubleshooting
-sudo ufw disable
-
-# clean old livox_ros_driver2 build products
-rm -rf ~/ros2_ws/build/livox_ros_driver2
-rm -rf ~/ros2_ws/install/livox_ros_driver2
+ros2 launch fast_lio mapping.launch.py \
+    config_file:=mid360.yaml \
+    rviz:=true
 ```
 
-> **Note:** `sudo ufw disable` is recommended only for troubleshooting. After testing, restore the firewall configuration according to the real system security requirements.
+After launch, first keep the device still for about 5–10 seconds so the system can finish initial state estimation.
 
-## 5.2.10 Experiments and Acceptance
+### 3. Start dynamic mapping
 
-After the deployment above, complete the following experiments on a real MID-360 platform:
+Choose an indoor environment with clear geometric structure for testing, for example:
 
-1. **SDK and driver:** finish building Livox-SDK2 and `livox_ros_driver2`.
+- walls;
 
-2. **Point-cloud verification:** use `rviz_MID360_launch.py` and confirm that the MID-360 cloud publishes stably.
+- door frames;
 
-3. **Mapping launch:** start Fast-LIO2 with `msg_MID360_launch.py` and `mapping.launch.py`.
+- pillars;
 
-4. **Loop mapping:** drive a slow indoor loop and produce a continuous 3D map.
+- corridors;
 
-5. **Result comparison:** compare the 3D mapping result of the same environment with the 2D occupancy grid from Lesson 5.1.
+- fixed structures such as desks and chairs.
+
+When moving the device, follow this order:
+
+1. first perform slow straight-line motion and observe whether the point cloud stays stable;
+
+2. keep a relatively gentle angular velocity when passing corners;
+
+3. complete a continuous motion along a corridor or through a room;
+
+4. return to a previously visited area and observe whether the same structure overlaps well;
+
+5. after finishing one loop, return to the start and check overall map consistency.
+
+During the test, try to avoid fast rotation, sudden acceleration, and strong vibration. For the first experiment, prioritize smooth motion first, then gradually increase speed and turning amplitude.
+
+![simplescreenrecorder-2026-10-09_16.17.21 (2).gif](./images/simplescreenrecorder-2026-10-09_16.17.21%20%282%29.gif)
+
+### 4. Observe the mapping result
+
+In RViz, focus on the following:
+
+**Live point cloud**
+
+Observe whether static structures such as walls and door frames remain clear. If clear stretching, ghosting, or overall misalignment appears during motion, first check IMU data, timestamps, and the extrinsic configuration.
+
+**Odometry trajectory**
+
+Observe whether the motion trajectory corresponding to `/Odometry` stays continuous. Under normal conditions, the trajectory should change smoothly with device motion and should not jump frequently.
+
+**Map consistency**
+
+When the device revisits an already mapped area, observe whether the same structure overlaps well with the existing map. This process can be used as an intuitive check of accumulated drift.
+
+### 5. Save the experiment data
+
+After one complete loop, save the 3D map:
+
+```bash
+ros2 service call /map_save std_srvs/srv/Trigger {}
+```
+
+Check the map file:
+
+```bash
+ls -lh ~/maps/fast_lio/
+```
+
+It is also recommended to save a ROS 2 bag for later repeated analysis:
+
+```bash
+mkdir -p ~/maps/fast_lio
+
+ros2 bag record \
+    -o ~/maps/fast_lio/mid360_dynamic_test \
+    /livox/lidar \
+    /livox/imu \
+    /Odometry \
+    /path \
+    /cloud_registered \
+    /tf \
+    /tf_static
+```
+
+If the topic names on the actual system differ, adjust them according to:
+
+```bash
+ros2 topic list
+```
+
+### 6. Check the mapping result
+
+After the experiment, check the result from these aspects:
+
+| Check item |  | Observation |
+| --- | --- | --- |
+| Point-cloud quality |  | whether walls and main structures stay clear, and whether clear smear appears during motion |
+| Trajectory continuity |  | whether the motion trajectory is continuous without obvious jumps |
+| Map consistency |  | whether revisited point clouds overlap well |
+| Accumulated drift |  | whether an obvious position offset appears near the start after completing the loop |
+| Realtime performance |  | whether clear delay or data backlog appears during mapping |
+
+If clear drift appears during mapping, recheck the parameters with the IMU calibration result from the previous section, and further confirm the LiDAR-IMU extrinsic and sensor timestamps.
+
+![录屏 2026-10-10 09-40-30.gif](./images/录屏%202026-10-10%2009-40-30.gif)
 
 ### Experiment results
 
-Keep at least the following experiment results:
+After dynamic mapping, keep at least the following results:
 
-- an experiment note that includes the Git commit hash and config-file version;
+- RViz screenshots from the Fast-LIO2 run;
 
-- an RViz mapping screenshot after the indoor loop;
-
-- a ROS 2 bag or trajectory file that includes odometry and path information;
+- a ROS 2 bag of the full motion process;
 
 - the saved PCD 3D map;
 
-- a short debug note for a real runtime issue.
+- `/Odometry` or `/path` trajectory data;
 
-### Acceptance criteria
+- the IMU calibration result and the final `mid360.yaml` used.
 
-| Check | Pass criterion |
-| --- | --- |
-| Sensor status | MID-360 LiDAR and IMU both publish data normally |
-| Mapping stability | Fast-LIO2 keeps outputting stable odometry during a slow loop |
-| Map result | a 3D map or corresponding point-cloud data can be generated and reopened |
-| Geometric consistency | walls and main environment structure are clear, without obvious smear or distortion |
-| System reproducibility | frames, topic names, config files, and map-save paths are clearly recorded |
+These data can later serve as the basis for map-quality analysis, parameter tuning, and comparisons across algorithms.
+
+### Experiment goals of this section
+
+After finishing this section, you should be able to complete the following workflow independently:
+
+**Static IMU data collection → Allan Variance parameter analysis → Fast-LIO2 parameter configuration → dynamic loop mapping → map and trajectory saving.**
+
+At this point, the basic 3D LiDAR mapping workflow for J501 + MID-360 + Fast-LIO2 is complete. Later sections can build on this and further introduce loop-closure optimization, multi-sensor fusion, and 3D map reconstruction.
 
 ## 5.2.11 Lesson Summary
 
