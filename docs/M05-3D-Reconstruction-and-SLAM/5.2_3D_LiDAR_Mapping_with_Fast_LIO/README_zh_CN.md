@@ -276,7 +276,7 @@ nano ~/ros2_ws/src/FAST_LIO_ROS2/config/mid360.yaml
 ```yaml
 extrinsic_est_en: false
 
-map_file_path: "/home/你的用户名/maps/fast_lio/mid360_current.pcd"
+map_file_path: "/home/username/maps/fast_lio/mid360_current.pcd"
 
 pcd_save:
     pcd_save_en: true
@@ -302,9 +302,6 @@ common:
 ```
 
 如果 `livox_ros_driver2` 未修改默认话题名称，此处通常无需调整。
-
-> **图片占位：** `images/mid360_extrinsic_check.png`  
-> **建议内容：** 展示 `mid360.yaml` 中外参、`map_file_path` 和 `pcd_save_en` 等关键参数。
 
 ## 5.2.7 启动 Fast-LIO2 建图
 
@@ -360,12 +357,9 @@ ros2 topic hz /livox/imu
 ros2 topic hz /Odometry
 ```
 
-> **图片占位：** `images/j501_fastlio_rviz.jpg`  
-> **建议内容：** 展示 Fast-LIO2 正常运行时的 RViz 界面，包括实时点云、增长中的地图和运动轨迹。
+![simplescreenrecorder-2026-10-09_16.17.21 (1).gif](./images/simplescreenrecorder-2026-10-09_16.17.21%20%281%29.gif)
 
 ## 5.2.8 保存轨迹与地图
-
-### 1. 保存 PCD 地图
 
 如果 `mid360.yaml` 中已经启用 `pcd_save_en`，建图结束后可以调用地图保存服务：
 
@@ -376,129 +370,327 @@ ros2 service call /map_save std_srvs/srv/Trigger {}
 ls -lh ~/maps/fast_lio/
 ```
 
-### 2. 同时录制 ROS 2 Bag
+## 5.2.9 优化imu参数，提高建图精度
 
-为了保留原始实验数据，建议在建图过程中同步记录 ROS 2 Bag：
+Fast-LIO2 将 IMU 作为高频状态预测的重要输入，IMU 噪声参数会影响系统对运动状态和偏置的估计，进而导致漂移、定位不精准等问题。因此，在进行动态建图实验之前，可以先对 MID-360 内置 IMU 进行静态噪声标定。
+
+本节采用 ROS 2 Humble 下的 Allan Variance 工具对 IMU 数据进行分析。该工具通过读取 ROS 2 Bag 中的长时间静态 IMU 数据，计算 Allan Deviation，并获得陀螺仪和加速度计的噪声密度、随机游走等参数。ROS 2 版本可以直接处理 `rosbag2` 数据，无需转换为 ROS 1 Bag。
+
+### 1. 获取 Allan Variance 工具
+
+进入工作空间并克隆 ROS 2 版本：
+
+```bash
+cd ~/ros2_ws/src
+git clone https://github.com/cwha0212/allan_variance_ros2.git
+```
+
+安装相关依赖：
+
+```bash
+cd ~/ros2_ws
+source /opt/ros/humble/setup.bash
+rosdep install --from-paths src --ignore-src -r -y
+```
+
+编译工具：
+
+```bash
+colcon build --packages-select allan_variance_ros
+source install/setup.bash
+```
+
+### 2. 检查 MID-360 IMU 数据
+
+启动 Livox 驱动：
+
+```bash
+cd ~/ros2_ws
+source /opt/ros/humble/setup.bash
+source install/setup.bash
+ros2 launch livox_ros_driver2 msg_MID360_launch.py
+```
+
+确认 IMU 数据正常发布：
+
+```bash
+ros2 topic hz /livox/imu
+```
+
+查看单条消息：
+
+```bash
+ros2 topic echo /livox/imu --once
+```
+
+正常情况下，可以看到 `sensor_msgs/msg/Imu` 消息中的：
+
+- `angular_velocity`：三轴角速度；
+
+- `linear_acceleration`：三轴线加速度；
+
+- `header.stamp`：消息时间戳。
+
+### 3. 静态采集 IMU 数据
+
+将 J501 和 MID-360 放置在稳定的平台上，并保持整个设备完全静止。采集过程中应避免触碰设备以及其他明显的机械振动。
+
+记录 IMU 数据：
+
+```bash
+mkdir -p ~/imu_calib
+
+ros2 bag record \
+    -o ~/imu_calib/mid360_imu_static \
+    /livox/imu
+```
+
+对于 Allan Variance 分析，建议进行长时间静态采集。较短的数据只能用于快速观察噪声特性，不能很好地估计低频随机游走和偏置稳定性；实际标定建议按照工具要求采集数小时的数据。建议记录约 2 小时，数据时间越长，低频参数的估计通常越稳定。
+
+完成采集后按 `Ctrl+C` 停止录制。
+
+查看 Bag：
+
+```bash
+ros2 bag info ~/imu_calib/mid360_imu_static
+```
+
+确认其中包含：
+
+```text
+/livox/imu
+```
+
+### 4. 进行 Allan Variance 分析
+
+如果录制的数据时间戳存在乱序问题，可以先进行数据整理：
+
+```bash
+ros2 run allan_variance_ros cookbag.py \
+    --input ~/imu_calib/mid360_imu_static \
+    --output ~/imu_calib/mid360_imu_cooked
+```
+
+然后运行 Allan Variance 计算：
+
+```bash
+ros2 run allan_variance_ros allan_variance \
+    ~/imu_calib/mid360_imu_cooked \
+    ~/ros2_ws/src/allan_variance_ros/config/realsense_d425i.yaml
+```
+
+实际使用时，应根据工具仓库中的配置文件选择与 MID-360 IMU 数据频率相匹配的配置。该工具会输出 Allan Deviation 数据，并生成对应的 CSV 文件。
+
+随后运行分析脚本：
+
+```bash
+ros2 run allan_variance_ros analysis.py \
+    --data allan_variance.csv
+```
+
+分析结果主要包括：
+
+| 参数                           | 含义                 |
+| ------------------------------ | -------------------- |
+| Angle Random Walk（ARW）       | 陀螺仪角度随机游走   |
+| Gyroscope Bias Instability     | 陀螺仪偏置稳定性     |
+| Gyroscope Random Walk          | 陀螺仪随机游走       |
+| Velocity Random Walk（VRW）    | 加速度计速度随机游走 |
+| Accelerometer Bias Instability | 加速度计偏置稳定性   |
+| Accelerometer Random Walk      | 加速度计随机游走     |
+
+其中，Allan Deviation 曲线的不同区域对应不同类型的 IMU 噪声。实际参数应以 MID-360 的标定结果为准，不建议直接使用其他 IMU 的默认参数。
+
+### 5. 将结果用于 Fast-LIO2
+
+完成标定后，根据输出结果检查 Fast-LIO2 中的 IMU 噪声相关参数，并按照当前 FAST_LIO_ROS2 版本的参数定义进行调整。
+
+修改：
+
+```bash
+nano ~/ros2_ws/src/FAST_LIO_ROS2/config/mid360.yaml
+```
+
+修改后重新启动 Fast-LIO2：
 
 ```bash
 source ~/ros2_ws/install/setup.bash
-mkdir -p ~/maps/fast_lio
-ros2 bag record -o ~/maps/fast_lio/mid360_loop_bag \
-  /Odometry \
-  /path \
-  /cloud_registered \
-  /tf \
-  /tf_static
+
+ros2 launch fast_lio mapping.launch.py \
+    config_file:=mid360.yaml \
+    rviz:=true
 ```
 
-如果当前系统的话题名称与上述示例不同，应先通过 `ros2 topic list` 确认实际名称，再进行替换。
+首先进行静态测试。保持 MID-360 完全静止，观察 `/Odometry` 和 RViz 中的轨迹变化。
 
-### 3. 导出轨迹
-
-如需进一步分析建图结果，可以从 `/path` 或 ROS 2 Bag 中导出 TUM 格式轨迹：
-
-```text
-timestamp tx ty tz qx qy qz qw
+```bash
+ros2 topic hz /Odometry
 ```
 
-该格式可以用于后续轨迹可视化、误差分析以及不同算法之间的结果对比。
+如果静止状态下仍出现明显的持续漂移，应进一步检查 IMU 时间戳、噪声参数、激光与 IMU 外参以及点云与 IMU 数据是否正常。
 
-> **图片占位：** `images/pcd_map_and_projected_2d.png`  
-> **建议内容：** 展示保存后的 PCD 三维地图，并与第 5.1 节中的二维占用栅格地图进行对照。
+## 5.2.10 动态移动雷达建图验证
 
-## 5.2.9 建图质量检查与常见问题
+完成 IMU 参数标定后，进入实际运动环境对 Fast-LIO2 进行动态建图验证。本节通过移动 J501 + MID-360 组合设备完成室内环路建图，重点观察系统在平移、转弯和重复经过同一区域时的定位稳定性以及地图一致性。
 
-建图结果不能仅通过 RViz 中的视觉效果进行判断。至少需要同时关注系统运行稳定性、地图几何一致性、重访区域的漂移情况以及实时处理能力。
+### 1. 启动 Livox 驱动
 
-### 最低检查项
+打开第一个终端：
 
-1. **静止稳定性：** 设备静止 5–10 秒后，轨迹应保持基本稳定。
+```bash
+cd ~/ros2_ws
+source /opt/ros/humble/setup.bash
+source install/setup.bash
 
-2. **几何一致性：** 在走廊等规则环境中，墙面应保持较好的平直性。
+ros2 launch livox_ros_driver2 msg_MID360_launch.py
+```
 
-3. **重访误差：** 返回已经经过的区域时，相同结构应能够较好地重合。
-
-4. **实时性：** 建图过程中处理速度应能够跟随传感器数据，不应持续产生明显的数据积压。
-
-### 常用检查命令
+确认激光和 IMU 数据正常：
 
 ```bash
 ros2 topic hz /livox/lidar
 ros2 topic hz /livox/imu
-ros2 topic hz /Odometry
-ros2 run tf2_ros tf2_echo camera_init body
-top
 ```
 
-如果实际系统中的世界坐标系名称不是 `camera_init`，应根据当前 TF 树中的实际名称进行替换。
+### 2. 启动 Fast-LIO2
 
-### 常见问题
-
-| 现象                               | 可能原因                            | 处理方法                                                                |
-| ---------------------------------- | ----------------------------------- | ----------------------------------------------------------------------- |
-| 点云出现明显拖影或“果冻”现象       | 时间戳、去畸变或 IMU 数据存在问题   | 检查点云时间信息和 IMU 发布频率，并确认建图使用 `msg_MID360_launch.py`  |
-| 初始运动后地图明显倾斜             | 外参或坐标轴方向配置错误            | 检查 `mid360.yaml` 中的外参与雷达坐标系定义                             |
-| 经过门口等区域时里程计出现明显跳变 | 运动速度过快或环境几何特征不足      | 降低运动速度，并选择具有更多结构特征的区域进行测试                      |
-| Livox 驱动编译失败                 | 缺少 `package.xml` 或编译方式不正确 | 执行 `cp package_ROS2.xml package.xml`，并使用 `./build.sh humble` 编译 |
-| Fast-LIO2 编译缺少文件             | submodule 未正确获取                | 执行 `git submodule update --init --recursive`                          |
-| Fast-LIO2 编译失败                 | `colcon build` 执行目录错误         | 返回 `~/ros2_ws` 根目录执行编译                                         |
-| 能够 ping 通雷达但没有点云或 IMU   | 网络配置不一致                      | 检查主机 IP、`MID360_config.json` 和雷达 IP                             |
-| 节点退出后仍有残留进程             | ROS 2 节点未正常关闭                | 检查并终止残留进程                                                      |
-| 重新编译后仍使用旧的编译结果       | `build` / `install` 中存在旧产物    | 删除对应软件包的编译目录后重新构建                                      |
-
-如需进一步排查，可以使用以下命令：
+打开第二个终端：
 
 ```bash
-# 刷新动态库缓存
-sudo ldconfig
+cd ~/ros2_ws
+source /opt/ros/humble/setup.bash
+source install/setup.bash
 
-# 临时关闭防火墙，用于排查网络通信问题
-sudo ufw disable
-
-# 清理 livox_ros_driver2 的旧编译产物
-rm -rf ~/ros2_ws/build/livox_ros_driver2
-rm -rf ~/ros2_ws/install/livox_ros_driver2
+ros2 launch fast_lio mapping.launch.py \
+    config_file:=mid360.yaml \
+    rviz:=true
 ```
 
-> **注意：** `sudo ufw disable` 仅建议用于故障定位。完成测试后，应根据实际系统安全要求恢复防火墙配置。
+启动后首先保持设备静止约 5–10 秒，使系统完成初始状态估计。
 
-## 5.2.10 实验与验收
+### 3. 开始动态建图
 
-完成上述部署后，应在实际 MID-360 平台上完成以下实验：
+选择具有明显几何结构的室内环境进行测试，例如：
 
-1. **SDK 与驱动：** 完成 Livox-SDK2 和 `livox_ros_driver2` 的编译。
+- 墙面；
 
-2. **点云验证：** 使用 `rviz_MID360_launch.py` 确认 MID-360 点云稳定发布。
+- 门框；
 
-3. **建图启动：** 使用 `msg_MID360_launch.py` 和 `mapping.launch.py` 启动 Fast-LIO2。
+- 立柱；
 
-4. **环路建图：** 在室内环境中进行低速环路运动，生成连续的三维地图。
+- 走廊；
 
-5. **结果对照：** 将同一环境的三维建图结果与第 5.1 节中的二维占用栅格地图进行对比。
+- 桌椅等固定结构。
+
+移动设备时建议遵循以下顺序：
+
+1. 先进行低速直线运动，观察点云是否稳定；
+
+2. 经过转角时保持较平缓的角速度；
+
+3. 沿走廊或房间完成一段连续运动；
+
+4. 返回已经经过的区域，观察相同结构是否能够较好地重合；
+
+5. 完成一圈后返回起始位置，检查整体地图的一致性。
+
+测试过程中尽量避免快速旋转、突然加速和剧烈振动。对于首次实验，应优先保证运动过程平稳，再逐步增加运动速度和转动幅度。
+
+![simplescreenrecorder-2026-10-09_16.17.21 (2).gif](./images/simplescreenrecorder-2026-10-09_16.17.21%20%282%29.gif)
+
+### 4. 观察建图结果
+
+在 RViz 中重点观察以下内容：
+
+**实时点云**
+
+观察墙面、门框等静态结构是否保持清晰。如果运动过程中出现明显拉伸、重影或整体错位，应优先检查 IMU 数据、时间戳和外参配置。
+
+**里程计轨迹**
+
+观察 `/Odometry` 对应的运动轨迹是否连续。正常情况下，轨迹应随设备运动平滑变化，不应出现频繁跳变。
+
+**地图一致性**
+
+当设备重新经过已经建图的区域时，观察相同结构是否能够与已有地图较好地重合。该过程可以用于直观判断系统的累计漂移。
+
+### 5. 保存实验数据
+
+完成一次完整环路后，保存三维地图：
+
+```bash
+ros2 service call /map_save std_srvs/srv/Trigger {}
+```
+
+检查地图文件：
+
+```bash
+ls -lh ~/maps/fast_lio/
+```
+
+同时建议保存 ROS 2 Bag，便于后续重复分析：
+
+```bash
+mkdir -p ~/maps/fast_lio
+
+ros2 bag record \
+    -o ~/maps/fast_lio/mid360_dynamic_test \
+    /livox/lidar \
+    /livox/imu \
+    /Odometry \
+    /path \
+    /cloud_registered \
+    /tf \
+    /tf_static
+```
+
+如果实际系统中的话题名称不同，应以：
+
+```bash
+ros2 topic list
+```
+
+的输出为准进行调整。
+
+### 6. 建图结果检查
+
+完成实验后，从以下几个方面检查结果：
+
+| 检查项     |     | 观察内容                                           |
+| ---------- | --- | -------------------------------------------------- |
+| 点云质量   |     | 墙面和主要结构是否清晰，运动过程中是否存在明显拖影 |
+| 轨迹连续性 |     | 运动轨迹是否连续，有无明显跳变                     |
+| 地图一致性 |     | 重访区域的点云是否能够较好重合                     |
+| 累计漂移   |     | 完成环路后起点附近是否出现明显位置偏差             |
+| 实时性     |     | 建图过程中是否存在明显延迟或数据积压               |
+
+如果建图过程中出现明显漂移，应结合上一节的 IMU 标定结果重新检查参数，并进一步确认激光与 IMU 的外参以及传感器时间戳。
+
+![录屏 2026-10-10 09-40-30.gif](./images/录屏%202026-10-10%2009-40-30.gif)
 
 ### 实验结果
 
-建议至少保留以下实验结果：
+完成动态建图后，至少保留以下结果：
 
-- 包含 Git commit hash 和配置文件版本的实验记录；
+- Fast-LIO2 运行过程中的 RViz 截图；
 
-- 完成室内环路后的 RViz 建图截图；
-
-- 包含里程计和轨迹信息的 ROS 2 Bag 或轨迹文件；
+- 完整运动过程的 ROS 2 Bag；
 
 - 保存后的 PCD 三维地图；
 
-- 一份针对实际运行问题的简要排查记录。
+- `/Odometry` 或 `/path` 轨迹数据；
 
-### 验收标准
+- IMU 标定结果及最终使用的 `mid360.yaml`。
 
-| 检查项       | 通过标准                                             |
-| ------------ | ---------------------------------------------------- |
-| 传感器状态   | MID-360 激光与 IMU 均能够正常发布数据                |
-| 建图稳定性   | 低速环路运动过程中，Fast-LIO2 能够持续输出稳定里程计 |
-| 地图结果     | 能够生成并重新读取三维地图或对应点云数据             |
-| 几何一致性   | 墙面和主要环境结构清晰，无明显拖影或畸变             |
-| 系统可复现性 | 坐标系、话题名称、配置文件和地图保存路径均有明确记录 |
+这些数据可以作为后续地图质量分析、参数调整以及不同算法对比的基础。
+
+### 本节实验目标
+
+完成本节后，应能够独立完成以下流程：
+
+**IMU 静态数据采集 → Allan Variance 参数分析 → Fast-LIO2 参数配置 → 动态环路建图 → 地图与轨迹保存。**
+
+至此，J501 + MID-360 + Fast-LIO2 的基础三维激光建图流程完成。后续章节可以在此基础上进一步介绍回环优化、多传感器融合以及三维地图重建等内容。
 
 ## 5.2.11 课程小结
 
@@ -530,4 +722,4 @@ rm -rf ~/ros2_ws/install/livox_ros_driver2
 
 - [Livox-SDK2](https://github.com/Livox-SDK/Livox-SDK2)
 
-- [livox_ros_driver2](https://github.com/Livox-SDK/livox_ros_driver2) 
+- [livox_ros_driver2](https://github.com/Livox-SDK/livox_ros_driver2)
