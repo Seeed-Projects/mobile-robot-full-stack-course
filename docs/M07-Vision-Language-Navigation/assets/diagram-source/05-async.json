@@ -1,0 +1,116 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "异步推理与有效路径跟踪",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "animation": "none",
+    "viewBox": [
+      1180,
+      650
+    ],
+    "column_fit": "spread"
+  },
+  "participants": [
+    {
+      "id": "camera",
+      "type": "external",
+      "label": "相机与历史"
+    },
+    {
+      "id": "model",
+      "type": "backend",
+      "label": "模型GPU"
+    },
+    {
+      "id": "install",
+      "type": "security",
+      "label": "结果与预检"
+    },
+    {
+      "id": "control",
+      "type": "backend",
+      "label": "跟踪与状态"
+    },
+    {
+      "id": "state",
+      "type": "external",
+      "label": "底盘状态"
+    }
+  ],
+  "messages": [
+    {
+      "id": "m0",
+      "from": "camera",
+      "to": "model",
+      "y": 180,
+      "label": "新帧＋指令",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m1",
+      "from": "control",
+      "to": "state",
+      "y": 228,
+      "label": "继续跟踪有效旧路",
+      "variant": "default"
+    },
+    {
+      "id": "m2",
+      "from": "control",
+      "to": "camera",
+      "y": 276,
+      "label": "运动后新位姿",
+      "variant": "default"
+    },
+    {
+      "id": "m3",
+      "from": "model",
+      "to": "install",
+      "y": 324,
+      "label": "返回采集时的预测",
+      "variant": "return"
+    },
+    {
+      "id": "m4",
+      "from": "install",
+      "to": "control",
+      "y": 372,
+      "label": "停车交接、检查结果",
+      "variant": "default"
+    },
+    {
+      "id": "m5",
+      "from": "control",
+      "to": "install",
+      "y": 420,
+      "label": "当前位姿、取消代次",
+      "variant": "security"
+    },
+    {
+      "id": "m6",
+      "from": "install",
+      "to": "control",
+      "y": 468,
+      "label": "安装通过检查的参考",
+      "variant": "emphasis"
+    },
+    {
+      "id": "m7",
+      "from": "state",
+      "to": "camera",
+      "y": 516,
+      "label": "运动产生新观察",
+      "variant": "default"
+    },
+    {
+      "id": "m8",
+      "from": "camera",
+      "to": "model",
+      "y": 564,
+      "label": "顺序补齐、再次预测",
+      "variant": "emphasis"
+    }
+  ]
+}

@@ -1,0 +1,208 @@
+{
+  "main": {
+    "id": "19bb8b01aa5f9f34",
+    "type": "split",
+    "children": [
+      {
+        "id": "cc150a74ce4e58c5",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "1c2e83ebe757efdf",
+            "type": "leaf",
+            "state": {
+              "type": "markdown",
+              "state": {
+                "file": "docs/M07-Vision-Language-Navigation/README.md",
+                "mode": "source",
+                "source": false
+              },
+              "icon": "lucide-file",
+              "title": "README"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "vertical"
+  },
+  "left": {
+    "id": "6ee141d86dca1925",
+    "type": "split",
+    "children": [
+      {
+        "id": "a4af12dfea8532ed",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "2d48f620a95668d1",
+            "type": "leaf",
+            "state": {
+              "type": "file-explorer",
+              "state": {
+                "sortOrder": "alphabetical",
+                "autoReveal": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-folder-closed",
+              "title": "文件列表"
+            }
+          },
+          {
+            "id": "3b61a7f61e38af78",
+            "type": "leaf",
+            "state": {
+              "type": "search",
+              "state": {
+                "query": "",
+                "matchingCase": false,
+                "explainSearch": false,
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical"
+              },
+              "icon": "lucide-search",
+              "title": "搜索"
+            }
+          },
+          {
+            "id": "0c0b579980fdecc2",
+            "type": "leaf",
+            "state": {
+              "type": "bookmarks",
+              "state": {
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-bookmark",
+              "title": "书签"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300
+  },
+  "right": {
+    "id": "d09ae33547e3cb56",
+    "type": "split",
+    "children": [
+      {
+        "id": "346de4e0c56afb90",
+        "type": "tabs",
+        "children": [
+          {
+            "id": "561ef18e7bd48ef3",
+            "type": "leaf",
+            "state": {
+              "type": "backlink",
+              "state": {
+                "file": "docs/M07-Vision-Language-Navigation/7.3_From_Navigation_Prediction_to_Closed_Loop_Control/README_zh_CN.md",
+                "collapseAll": false,
+                "extraContext": false,
+                "sortOrder": "alphabetical",
+                "showSearch": false,
+                "searchQuery": "",
+                "backlinkCollapsed": false,
+                "unlinkedCollapsed": true
+              },
+              "icon": "links-coming-in",
+              "title": "反向链接"
+            }
+          },
+          {
+            "id": "dca75153d03e183b",
+            "type": "leaf",
+            "state": {
+              "type": "tag",
+              "state": {
+                "sortOrder": "frequency",
+                "useHierarchy": true,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-tags",
+              "title": "标签"
+            }
+          },
+          {
+            "id": "57466fbf407c5d08",
+            "type": "leaf",
+            "state": {
+              "type": "outline",
+              "state": {
+                "followCursor": false,
+                "showSearch": false,
+                "searchQuery": ""
+              },
+              "icon": "lucide-list",
+              "title": "大纲"
+            }
+          }
+        ]
+      }
+    ],
+    "direction": "horizontal",
+    "width": 300,
+    "collapsed": true
+  },
+  "left-ribbon": {
+    "hiddenItems": {
+      "switcher:打开快速切换": false,
+      "command-palette:打开命令面板": false,
+      "bases:新建数据库": false
+    }
+  },
+  "active": "1c2e83ebe757efdf",
+  "lastOpenFiles": [
+    "docs/M07-Vision-Language-Navigation/README_zh_CN.md",
+    "README.md",
+    "README_CN.md",
+    "docs/M07-Vision-Language-Navigation/7.3_From_Navigation_Prediction_to_Closed_Loop_Control/README_zh_CN.md",
+    "docs/M07-Vision-Language-Navigation/7.2_Semantic_Grounding_and_Learned_VLN/README_en_US.md",
+    "docs/M07-Vision-Language-Navigation/7.2_Semantic_Grounding_and_Learned_VLN/ADVANCED_READING_zh_CN.md",
+    "docs/M07-Vision-Language-Navigation/7.3_From_Navigation_Prediction_to_Closed_Loop_Control/README_en_US.md",
+    "docs/M07-Vision-Language-Navigation/7.3_From_Navigation_Prediction_to_Closed_Loop_Control/LAB_GUIDE_zh_CN.md",
+    "docs/M07-Vision-Language-Navigation/7.1_VLN_Fundamentals/README_en_US.md",
+    "docs/M07-Vision-Language-Navigation/code/overlay/src/lightnav/serving/ws_server.py",
+    "docs/M07-Vision-Language-Navigation/code/overlay/src/lightnav/serving/tracking_service.py",
+    "docs/M07-Vision-Language-Navigation/code/overlay/src/lightnav/serving/strict_decode.py",
+    "docs/M07-Vision-Language-Navigation/code/overlay/src/lightnav/inference/model.py",
+    "docs/M07-Vision-Language-Navigation/code/overlay/mujoco_demo/vln_mujoco/sim_demo_web/style.css",
+    "docs/M07-Vision-Language-Navigation/code/overlay/mujoco_demo/vln_mujoco/sim_demo_web/index.html",
+    "docs/M07-Vision-Language-Navigation/code/overlay/mujoco_demo/vln_mujoco/sim_demo_web/app.js",
+    "docs/M07-Vision-Language-Navigation/code/overlay/mujoco_demo/vln_mujoco/robots/turtlebot.py",
+    "docs/M07-Vision-Language-Navigation/code/overlay/mujoco_demo/vln_mujoco/robots/dm_h65.py",
+    "docs/M07-Vision-Language-Navigation/code/overlay/src/lightnav/tracking.py",
+    "docs/M07-Vision-Language-Navigation/code/teaching/slowfast/README.md",
+    "docs/M07-Vision-Language-Navigation/code/teaching/lightnav/README.md",
+    "docs/M07-Vision-Language-Navigation/code/examples/custom-chassis/README_zh_CN.md",
+    "docs/M07-Vision-Language-Navigation/code/examples/custom-chassis/README.md",
+    "docs/M07-Vision-Language-Navigation/code/evidence/prediction-04/input.jpg",
+    "docs/M07-Vision-Language-Navigation/code/evidence/prediction-05/input.jpg",
+    "docs/M07-Vision-Language-Navigation/code/evidence/prediction-01/input.jpg",
+    "docs/M07-Vision-Language-Navigation/code/evidence/prediction-03/input.jpg",
+    "docs/M07-Vision-Language-Navigation/code/evidence/prediction-02/input.jpg",
+    "docs/M07-Vision-Language-Navigation/code/licenses/LightNav-THIRD_PARTY_NOTICES.md",
+    "docs/M07-Vision-Language-Navigation/code/evidence/navigation-audit-summary.md",
+    "docs/M07-Vision-Language-Navigation/code/evidence/README_zh_CN.md",
+    "docs/M07-Vision-Language-Navigation/code/evidence/README.md",
+    "docs/M07-Vision-Language-Navigation/code/docs/README.md",
+    "docs/M07-Vision-Language-Navigation/code/docs/M7_INTEGRATION_20261019.md",
+    "docs/M07-Vision-Language-Navigation/code/docs/M7_DEVICE_RUNBOOK.md",
+    "docs/M07-Vision-Language-Navigation/code/THIRD_PARTY_zh_CN.md",
+    "docs/M07-Vision-Language-Navigation/code/THIRD_PARTY.md",
+    "docs/M07-Vision-Language-Navigation/code/README_zh_CN.md",
+    "docs/M07-Vision-Language-Navigation/code/README.md",
+    "docs/M07-Vision-Language-Navigation/7.3_From_Navigation_Prediction_to_Closed_Loop_Control/LAB_GUIDE.md",
+    "docs/syllabus.md",
+    "docs/M07-Vision-Language-Navigation/7.1_VLN_Fundamentals/assets/images/7.1-4.png",
+    "docs/M07-Vision-Language-Navigation/7.1_VLN_Fundamentals/assets/images/7.1-3.png",
+    "docs/M07-Vision-Language-Navigation/7.1_VLN_Fundamentals/assets/images/7.1-2.png",
+    "docs/M07-Vision-Language-Navigation/7.1_VLN_Fundamentals/assets/images/7.1-1.png",
+    "docs/M07-Vision-Language-Navigation/7.1_VLN_Fundamentals/assets/images/03-observe-remember-act.jpg",
+    "未命名.canvas"
+  ]
+}

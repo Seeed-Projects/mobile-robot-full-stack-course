@@ -330,7 +330,7 @@ ros2 run camera_calibration cameracalibrator \
 ```
 
 > Parameters and saving:
-> 
+>
 > - `--size 8x6` is the number of inner corners: 9×7 squares correspond to 8×6 inner corners.
 > - `--square 0.020` is the edge length of a single square in meters; it must match your measured value.
 > - `--no-service-check` lets drivers without a `SetCameraInfo` service start the calibration tool. After solving, click **SAVE** to save the result; use **COMMIT** only when the driver actually provides that service.
@@ -358,7 +358,7 @@ After capturing enough data, click **CALIBRATE** to solve the parameters. Once c
 
 **Convert results to YAML:** extract `/tmp/calibrationdata.tar.gz`; monocular output contains `ost.yaml` (i.e., the standard camera_info YAML format), and stereo output contains `left.yaml` / `right.yaml`. Rename and copy them as needed to the `camera_info_url` path from Step 2 (e.g., `/home/seeed/.ros/camera_info/gmsl_cam0.yaml`), then restart the camera node so the driver loads the new calibration.
 
-![rectification.png](/Users/chenzibo/data/project/Jetson/docs/mobile-robot-full-stack-course/docs/M02-Fundamentals-of-Vision-Systems/2.3_Camera_Calibration/images/rectification.png)
+![rectification.png](./images/rectification.png)
 
 ### Stereo Calibration
 

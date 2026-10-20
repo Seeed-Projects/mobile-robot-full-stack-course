@@ -1,0 +1,19 @@
+{
+  "outcome": {
+    "reason": "PATH_COLLISION_RISK",
+    "strict_success": false,
+    "predictions": 5,
+    "elapsed_s": 11.925021944989567,
+    "initial_distance_m": 1.5243485690615515,
+    "final_distance_m": 0.09663162704576207,
+    "motion_duty_cycle": 0.8175335570469798
+  },
+  "actual_path_m": 1.4285164577303835,
+  "task_rtf": 1.000007184194668,
+  "latency_s": {
+    "mean": 1.9910267171973828,
+    "p50": 1.9572840679902583,
+    "p95": 2.7455459067976333,
+    "max": 2.850789354997687
+  }
+}

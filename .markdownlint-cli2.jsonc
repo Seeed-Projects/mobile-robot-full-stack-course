@@ -1,0 +1,68 @@
+// markdownlint-cli2 配置：本仓库的文档格式规则
+// 用法：本地 `npx markdownlint-cli2`；CI 见 .github/workflows/docs-check.yml
+{
+  // ── 检查范围 ──
+  // 只检查课程与硬件文档。**/code/** 是随仓库携带的代码工程与第三方快照
+  // （bevdet_vendor、autoware_msgs 等），不按本仓库的文档规范要求。
+  "globs": [
+    "docs/**/*.md",
+    "hardware/**/*.md",
+    "*.md",
+    ".github/**/*.md"
+  ],
+  "ignores": [
+    "**/code/**",
+    "**/node_modules/**"
+  ],
+  "config": {
+    "default": true,
+
+    // ── 与本仓库既有写法冲突，关闭 ──
+    // MD013 行长：中文长句与宽表格无法压到 80 列
+    "MD013": false,
+    // MD033 内联 HTML：README 与课程页需要 <div align="center">、<br/>
+    "MD033": false,
+    // MD036 强调当标题：M07 用 *图 x.y：…* 作图片说明
+    "MD036": false,
+    // MD024 重复标题：多语言页与 FAQ 允许同名小节
+    "MD024": false,
+    // MD025 单 H1：M01 1.1 用两个 H1（模块名 + 课名）
+    "MD025": false,
+    // MD029 有序列表前缀：跨段落续号（… 4. 5. 6.）
+    "MD029": false,
+    // MD041 首行 H1：README 首行是居中 <div>
+    "MD041": false,
+    // MD034 裸 URL：正文里直接写 url
+    "MD034": false,
+    // MD028 引用块内空行：用于分段说明
+    "MD028": false,
+    // MD046 / MD048 代码块风格：缩进式与围栏式、``` 与 ~~~ 混用
+    "MD046": false,
+    "MD048": false,
+    // MD055 / MD060 表格竖线与列对齐风格：新规则，噪音大
+    "MD055": false,
+    "MD060": false,
+
+    // ── 待整理项（修完把对应规则改成 true，即可纳入检查）──
+    // MD040 围栏缺语言：现存 107 处，集中在 M01 的 6 个文件；
+    //   其中一部分是把正文或图片包进了代码块，需要逐个判断“补语言”还是“去掉围栏”
+    "MD040": false,
+    // MD001 标题层级跳跃：现存 6 处（README、README_CN、M01 1.4、M02 2.2）
+    "MD001": false,
+
+    // ── 保持开启的关键规则 ──
+    // 列表符号统一 -，缩进 2 空格，强调用 *，行尾最多 2 空格，连续空行最多 2 行
+    "MD004": { "style": "dash" },
+    "MD007": { "indent": 2 },
+    "MD049": { "style": "asterisk" },
+    "MD050": { "style": "asterisk" },
+    "MD009": { "br_spaces": 2 },
+    "MD012": { "maximum": 2 },
+    // 标题/列表/围栏前后的空行、文末换行、文内锚点有效性
+    "MD022": true,
+    "MD031": true,
+    "MD032": true,
+    "MD047": true,
+    "MD051": true
+  }
+}

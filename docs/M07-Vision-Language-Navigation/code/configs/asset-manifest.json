@@ -1,0 +1,322 @@
+{
+  "source_export_sha256": "6d46b67bb4eac737d858a6d316c46f0adac03ab64fe9372e572dcc96a829c73e",
+  "visual_lod_cell_m": 0.0005,
+  "visual_split_max_triangles": 100000,
+  "files": [
+    {
+      "file": "cad_00_0.stl",
+      "sha256": "905832968b5c8c7fb2f5f7d83247a9185ebd8b348e2236341223ed9de75b885d",
+      "bytes": 888684,
+      "triangles": 17772,
+      "source_mesh": "cad_00.stl"
+    },
+    {
+      "file": "cad_01_0.stl",
+      "sha256": "de3e743684a61e6834bfcc43d77fa21678a191d2b29dd753cbc8bfa3421c1682",
+      "bytes": 888234,
+      "triangles": 17763,
+      "source_mesh": "cad_01.stl"
+    },
+    {
+      "file": "cad_02_0.stl",
+      "sha256": "acb63c93b84eff1cf38b9226ef0ee72f38acb3aa6f775aa9aaee1a32694e9e27",
+      "bytes": 5000084,
+      "triangles": 100000,
+      "source_mesh": "cad_02.stl"
+    },
+    {
+      "file": "cad_02_1.stl",
+      "sha256": "1df0fe43b7b9a29bab2adb805f81f0bf10e2da5ae045064ddc7472a6e8bf38d5",
+      "bytes": 5000084,
+      "triangles": 100000,
+      "source_mesh": "cad_02.stl"
+    },
+    {
+      "file": "cad_02_2.stl",
+      "sha256": "3a7bb0efc71d0c8c2901a6d1da29975293a0ba5b467b8066106ac0a21a4d8322",
+      "bytes": 2776884,
+      "triangles": 55536,
+      "source_mesh": "cad_02.stl"
+    },
+    {
+      "file": "cad_03_0.stl",
+      "sha256": "6651b804e46b3e483956c4cd57e9519db6dcfa344b41545edc8e86d52461876a",
+      "bytes": 801084,
+      "triangles": 16020,
+      "source_mesh": "cad_03.stl"
+    },
+    {
+      "file": "cad_04_0.stl",
+      "sha256": "fdf1eaa438f44104708debf8731a2d35ba20b04ef2bb1fda9f44f37e59a9118a",
+      "bytes": 801084,
+      "triangles": 16020,
+      "source_mesh": "cad_04.stl"
+    },
+    {
+      "file": "cad_05_0.stl",
+      "sha256": "d203290ac7b914340c65da42b097a82b3ffa8699945dcb08abcdc1e796d3c359",
+      "bytes": 804334,
+      "triangles": 16085,
+      "source_mesh": "cad_05.stl"
+    },
+    {
+      "file": "cad_06_0.stl",
+      "sha256": "9184c85579c9541e833f10f66192268e1501528bd51d7152c663b1f999c322a0",
+      "bytes": 802534,
+      "triangles": 16049,
+      "source_mesh": "cad_06.stl"
+    },
+    {
+      "file": "cad_07_0.stl",
+      "sha256": "a8dec800e20d57a031432bfa3b0699493c86825dbfd337c352b7f00b5edec4ed",
+      "bytes": 897184,
+      "triangles": 17942,
+      "source_mesh": "cad_07.stl"
+    },
+    {
+      "file": "cad_08_0.stl",
+      "sha256": "652d2f8041439ae486a451b24c3681f601037add1af83953c5a13bdf302bc017",
+      "bytes": 902334,
+      "triangles": 18045,
+      "source_mesh": "cad_08.stl"
+    },
+    {
+      "file": "cad_09_0.stl",
+      "sha256": "e6f23dbd6d1e0cad881b5ce986ef5e813e01a02a33b9c2be0d5694b5e529c437",
+      "bytes": 21884,
+      "triangles": 436,
+      "source_mesh": "cad_09.stl"
+    },
+    {
+      "file": "cad_10_0.stl",
+      "sha256": "c038d1a0a2f19980d09b7368ba0e0a89c43b3817c2e0c5e311e487a7e1692477",
+      "bytes": 21884,
+      "triangles": 436,
+      "source_mesh": "cad_10.stl"
+    },
+    {
+      "file": "cad_11_0.stl",
+      "sha256": "27ac5a18b351fc76f0f3a3d7707a84b7527044944672fc8a052376bfc305fcc3",
+      "bytes": 173634,
+      "triangles": 3471,
+      "source_mesh": "cad_11.stl"
+    },
+    {
+      "file": "cad_12_0.stl",
+      "sha256": "21537eff34b3f98cadbe1d0b0e0f9e19404668f5fa0229e24aab7832ab8ef515",
+      "bytes": 38084,
+      "triangles": 760,
+      "source_mesh": "cad_12.stl"
+    },
+    {
+      "file": "cad_13_0.stl",
+      "sha256": "d5b91610e40f81b3d71c982fc29d5f875640699a3458a182ad609ae147d2bb52",
+      "bytes": 38084,
+      "triangles": 760,
+      "source_mesh": "cad_13.stl"
+    },
+    {
+      "file": "cad_14_0.stl",
+      "sha256": "e15fe3778d28f8d5d81a684051a8aaab7507aa6925f422e4f72baa1d464a0237",
+      "bytes": 22084,
+      "triangles": 440,
+      "source_mesh": "cad_14.stl"
+    },
+    {
+      "file": "cad_15_0.stl",
+      "sha256": "7610acda1500b5e6eda241beeeccdf2e8076809aa0043c13968b4efcba55f4bf",
+      "bytes": 252284,
+      "triangles": 5044,
+      "source_mesh": "cad_15.stl"
+    },
+    {
+      "file": "cad_16_0.stl",
+      "sha256": "eef5e946c47efb1832ac144d2aa8e6922e63a3dca468b6b166e728eb5bc50f6b",
+      "bytes": 933484,
+      "triangles": 18668,
+      "source_mesh": "cad_16.stl"
+    },
+    {
+      "file": "cad_17_0.stl",
+      "sha256": "f192c3a1289777ae974a87def78b76ad855c56fe5883c67c793a74551f5d8e3d",
+      "bytes": 21884,
+      "triangles": 436,
+      "source_mesh": "cad_17.stl"
+    },
+    {
+      "file": "cad_18_0.stl",
+      "sha256": "de974dd2019c284713b3dcb8f3a27558d11e1bfda56e6bed7f8812855cda4a01",
+      "bytes": 21884,
+      "triangles": 436,
+      "source_mesh": "cad_18.stl"
+    },
+    {
+      "file": "cad_19_0.stl",
+      "sha256": "c10c1cf0995dff461130ac0d464bd8471b20d8e29f8bc7f2a66e5ca4097c7491",
+      "bytes": 21484,
+      "triangles": 428,
+      "source_mesh": "cad_19.stl"
+    },
+    {
+      "file": "cad_20_0.stl",
+      "sha256": "34b0e91f5acdd9f190f255298cb8e53262c6ca0fabf7e3f5e2ec6cf0a22cc28b",
+      "bytes": 21884,
+      "triangles": 436,
+      "source_mesh": "cad_20.stl"
+    },
+    {
+      "file": "cad_21_0.stl",
+      "sha256": "33404a4643d67e9f5fd749a56223fdc2dc8942b609bd32dc0cdb618c412aad5f",
+      "bytes": 87984,
+      "triangles": 1758,
+      "source_mesh": "cad_21.stl"
+    },
+    {
+      "file": "cad_22_0.stl",
+      "sha256": "592de91bf22a0bc4ea79de232296af7746553c11c1d0fdf992c42c23f433e47a",
+      "bytes": 21884,
+      "triangles": 436,
+      "source_mesh": "cad_22.stl"
+    },
+    {
+      "file": "cad_23_0.stl",
+      "sha256": "21b44295fa459773c0a7cdfa55c83e59ca166237b382ccfab5df8c411d483ddf",
+      "bytes": 21884,
+      "triangles": 436,
+      "source_mesh": "cad_23.stl"
+    },
+    {
+      "file": "cad_24_0.stl",
+      "sha256": "54717c49b57d4b329b13175aa8c7eee856825667ddf11416ef08046fe68697cd",
+      "bytes": 21484,
+      "triangles": 428,
+      "source_mesh": "cad_24.stl"
+    },
+    {
+      "file": "cad_25_0.stl",
+      "sha256": "5267582d8a6250f6e9710d157f5ed534fd7ef2ec9b9d310c621476c0b32414ed",
+      "bytes": 21884,
+      "triangles": 436,
+      "source_mesh": "cad_25.stl"
+    },
+    {
+      "file": "cad_26_0.stl",
+      "sha256": "c0f6f840f7663af1bdb3fbbe6eebdd3208dd7ad3388f3f57f6229a09cf88f187",
+      "bytes": 21884,
+      "triangles": 436,
+      "source_mesh": "cad_26.stl"
+    },
+    {
+      "file": "cad_27_0.stl",
+      "sha256": "0e73db430d30ebc38905b391e753847547bd8b08dc03d17ad36f73087eac618c",
+      "bytes": 932784,
+      "triangles": 18654,
+      "source_mesh": "cad_27.stl"
+    },
+    {
+      "file": "cad_28_0.stl",
+      "sha256": "19aa41645cf03e32f9081d1edd2d72988110219e9553e0ccbaa4e51e20602749",
+      "bytes": 22084,
+      "triangles": 440,
+      "source_mesh": "cad_28.stl"
+    },
+    {
+      "file": "cad_29_0.stl",
+      "sha256": "b11b3bdbc0782b2e56f95cf35dc8a6ea0e284a444c3b9fdbf1948a763e81d8d4",
+      "bytes": 38084,
+      "triangles": 760,
+      "source_mesh": "cad_29.stl"
+    },
+    {
+      "file": "cad_30_0.stl",
+      "sha256": "c98cc346c82ed333995cde843f165320aa80cc8ee02b78320797fd13c5e682c6",
+      "bytes": 173634,
+      "triangles": 3471,
+      "source_mesh": "cad_30.stl"
+    },
+    {
+      "file": "cad_31_0.stl",
+      "sha256": "194786752706aae1e1eadc807060d68cb7f155cf8f8a0ba0b735445c41a7d6fd",
+      "bytes": 252134,
+      "triangles": 5041,
+      "source_mesh": "cad_31.stl"
+    },
+    {
+      "file": "cad_32_0.stl",
+      "sha256": "95027636054225525ab5da14db3ccda27b523bb274b49ff4e8fa4f1550afac72",
+      "bytes": 21884,
+      "triangles": 436,
+      "source_mesh": "cad_32.stl"
+    },
+    {
+      "file": "cad_33_0.stl",
+      "sha256": "513cd32c52c547cfce4a1faa141412bf7412e41382ec67627c83cdf1b19198c5",
+      "bytes": 933034,
+      "triangles": 18659,
+      "source_mesh": "cad_33.stl"
+    },
+    {
+      "file": "cad_34_0.stl",
+      "sha256": "bad80453a47a6743d1f026f5146a4bd3312e40c5bf73e9c9f06c8c242a912a06",
+      "bytes": 22084,
+      "triangles": 440,
+      "source_mesh": "cad_34.stl"
+    },
+    {
+      "file": "cad_35_0.stl",
+      "sha256": "ffa954327c32834ead16348bc856b784064448672095855a359425ca0b80cf60",
+      "bytes": 38084,
+      "triangles": 760,
+      "source_mesh": "cad_35.stl"
+    },
+    {
+      "file": "cad_36_0.stl",
+      "sha256": "90fd0f2ad8811f43ed947cd37f1517d65397da631f8121aff93c800beac682b2",
+      "bytes": 21484,
+      "triangles": 428,
+      "source_mesh": "cad_36.stl"
+    },
+    {
+      "file": "cad_37_0.stl",
+      "sha256": "076bdf8e8df73609791607a7eb2a29c9c408a27099d934df334a14e8208fb394",
+      "bytes": 21884,
+      "triangles": 436,
+      "source_mesh": "cad_37.stl"
+    },
+    {
+      "file": "cad_38_0.stl",
+      "sha256": "8480287b60c8f9f3fb32507c4a4b3cd40a6c79008acaa6b8c0813005abdc92c5",
+      "bytes": 21884,
+      "triangles": 436,
+      "source_mesh": "cad_38.stl"
+    },
+    {
+      "file": "cad_39_0.stl",
+      "sha256": "fe820d690bf0e5c0c7791c02b221056e36fa943fbdfd646ed515e6441741701c",
+      "bytes": 684,
+      "triangles": 12,
+      "source_mesh": "cad_39.stl"
+    },
+    {
+      "file": "cad_40_0.stl",
+      "sha256": "5b3abbb71975f0d8441355526fb50b319024ab3f242016cf1aa02f2a0a0171ab",
+      "bytes": 21484,
+      "triangles": 428,
+      "source_mesh": "cad_40.stl"
+    },
+    {
+      "file": "cad_41_0.stl",
+      "sha256": "bcd31f0a643b3f402ee88c4dd24d47ce0fd0bc8ec3aa734b60cdf67313bfa157",
+      "bytes": 22084,
+      "triangles": 440,
+      "source_mesh": "cad_41.stl"
+    },
+    {
+      "file": "cad_42_0.stl",
+      "sha256": "22931360f8048fe09e2ea0b6284a61881f362ce1b6f5ce65ff98667322418cdc",
+      "bytes": 933584,
+      "triangles": 18670,
+      "source_mesh": "cad_42.stl"
+    }
+  ]
+}

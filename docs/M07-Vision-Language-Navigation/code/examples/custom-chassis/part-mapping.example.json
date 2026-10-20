@@ -1,0 +1,22 @@
+{
+  "schema": "course-design-not-runtime-config",
+  "purpose": "Fill from your own authorized export; this file is not accepted by the frozen DM-H65 loader.",
+  "units": "m",
+  "frame": {"x": "forward", "y": "left", "z": "up", "origin": "drive axle midpoint"},
+  "source": {"document": "FILL_ME", "export_sha256": "FILL_ME"},
+  "parts": {
+    "body": {"links": ["FILL_ME"], "status": "unverified"},
+    "left_drive": {"link": "FILL_ME", "axle_root_m": null, "axis_root": [0, 1, 0]},
+    "right_drive": {"link": "FILL_ME", "axle_root_m": null, "axis_root": [0, 1, 0]},
+    "casters": [
+      {"position": "front_left", "links": [], "pivot_root_m": null, "axle_root_m": null},
+      {"position": "front_right", "links": [], "pivot_root_m": null, "axle_root_m": null},
+      {"position": "rear_left", "links": [], "pivot_root_m": null, "axle_root_m": null},
+      {"position": "rear_right", "links": [], "pivot_root_m": null, "axle_root_m": null}
+    ]
+  },
+  "geometry": {"wheel_radius_m": null, "track_width_m": null, "body_bounds_root_m": null},
+  "camera": {"virtual": true, "position_root_m": null, "orientation": "FILL_ME"},
+  "collision_coverage_reviewed": false,
+  "automatic_navigation_qualified": false
+}

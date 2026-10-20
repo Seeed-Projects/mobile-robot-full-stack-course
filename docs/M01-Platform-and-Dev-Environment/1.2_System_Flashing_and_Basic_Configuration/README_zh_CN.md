@@ -5,7 +5,7 @@
 
 **硬件清单**：reComputer、USB-C 数据线、Ubuntu Host PC。
 
-**参考**：[Seeed Wiki — reComputer Robotics J501 硬件与快速上手](https://wiki.seeedstudio.com/cn/ai_robotics_recomputer_j501_robotics_getting_started/) 
+**参考**：[Seeed Wiki — reComputer Robotics J501 硬件与快速上手](https://wiki.seeedstudio.com/cn/ai_robotics_recomputer_j501_robotics_getting_started/)
 
 ***
 
@@ -456,4 +456,5 @@ sudo jetson_clocks
 ***
 
 ## 1.2.10 总结
+
 学完 1.1 和 1.2 两节内容后，我们已经了解了 reComputer Robotics J501X 边缘计算平台的硬件接口和基础系统配置。后续内容，我们将在 reComputer 设备中安装常用软件工具包。

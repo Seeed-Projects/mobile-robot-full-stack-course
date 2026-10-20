@@ -1,0 +1,20 @@
+[
+  {
+    "file": "first-person-real-time.mp4",
+    "sha256": "f82e15f6f22581be8d3c0cfb9e7b6bb3e5153a51bbe22e6a4bd0e37170e3ee2b",
+    "bytes": 840311,
+    "duration_s_reported": 11.923,
+    "historical_task": "runtime-4/navigation-0001",
+    "strict_success": false,
+    "kind": "simulator camera recording, not browser screen recording"
+  },
+  {
+    "file": "third-person-real-time.mp4",
+    "sha256": "47ba44ca512de20f417b14cd8f432391b3f473bbfd83f84dfdca9179a3deab08",
+    "bytes": 369007,
+    "duration_s_reported": 11.923,
+    "historical_task": "runtime-4/navigation-0001",
+    "strict_success": false,
+    "kind": "simulator camera recording, not browser screen recording"
+  }
+]

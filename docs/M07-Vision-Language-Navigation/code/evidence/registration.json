@@ -1,0 +1,19 @@
+{
+  "instruction": "Go to the open wooden doorframe in front of you and stop.",
+  "initial_pose": [
+    7.0,
+    15.25,
+    2.9109978243194243
+  ],
+  "motion_model": "simplified_differential_kinematics",
+  "task_budget_s": 300,
+  "predictions_max": 40,
+  "v_max": 0.15,
+  "w_max": 0.5,
+  "path_ttl_s": 10.0,
+  "scoring_only_target": [
+    5.516,
+    15.5984
+  ],
+  "strict_scoring_enabled": true
+}

@@ -72,6 +72,7 @@ ros2 launch <lidar_driver_package> <driver_launch_file> \
 
 >进行下面的操作之前，请参考[基础教程](https://github.com/Seeed-Projects/reComputer-Jetson-for-Beginners)安装ROS2.
 >如果您正在使用其他型号的激光雷达，请参考激光雷达厂商提供的使用手册操作。
+
 ### 演示环境
 
 | 项目 | 实测配置 |

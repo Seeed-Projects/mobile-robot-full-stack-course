@@ -1,0 +1,76 @@
+{
+  "upstream_commit": "3015508b70fb6e30bbd66701e94c9b916dcb8df8",
+  "model_revision": "826dc5fbfa37afa8293d2e336d329b6ffc0bfb64",
+  "slowfast_reference_sha256": "ac7deb3535341154f06b5419e6fe6b740ca169c136b3d03ad37bfed64de162cc",
+  "video_fps": 4,
+  "timestamp_relative": true,
+  "pool_stage": "post_vit",
+  "slowfast_tiers": [
+    {
+      "name": "current",
+      "age_lo": 0,
+      "age_hi": 1,
+      "mode": "dense",
+      "pool_spatial": 1
+    },
+    {
+      "name": "fast",
+      "age_lo": 2,
+      "age_hi": 33,
+      "mode": "dense",
+      "pool_spatial": 2
+    },
+    {
+      "name": "mid",
+      "age_lo": 34,
+      "age_hi": 89,
+      "mode": "burst",
+      "pair_stride": 6,
+      "pool_spatial": 2
+    },
+    {
+      "name": "long",
+      "age_lo": 90,
+      "age_hi": 1000000,
+      "mode": "span",
+      "num_pairs": 14,
+      "pool_spatial": 4
+    },
+    {
+      "name": "anchor",
+      "age_lo": 0,
+      "age_hi": 0,
+      "mode": "anchor",
+      "num_frames": 2,
+      "pool_spatial": 4
+    }
+  ],
+  "scene_crops": [
+    [
+      0,
+      0,
+      830,
+      464
+    ],
+    [
+      842,
+      0,
+      1672,
+      464
+    ],
+    [
+      0,
+      476,
+      830,
+      941
+    ],
+    [
+      842,
+      476,
+      1672,
+      941
+    ]
+  ],
+  "processing_reference_sha256": "470c1bc84bce40648105492e5b1b657bfe5cc49fec1c192bed27649add18684c",
+  "timestamp_reference_sha256": "83eba81dac9c5f77db890b964b7930ac73cbdd529d8de677427981c60b5f2936"
+}

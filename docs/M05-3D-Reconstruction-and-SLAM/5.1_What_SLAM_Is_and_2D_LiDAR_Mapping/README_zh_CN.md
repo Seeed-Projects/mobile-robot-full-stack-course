@@ -891,6 +891,6 @@ Fast-LIO
 
 - Thrun, Burgard, Fox: *Probabilistic Robotics*
 
-- 课程前置：[M3.1 激光雷达接入与点云预处理](https://chatgpt.com/M03-LiDAR-and-Multi-Sensor-Fusion/3.1_LiDAR_Integration_and_Point_Cloud_Preprocessing/README_zh_CN.md)
+- 课程前置：[M3.1 激光雷达接入与点云预处理](../../M03-LiDAR-and-Multi-Sensor-Fusion/3.1_LiDAR_Integration_and_Point_Cloud_Preprocessing/README_zh_CN.md)
 
-- 课程前置：[M3.4 EKF 与状态估计](https://chatgpt.com/M03-LiDAR-and-Multi-Sensor-Fusion/3.4_EKF_and_State_Estimation/README_zh_CN.md)
+- 课程前置：[M3.4 EKF 与状态估计](../../M03-LiDAR-and-Multi-Sensor-Fusion/3.4_EKF_and_State_Estimation/README_zh_CN.md)

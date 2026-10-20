@@ -53,11 +53,11 @@ wget http://fishros.com/install -O fishros && . fishros
 3. 选择 `1`（桌面完整版 desktop-full，含 rviz、rqt 等可视化工具）
 4. 等待安装完成（约 10-20 分钟，取决于网络）
 
-![鱼香肉丝安装 - 步骤 1](images/1.4.2.1_fishros_install_step1.png)
+![鱼香肉丝安装 - 步骤 1](images/1.4.2_fishros_install_step1.png)
 
-![鱼香肉丝安装 - 步骤 2](images/1.4.2.1_fishros_install_step2.png)
+![鱼香肉丝安装 - 步骤 2](images/1.4.2_fishros_install_step2.png)
 
-![鱼香肉丝安装 - 步骤 3](images/1.4.2.1_fishros_install_step3.png)
+![鱼香肉丝安装 - 步骤 3](images/1.4.2_fishros_install_step3.png)
 
 ```bash
 # 验证安装
@@ -65,7 +65,7 @@ source /opt/ros/humble/setup.bash
 ros2 --version 2>/dev/null || ros2 doctor --report | grep "distribution"
 ```
 
-![安装完成并验证](images/1.4.2.1_fishros_install_done.png)
+![安装完成并验证](images/1.4.2_fishros_install_done.png)
 
 **实际输出：**
 
@@ -125,7 +125,7 @@ echo $ROS_DISTRO
 echo $AMENT_PREFIX_PATH | tr ":" "\n" | head -3
 ```
 
-![验证 ROS 2 环境变量](images/1.4.2.3_verify_env.png)
+![验证 ROS 2 环境变量](images/1.4.2_verify_env.png)
 
 **实际输出：**
 
@@ -887,6 +887,7 @@ source ~/.bashrc
 Isaac ROS 是 NVIDIA 提供的硬件加速 ROS 2 包集合，利用 Jetson 的 GPU、DLA、PVA 等加速器实现高性能感知。本节先介绍 Isaac ROS 生态，然后运行 `isaac_ros_image_pipeline` 示例验证 GPU 加速图像处理。
 
 > **参考文档**：
+>
 > - Isaac ROS 官方文档：<https://nvidia-isaac-ros.github.io/v/release-3.2/>
 > - Image Pipeline 仓库：<https://github.com/NVIDIA-ISAAC-ROS/isaac_ros_image_pipeline>
 
@@ -1065,6 +1066,7 @@ watch -n 1 nvidia-smi
 ## M1 模块总结
 
 通过 1.1-1.4 四个小节的学习，你已完成：
+
 - **1.1** 硬件平台解析 — 了解 J501 的接口、规格和硬件验证方法
 - **1.2** 系统刷机与配置 — JetPack 6.2 刷写、性能模式切换
 - **1.3** 配置开发环境 — Jtop、Docker、uv、Pytorch等等

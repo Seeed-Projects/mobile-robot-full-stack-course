@@ -1,0 +1,32 @@
+{
+  "schema": 1,
+  "name": "DM-H65 new CAD 2026-10-10 — nominal geometry, simulation baseline",
+  "geometry": {
+    "wheel_radius_m": 0.08542809635400771,
+    "track_width_m": 0.3702943612482592,
+    "max_wheel_speed_rad_s": 8.0
+  },
+  "sdk_reference": {
+    "wheel_radius_m": 0.0825,
+    "track_width_m": 0.42,
+    "left_id": 1,
+    "right_id": 2,
+    "left_direction": -1,
+    "right_direction": 1
+  },
+  "sources": {
+    "geometry": "CAD tyre outer bounds/centers; nominal zero assembly, not measured hardware.",
+    "front": "Provisional CAD +X; awaiting physical confirmation.",
+    "directions": "Inherited SDK left=-1/right=+1. New hardware front/installation not reverified; simulation only.",
+    "asset": "Onshape URDF/STL export 2026-10-10; geometric measurements before visual mesh simplification.",
+    "limit": "8 rad/s is the inherited software cap, not a verified motor rating."
+  },
+  "source_export_sha256": "6d46b67bb4eac737d858a6d316c46f0adac03ab64fe9372e572dcc96a829c73e",
+  "motors": {
+    "left_id": 1,
+    "right_id": 2,
+    "left_direction": -1,
+    "right_direction": 1
+  },
+  "simulation_only": true
+}

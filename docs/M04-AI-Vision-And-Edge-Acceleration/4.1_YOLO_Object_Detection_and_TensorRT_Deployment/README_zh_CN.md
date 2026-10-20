@@ -61,7 +61,6 @@ cd "$M4_CODE_ROOT"
 ![Jetson 实机 M4.1 检测画面：室内物理相机，框上显示类别和置信度](./images/m4_runtime_m41_detection.png)
 
 
-
 ## 先读懂：从一张图到一个检测框
 
 ### 模型吐出来的是什么：中心点、宽高与置信度
@@ -117,7 +116,9 @@ yolo export model=yolo11n.pt format=onnx simplify=True dynamic=False
 ```
 
 - **simplify=True** 会合并冗余节点，能减少构建期不支持算子的概率；
+
 - **dynamic=False** 固定输入形状，换来一个构建期就能确定显存分配的静态 engine。
+
 2. **ONNX → TensorRT Engine**：
 
 ```bash
