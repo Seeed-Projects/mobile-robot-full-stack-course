@@ -6,10 +6,10 @@
 
 从传感器接入、AI 感知、SLAM、自主导航，到语义理解、主动视觉和机械臂抓取，构建完整的移动机器人开发闭环。
 
-[![Status](https://img.shields.io/badge/Status-Work%20in%20Progress-orange)](#项目进度)
-[![Platform](https://img.shields.io/badge/Platform-reComputer%20J501-76B900)](#硬件与软件)
-[![JetPack](https://img.shields.io/badge/JetPack-6.2-76B900)](#硬件与软件)
-[![ROS](https://img.shields.io/badge/ROS%202-Humble-22314E)](#硬件与软件)
+[![Status](https://img.shields.io/badge/Status-Work%20in%20Progress-orange)](#项目简介)
+[![Platform](https://img.shields.io/badge/Platform-reComputer%20J501-76B900)](#核心硬件)
+[![JetPack](https://img.shields.io/badge/JetPack-6.2-76B900)](#核心硬件)
+[![ROS](https://img.shields.io/badge/ROS%202-Humble-22314E)](#核心硬件)
 [![License](https://img.shields.io/badge/License-TBD-lightgrey)](#开源许可)
 
 </div>
@@ -50,7 +50,7 @@ flowchart LR
     M4[M4 AI 感知]
     M5[M5 SLAM 与重建]
     M6[M6 自主导航]
-    M7[M7 语义导航]
+    M7[M7 视觉语言导航与学习式决策]
     M8[M8 主动视觉]
     M9[M9 机械臂操作]
     M10[M10 综合项目]
@@ -63,7 +63,7 @@ flowchart LR
     M3 --> M5
     M5 --> M6
     M4 --> M7
-    M6 --> M7
+    M6 -. 可选导航背景 .-> M7
     M4 --> M8
     M6 --> M8
     M4 --> M9
@@ -79,7 +79,7 @@ flowchart LR
 
 课程共规划 **11 个模块，约 43 课时**。从 **2026 年 7 月 22 日**开始，按每两周完成一个模块的节奏推进；如无重大调整，全部模块计划于 **2026 年 12 月 22 日**前完成。
 
-| 模块 | 主题 | 主要内容 | 计划周期
+| 模块 | 主题 | 主要内容 | 进度 |
 |---|---|---|---|
 | M1 | 平台入门与开发环境 | J501、JetPack、Docker、ROS 2 | ✅ Completed |
 | M2 | 视觉系统基础 | CSI、GMSL2、RGB-D、标定、BEV | ✅ Completed |
@@ -87,7 +87,7 @@ flowchart LR
 | M4 | AI 视觉与边缘加速 | YOLO、跟踪、分割、6D 位姿、Isaac ROS | 🚧 09-25 |
 | M5 | 三维重建与 SLAM | ORB-SLAM3、Fast-LIO、R3LIVE、3DGS、语义地图 | ⏳ 计划中 10-02 |
 | M6 | 定位导航与路径规划 | Nav2、规划、动态避障、多机协同 | ⏳ 计划中 |
-| M7 | VLN 语义导航 | 指令解析、拓扑地图、语义路标 | ⏳ 计划中 |
+| M7 | [视觉语言导航：Jetson与底盘仿真](docs/M07-Vision-Language-Navigation/README_zh_CN.md) · [代码](docs/M07-Vision-Language-Navigation/code/README_zh_CN.md) | VLN基础、LightNav原理、Jetson底盘仿真与冰箱导航Demo | ✅ 中英文教程、配套代码与运行演示已整理 |
 | M8 | 云台与主动视觉 | 云台控制、目标跟踪、底盘协同 | ⏳ 计划中 |
 | M9 | 机械臂与操作 | MoveIt 2、Pinocchio、手眼标定、GraspNet | ⏳ 计划中 |
 | M10 | 综合项目 | 巡检、BEV+3DGS、VLN、语义抓取 | ⏳ 计划中 |
@@ -114,7 +114,7 @@ flowchart LR
 
 ### DM-H65 底盘 Python SDK
 
-课程仓库已经集成可直接安装的 [DM-H65 两轮底盘 Python SDK](robot_drivers/README.md)，包含 SocketCAN 通信、左右轮差速控制、命令行诊断、Jetson 开机服务和远程调试 WebUI。该集成仅包含 Python 版本，不包含 C++ 实现。
+课程仓库已经集成可直接安装的 [DM-H65 两轮底盘 Python SDK](hardware/robot_drivers/README.md)，包含 SocketCAN 通信、左右轮差速控制、命令行诊断、Jetson 开机服务和远程调试 WebUI。该集成仅包含 Python 版本，不包含 C++ 实现。
 
 ---
 

@@ -1,0 +1,48 @@
+{
+  "title": "The Car Turns. The Starting Frame Stays Fixed.",
+  "tool": "built-in image_gen",
+  "date": "2026-10-20",
+  "version": "v1",
+  "teaching_only": true,
+  "source": "/Users/chenzibo/.codex/generated_images/01a11ab3-b831-7e70-8edc-5f6265a9d8a1/exec-355c1e2d-7bd7-488c-88ba-70ec9677ce6b.png",
+  "prompt": "Use case: scientific-educational.\nCreate an original beginner-friendly robotics textbook infographic, landscape 16:9 high resolution. All text ENGLISH ONLY. Clean warm white page, deep navy text, blue and teal accents, soft dimensional wheeled-cart icons, large readable labels, no dense equations. Match a refined educational infographic style.\n\nTitle: \"The Car Turns. The Starting Frame Stays Fixed.\"\nSubtitle: \"Forward means the direction the car is facing.\"\n\nShow FOUR equal panels in ONE horizontal row. Each panel repeats the SAME TOP-DOWN square coordinate grid with EXACTLY the same FIXED axes: origin at lower-left, \"+X\" arrow points RIGHT, \"+Y\" arrow points UP. In this illustration, initial forward = page-right (+X), initial left = page-up (+Y). Never swap axes, never rotate the grid. Grid scale and viewpoint identical in all four panels.\n\nPanel 1, title \"START\". A small low wheeled cart at origin (0,0), facing RIGHT, with a bold arrow pointing RIGHT from its nose. Caption \"Position (0, 0)\" and \"Facing +X\". No traveled path.\nPanel 2, title \"1. FORWARD 0.5 m\". Cart at (0.5,0), halfway along the bottom X-axis, still facing RIGHT. A teal horizontal segment joins origin to (0.5,0). Caption \"Position (0.5, 0)\" and \"Facing +X\".\nPanel 3, title \"2. TURN LEFT 90°\". Cart at EXACTLY THE SAME point (0.5,0) as panel 2, now facing UP with bold nose arrow UP. Same horizontal path, NO added translation. Caption \"Position (0.5, 0)\" and \"Facing +Y\". A clear short label \"Same position\" emphasizes the unchanged center. Do not move cart to the origin or to the top of the grid.\nPanel 4, title \"3. FORWARD 0.5 m\". Cart at (0.5,0.5), directly UP from the previous position, facing UP. The traveled path is ONE L-shape: origin -> (0.5,0) to the RIGHT, then -> (0.5,0.5) UP. Caption \"Position (0.5, 0.5)\" and \"Facing +Y\".\n\nAll cart icons must have visually clear nose arrows so orientation cannot be confused. Exactly one car per panel, no extra ghost cars. Use thin small marks at x=0.5 and y=0.5 consistently, if helpful. Horizontal progression arrows between panels can show time order, but are outside the coordinate grids.\n\nBottom takeaway in a single highlighted strip: \"The second forward move changes Y, because the car has turned.\"\nSmall footer: \"Illustrative three-step example — not a model prediction\"\n\nThis is NOT ten steps and NOT a world-coordinate transformation diagram. Do not add other paths, ten-point tables, RVQ codes, formulas, refrigerators, or biped robots. Technical accuracy of the four positions and headings is essential. Clearly distinguish the fixed coordinate frame from the turning car.",
+  "dimensions": [
+    1672,
+    941
+  ],
+  "sha256": "e5a697face3ba307ee04ab204bac93ea678dd8f296e51c2cc878e3ed29f3b599",
+  "checks": {
+    "english_only": true,
+    "states": 4,
+    "fixed_axes": {
+      "X": "page right, initial forward",
+      "Y": "page up, initial left"
+    },
+    "positions": [
+      [
+        0,
+        0
+      ],
+      [
+        0.5,
+        0
+      ],
+      [
+        0.5,
+        0
+      ],
+      [
+        0.5,
+        0.5
+      ]
+    ],
+    "headings_degrees": [
+      0,
+      0,
+      90,
+      90
+    ],
+    "turn_is_in_place": true,
+    "not_ten_step_prediction": true
+  }
+}

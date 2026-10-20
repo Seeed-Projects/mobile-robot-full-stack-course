@@ -530,4 +530,4 @@ rm -rf ~/ros2_ws/install/livox_ros_driver2
 
 - [Livox-SDK2](https://github.com/Livox-SDK/Livox-SDK2)
 
-- [livox_ros_driver2](https://github.com/Livox-SDK/livox_ros_driver2) 
+- [livox_ros_driver2](https://github.com/Livox-SDK/livox_ros_driver2)

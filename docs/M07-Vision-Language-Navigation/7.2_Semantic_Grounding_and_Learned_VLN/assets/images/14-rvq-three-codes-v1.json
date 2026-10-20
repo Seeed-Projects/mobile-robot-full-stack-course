@@ -1,0 +1,29 @@
+{
+  "title": "RVQ: Three Codes, One Path",
+  "tool": "built-in image_gen",
+  "teaching_only": true,
+  "date": "2026-10-20",
+  "version": "v1",
+  "dimensions": [
+    1672,
+    941
+  ],
+  "sha256": "de56c796f0e093e12674226534ea2d074128c5a616b47ceee991d18623710661",
+  "prompt": "Use case: scientific-educational.\nCreate a NEW original textbook infographic, landscape 16:9, high resolution. Warm off-white background, navy sans-serif type, restrained teal/blue/orange accents, clean dimensional paper-card illustrations. All text in ENGLISH ONLY, large readable labels, generous negative space. Beginner friendly, minimal, no dense engineering details.\n\nTitle exactly: \"RVQ: Three Codes, One Path\"\nSubtitle: \"A base sketch plus two corrections\"\n\nExplain that three code IDs retrieve three motion-feature vectors from separate lookup tables, those vectors are ADDED to describe ONE trajectory, and a decoder restores ten local poses. Corrections are not independent routes to execute.\n\nComposition:\nLEFT TWO THIRDS: three clean HORIZONTAL lookup rows stacked vertically:\nRow 1: a blue chip \"12\" under \"Code\" -> a small \"Base Table\" with rows, clearly highlight a single row indexed \"12\" -> one blue vector card labelled \"Base\".\nRow 2: an orange chip \"7\" -> a separate \"Correction Table 1\" with one highlighted row indexed \"7\" -> an orange vector card labelled \"Correction 1\".\nRow 3: a teal chip \"25\" -> a separate \"Correction Table 2\" with one highlighted row indexed \"25\" -> a teal vector card labelled \"Correction 2\".\nIn the tables show short abstract arrays like \"[ ... ]\", NOT physical distances or numbers. Other unselected rows may be blank or subtle gray lines, not distracting text. Under left group small caption \"Codes select rows\".\nThe THREE vector cards converge via three clear arrows into ONE small circular plus symbol. Immediately after the plus node, one arrow enters ONE compact block labelled \"Decode\". Under it a concise label \"Restore motion, then compose poses\".\nRIGHT THIRD: From Decode, one arrow leads to ONE clean local trajectory panel headed \"One Final Path\". Draw ONLY ONE gently curving teal path with EXACTLY TEN visible round waypoint dots and a small robot-origin glyph separate from the ten points. Tiny orientation ticks next to the ten dots indicate heading. Under panel label \"10 Local Poses\".\nDo not draw three routes, do not make corrections into separately driven segments, do not connect a code ID directly to the final coordinates without its table, do not show a model selecting true future routes.\nFooter exactly: \"Illustrative Example\"\nOptional very short footer note: \"Corrections are added, not executed separately.\"\n\nNo extra formulas, error statistics, codebook combination counts, STOP codes, units, logos, MicroDuck, biped robots, or ornamental technology clutter. The numbers 12, 7, 25 are illustrative IDs, not real predicted motion values. Ensure exactly three distinct lookup tables and clear matching IDs 12, 7, 25.\nPrioritize the simple teaching sequence: ID -> table row -> motion features -> addition -> decoding -> ONE path.",
+  "edit_prompt": "Edit only the trajectory panel on the RIGHT. Keep every other element, English word, title, lookup table, IDs 12/7/25, arrows, colors and layout exactly unchanged. The panel currently has EIGHT teal filled waypoint circles but says '10 Local Poses'. Add exactly TWO more teal waypoint circles ON the existing single curve: one between the lowest and second-lowest teal circles (around x1310,y570), one between the fifth and sixth circles (around x1507,y438), coordinates relative to original 1672x941 image. Match teal fill, dark outlines, small orientation ticks. Final count: EXACTLY TEN teal filled waypoint circles, plus the existing separate gray start marker and triangle, which are not counted. No other changes.",
+  "source": "/Users/chenzibo/.codex/generated_images/01a11ab3-b831-7e70-8edc-5f6265a9d8a1/exec-44d9e3f4-6ef5-4d9f-9a82-0be351d2fd8e.png",
+  "initial_generated_source": "/Users/chenzibo/.codex/generated_images/01a11ab3-b831-7e70-8edc-5f6265a9d8a1/exec-665a0a8f-8e3a-4074-8482-7be95059bd50.png",
+  "checks": {
+    "english_text": true,
+    "lookup_tables": 3,
+    "matching_ids": [
+      12,
+      7,
+      25
+    ],
+    "addition_before_decoding": true,
+    "final_teal_waypoints": 10,
+    "origin_excluded": true,
+    "corrections_not_separate_routes": true
+  }
+}

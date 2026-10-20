@@ -63,7 +63,7 @@ flowchart LR
     M3 --> M5
     M5 --> M6
     M4 --> M7
-    M6 --> M7
+    M6 -. optional navigation background .-> M7
     M4 --> M8
     M6 --> M8
     M4 --> M9
@@ -81,19 +81,19 @@ flowchart LR
 
 The course is planned as **11 modules, about 43 class hours** in total. Starting from **July 22, 2026**, the plan is to complete one module every two weeks. If there are no major changes, all modules are planned to be completed before **December 22, 2026**.
 
-| Module | Theme | Main Content | Planned Window |
-|---|---|---|---|
-| M1 | Platform Introduction and Development Environment | J501, JetPack, Docker, ROS 2 | ✅ Completed |
-| M2 | Vision System Foundations | CSI, GMSL2, RGB-D, calibration, BEV | ✅ Completed |
-| M3 | LiDAR and Sensor Fusion | LiDAR, IMU, GNSS, CAN-FD, PTP, EKF | ✅ Completed |
-| M4 | AI Vision and Edge Acceleration | YOLO, tracking, segmentation, 6D pose, Isaac ROS | ✅ Completed |
-| M5 | 3D Reconstruction and SLAM | ORB-SLAM3, Fast-LIO, R3LIVE, 3DGS, semantic maps | ⏳ Planned 10-02 |
-| M6 | Localization, Navigation, and Path Planning | Nav2, planning, dynamic obstacle avoidance, multi-robot collaboration | ⏳ Planned  |
-| M7 | VLN Semantic Navigation | instruction parsing, topological maps, semantic landmarks | ⏳ Planned |
-| M8 | PTZ and Active Vision | PTZ control, target tracking, chassis coordination | ⏳ Planned |
-| M9 | Robotic Arm and Manipulation | MoveIt 2, Pinocchio, hand-eye calibration, GraspNet | ⏳ Planned |
-| M10 | Integrated Projects | inspection, BEV+3DGS, VLN, semantic grasping | ⏳ Planned |
-| M11 | Deployment Optimization and Engineering | ONNX, TensorRT, DeepStream, monitoring, OTA | ⏳ Planned |
+| Module | Theme                                                                                                                                    | Main Content                                                                                   | Status                                                               |
+| ------ | ---------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| M1     | Platform Introduction and Development Environment                                                                                        | J501, JetPack, Docker, ROS 2                                                                   | ✅ Completed                                                          |
+| M2     | Vision System Foundations                                                                                                                | CSI, GMSL2, RGB-D, calibration, BEV                                                            | ✅ Completed                                                          |
+| M3     | LiDAR and Sensor Fusion                                                                                                                  | LiDAR, IMU, GNSS, CAN-FD, PTP, EKF                                                             | ✅ Completed                                                          |
+| M4     | AI Vision and Edge Acceleration                                                                                                          | YOLO, tracking, segmentation, 6D pose, Isaac ROS                                               | ✅ Completed                                                          |
+| M5     | 3D Reconstruction and SLAM                                                                                                               | ORB-SLAM3, Fast-LIO, R3LIVE, 3DGS, semantic maps                                               | ⏳ Planned 10-02                                                      |
+| M6     | Localization, Navigation, and Path Planning                                                                                              | Nav2, planning, dynamic obstacle avoidance, multi-robot collaboration                          | ⏳ Planned                                                            |
+| M7     | [Vision-Language Navigation](docs/M07-Vision-Language-Navigation/README.md) · [Code](docs/M07-Vision-Language-Navigation/code/README.md) | VLN fundamentals, LightNav principles, Jetson chassis simulation, refrigerator navigation demo | ✅ English/Chinese tutorials, code, Sim, and demo recording organized |
+| M8     | PTZ and Active Vision                                                                                                                    | PTZ control, target tracking, chassis coordination                                             | ⏳ Planned                                                            |
+| M9     | Robotic Arm and Manipulation                                                                                                             | MoveIt 2, Pinocchio, hand-eye calibration, GraspNet                                            | ⏳ Planned                                                            |
+| M10    | Integrated Projects                                                                                                                      | inspection, BEV+3DGS, VLN, semantic grasping                                                   | ⏳ Planned                                                            |
+| M11    | Deployment Optimization and Engineering                                                                                                  | ONNX, TensorRT, DeepStream, monitoring, OTA                                                    | ⏳ Planned                                                            |
 
 > The progress status will be updated to `✅ Completed` after each module is released, together with the corresponding documentation, code, configurations, test results, and demo videos.
 
@@ -118,7 +118,7 @@ You do not need to purchase all hardware at once. Early modules can be completed
 
 ### DM-H65 Chassis Python SDK
 
-The repository includes an installable [DM-H65 two-wheel chassis Python SDK](robot_drivers/README.md) with SocketCAN communication, differential-drive control, CLI diagnostics, Jetson services, and a remote debugging WebUI. This integration is Python-only; no C++ implementation is included.
+The repository includes an installable [DM-H65 two-wheel chassis Python SDK](hardware/robot_drivers/README.md) with SocketCAN communication, differential-drive control, CLI diagnostics, Jetson services, and a remote debugging WebUI. This integration is Python-only; no C++ implementation is included.
 
 ---
 

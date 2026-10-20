@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/chenzibo/data/project/Jetson/docs/mobile-robot-full-stack-course/docs/M07-Vision-Language-Navigation/assets/diagram-source/02-model-io.json",
+  "output": "/Users/chenzibo/data/project/Jetson/docs/mobile-robot-full-stack-course/docs/M07-Vision-Language-Navigation/assets/02-model-io.html",
+  "specification": {
+    "sha256": "eee205bcbf13721a0fdefeb1f99d1686c38f0798ab9b1c24c41baa1b52c39844",
+    "bytes": 2121
+  },
+  "artifact": {
+    "sha256": "c6a2c3102b1df7847e38176de61af0778dd8bc1110ac657ac44a7878abc58ebb",
+    "bytes": 702467
+  },
+  "validation": {
+    "checksPassed": 9,
+    "checkCount": 9,
+    "compositionProfile": "showcase",
+    "compositionStatus": "pass",
+    "errors": 0,
+    "warnings": 0
+  }
+}

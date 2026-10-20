@@ -1,0 +1,55 @@
+{
+  "instruction": "Go to the open wooden doorframe in front of you and stop.",
+  "target_body": "doorframe_6a1094b9eed158e940bf50ec6c6a9f9f_1_0_2",
+  "target_scoring_position": [
+    5.516,
+    15.5984,
+    1.06511
+  ],
+  "initial_pose": {
+    "x": 7.0,
+    "y": 15.25,
+    "yaw": 2.9109978243194243
+  },
+  "camera": {
+    "position_world": [
+      6.9123822446448555,
+      15.270570098359658,
+      1.001
+    ],
+    "rotation_world": [
+      0.22855664844064402,
+      0.0,
+      0.9735306150571639,
+      0.9735306150571639,
+      0.0,
+      -0.228556648440644,
+      0.0,
+      1.0,
+      0.0
+    ],
+    "fovy": 79.865,
+    "width": 480,
+    "height": 270,
+    "virtual": true
+  },
+  "model_signature": "b35f679a23931c1aec8b8866c53ccffb17d728924fabc63a78193c42e150d17c",
+  "config_path": "/home/seeed/workspace/LightNav-0/custom-chassis-physics-20261012/assets/dm-h65-casters-20261012/config.json",
+  "config_sha256": "406f0377beaf4002a393a2ae9fe729d66e7b2220b95f529a9dcb7612e25a9b9f",
+  "schema_version": 1,
+  "registration_id": "dm-h65-simple-0f8abb31cb3ffc77",
+  "reviewed_by": "Codex visual review: open wooden doorframe clearly identifiable in original RGB",
+  "candidate_sha256": "0f8abb31cb3ffc77a7a3251cee53e8869e62515b73e6b2168944d251c68cf6be",
+  "reviewed_input_sha256": "34e954c8b4f7f39548011c72c5913f95ad5313e4c44448414425f4cc60f21959",
+  "independent_scoring_only": true,
+  "not_a_control_path": true,
+  "model_inference_has_not_run": true,
+  "strict_success": {
+    "distance_m": 0.75,
+    "planar_speed_m_s": 0.05,
+    "angular_speed_rad_s": 0.1,
+    "continuous_stop_s": 2.0,
+    "valid_model_stop_required": true,
+    "no_collision": true
+  }
+}

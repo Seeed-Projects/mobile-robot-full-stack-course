@@ -10,7 +10,7 @@
 | M4 | M2 | Accelerated vision inference demos |
 | M5 | M2 + M3 | Mapping, reconstruction, and semantic spatial outputs |
 | M6 | M3 + M5 | Navigation and planning demo |
-| M7 | M4 + M6 | Language-grounded navigation behavior |
+| M7 | Linux/Python + basic vision; M6 optional | [VLN → LightNav → Jetson refrigerator demo](M07-Vision-Language-Navigation/README.md), English-first with Chinese versions and [course code](M07-Vision-Language-Navigation/code/README.md); no ROS/Nav2 prerequisite |
 | M8 | M4 + M6 | PTZ and active vision control loop |
 | M9 | M1 + M4 | Vision-guided manipulation pipeline |
 | M10 | M1 to M9 | Integrated end-to-end system demos |

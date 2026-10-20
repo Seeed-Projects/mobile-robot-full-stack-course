@@ -1,0 +1,93 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "lightnav"
+version = "0.1.0"
+description = "Standalone inference for trajectory-token vision-language navigation checkpoints (Qwen3-VL based)"
+readme = "README.md"
+license = { file = "LICENSE" }
+requires-python = ">=3.10,<3.12"
+dependencies = [
+    # Core: HF backend + WebSocket server + trajectory-token decode.
+    # transformers is pinned exactly: the data processor subclasses Qwen3VLProcessor
+    # and the vLLM embedding patch targets transformers 5.8's Qwen3-VL internals.
+    #
+    # torch is deliberately a floor, not a pin, but note WHICH build pip picks: PyPI's
+    # torch 2.10.0 is a cu12.8 wheel. Its bundled NVRTC 12.8 does not know
+    # `compute_103`, so on sm_103 parts (B300 / B30Z) the `hf` backend dies where
+    # transformers' Qwen3-VL vision tower JITs a reduction for
+    # `image_grid_thw.prod(-1)` ("nvrtc: error: invalid value for --gpu-architecture").
+    # Install the cu12.9 wheels on such GPUs -- see "Installation" in the README.
+    # HF on Jetson also supports the separately validated Seeed 2.7/cp310 profile.
+    "torch>=2.7",
+    # torchvision is required by transformers 5.8's Qwen3-VL video processor.
+    "torchvision>=0.22",
+    "transformers==5.8.0",
+    "tokenizers>=0.22,<0.23",
+    "safetensors>=0.7",
+    # Jetson's PyTorch 2.7 wheel uses the NumPy 1.x C API; other profiles may use 2.x.
+    "numpy>=1.26",
+    "pillow>=11.0",
+    "pyyaml>=6.0",
+    "websockets>=12.0",
+]
+
+[project.scripts]
+lightnav-predict = "lightnav.cli.predict:main"
+lightnav-serve = "lightnav.serving.ws_server:main"
+lightnav-ws-client = "lightnav.cli.ws_client:main"
+lightnav-eval-habitat = "lightnav.cli.eval_habitat:main"
+lightnav-eval-merge = "lightnav.cli.eval_merge:main"
+lightnav-render = "lightnav.cli.render:main"
+
+[project.optional-dependencies]
+# In-process vLLM backend (`--backend vllm_local`). The patch in
+# inference/vllm_utils.py binds vLLM 0.19.x private APIs (BaseRenderer.
+# _process_multimodal + Qwen3VL.get_mrope_input_positions) and breaks on other
+# minor versions, so the pin is exact rather than a range. vllm 0.19.1 pulls
+# torch 2.10. Verified end-to-end against vllm==0.19.1 / torch 2.10.0 /
+# transformers 5.8.0. A runtime guard (vllm_utils._assert_vllm_version) fails loudly
+# on a mismatched version.
+#
+# nvidia-cutlass-dsl has to be pinned HERE, not left to vllm: vllm 0.19.1 only asks
+# for `nvidia-cutlass-dsl>=4.4.0.dev1`, and because that specifier mentions a
+# pre-release pip is allowed to resolve the newest dev build (4.8.0.dev0 as of
+# 2026-08), which removed `cutlass.cute.core.ThrMma`. vLLM's flash-attn cute path
+# imports quack-kernels, and every quack release up to 0.6.4 still references that
+# symbol, so a fresh install fails with
+#   AttributeError: module 'cutlass.cute.core' has no attribute 'ThrMma'
+# while the engine is starting, i.e. before any inference is possible. Upgrading
+# quack does not help -- the DSL is what has to be held back.
+vllm = ["vllm==0.19.1", "nvidia-cutlass-dsl==4.5.2"]
+# FlashAttention-2 for the HF backend (falls back to sdpa when absent).
+flash = ["flash-attn>=2.7"]
+# mp4 / frame-directory decoding for lightnav-predict and lightnav-ws-client, and the
+# visualisation module (lightnav.viz): lightnav-render, `lightnav-eval-habitat --save_video`.
+# Recording with `lightnav-serve --record_dir` needs only the core install.
+video = ["opencv-python-headless>=4.10", "imageio>=2.37", "imageio-ffmpeg>=0.6"]
+# Habitat evaluation client (lightnav-eval-habitat talks to the habitat server over ZMQ).
+# habitat-sim / habitat-lab themselves live in a separate conda env; see habitat_server/.
+habitat = ["pyzmq>=25"]
+# CPU-only unit tests (scheduler, decode parsing, protocol, sample builders).
+test = ["pytest>=8", "pytest-asyncio>=0.24", "tomli>=2; python_version < '3.11'"]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py310"
+
+[tool.ruff.lint]
+select = ["E", "F", "I"]   # pyflakes + pycodestyle + isort
+ignore = ["E501"]          # line length is advisory; the 100-col limit is not enforced
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "gpu: needs a real GPU / torch CUDA / model weights (deselected on CPU with -m 'not gpu')",
+    "video: needs ffmpeg/imageio video dependencies",
+]
+asyncio_mode = "auto"

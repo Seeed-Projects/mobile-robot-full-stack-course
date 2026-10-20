@@ -1,0 +1,32 @@
+<mujoco model="course_static_chassis_template">
+  <!-- Static teaching primitives; not DM-H65 CAD, not a dynamics or VLN adapter. -->
+  <compiler angle="radian"/>
+  <option timestep="0.005"/>
+  <visual><global offwidth="480" offheight="270"/></visual>
+  <worldbody>
+    <light pos="0 -2 4"/>
+    <geom name="floor" type="plane" size="3 3 .1" rgba=".85 .87 .87 1"/>
+    <body name="template_base" pos="0 0 .086">
+      <geom name="template_frame" type="box" size=".245 .245 .025"
+            pos="0 0 .03" rgba=".55 .62 .64 1"/>
+      <geom name="left_drive" type="cylinder" size=".085 .025"
+            pos="0 .185 0" euler="-1.5707963267948966 0 0" rgba=".1 .1 .1 1"/>
+      <geom name="right_drive" type="cylinder" size=".085 .025"
+            pos="0 -.185 0" euler="-1.5707963267948966 0 0" rgba=".1 .1 .1 1"/>
+      <body name="front_left" pos=".19 .19 -.071">
+        <geom type="cylinder" size=".015 .008" euler="-1.5707963267948966 0 0"/>
+      </body>
+      <body name="front_right" pos=".19 -.19 -.071">
+        <geom type="cylinder" size=".015 .008" euler="-1.5707963267948966 0 0"/>
+      </body>
+      <body name="rear_left" pos="-.19 .19 -.071">
+        <geom type="cylinder" size=".015 .008" euler="-1.5707963267948966 0 0"/>
+      </body>
+      <body name="rear_right" pos="-.19 -.19 -.071">
+        <geom type="cylinder" size=".015 .008" euler="-1.5707963267948966 0 0"/>
+      </body>
+      <camera name="ego" pos=".09 0 .914"
+              xyaxes="0 -1 0 0 0 1" fovy="79.865"/>
+    </body>
+  </worldbody>
+</mujoco>

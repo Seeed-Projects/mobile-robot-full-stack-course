@@ -12,7 +12,7 @@
 
 **Hardware list**: J501, USB-C data cable, Ubuntu Host PC.
 
-**Reference**: [Seeed Wiki — Robotics J501 Hardware and Quick Start](https://wiki.seeedstudio.com/ai_robotics_recomputer_j501_robotics_getting_started/) 
+**Reference**: [Seeed Wiki — Robotics J501 Hardware and Quick Start](https://wiki.seeedstudio.com/ai_robotics_recomputer_j501_robotics_getting_started/)
 
 ***
 
@@ -57,7 +57,7 @@
 
 **Step 1.** Connect the **USB2.0 DEVICE port** of the J501 to the Ubuntu Host PC with a USB-C cable.
 
-![USB-C connection for recovery](images/1.2.2.3_usb_c_recovery.png)
+![USB-C connection for recovery](images/1.2.2_usb_c_recovery.png)
 
 **Step 2.** Press and hold the RECOVERY button with a pin.
 
@@ -70,7 +70,7 @@
 - AGX Orin 32GB: `0955:7223 NVidia Corp`
 - AGX Orin 64GB: `0955:7023 NVidia Corp`
 
-![lsusb recovery mode output](images/1.2.2.3_lsusb_recovery.png)
+![lsusb recovery mode output](images/1.2.2_lsusb_recovery.png)
 
 ### (4) Flashing the System
 
@@ -87,13 +87,13 @@ sudo ./tools/kernel_flash/l4t_initrd_flash.sh --flash-only --massflash 1 --netwo
 
 Flashing success output:
 
-![Flashing success output](images/1.2.2.4_flash_success.png)
+![Flashing success output](images/1.2.2_flash_success.png)
 
 > The flashing command takes about 2-10 minutes to run.
 
 **Initial configuration:** Connect the J501 to a monitor with an HDMI cable and complete the system configuration:
 
-![HDMI display setup](images/1.2.2.4_hdmi_setup.png)
+![HDMI display setup](images/1.2.2_hdmi_setup.png)
 
 > After flashing is complete, you can verify the system by connecting to the J501 via HDMI + keyboard/mouse, SSH, or the debug serial port (see 1.1.5 (1) Connection Methods).
 

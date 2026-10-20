@@ -1,0 +1,182 @@
+[
+  {
+    "id": "01-find-refrigerator",
+    "title": "Find the Refrigerator",
+    "file": "../../7.1_VLN_Fundamentals/assets/images/01-find-refrigerator.jpg",
+    "tool": "built-in image_gen",
+    "version": 1,
+    "size": [
+      1672,
+      941
+    ],
+    "sha256": "9ee1479b8f463289087a1f5da93e4c47cd7ee4bbf4f5c43ae4e068ba7c88c244",
+    "prompt": "Use case: scientific-educational. Asset: original university robotics textbook illustration, landscape 16:9, high resolution. Title text exactly \"Find the Refrigerator\". An isometric cutaway apartment, an authentic compact silver open rectangular wheeled research chassis with two black central drive wheels and four tiny corner casters, a virtual camera symbol about 1m high, gray refrigerator inside the next room clearly separated from a kitchen cabinet. Speech instruction: 'Find the refrigerator and stop beside it.' Show a tentative dotted route and a translucent stopping area BESIDE the refrigerator, not inside it. Educational scene, not a success screenshot. Style: refined light ivory background, crisp elegant scientific editorial 3D illustration, restrained teal and warm orange highlights, spacious composition, clear large sans-serif English labels readable on mobile. All text ENGLISH only, no Chinese, no watermark. Use dimensional spatial teaching scenes instead of generic boxes-and-arrows flowcharts. All subject content must be scientifically consistent. Illustration only, not a fabricated experiment screenshot.",
+    "english_only_visual_review": true,
+    "illustration_not_evidence": true
+  },
+  {
+    "id": "02-vln-applications",
+    "title": "VLN Applications",
+    "file": "../../7.1_VLN_Fundamentals/assets/images/02-vln-applications.jpg",
+    "tool": "built-in image_gen",
+    "version": 1,
+    "size": [
+      1672,
+      941
+    ],
+    "sha256": "9a5dbfd62ab55790069f53a8349add62ad8270c02785d0089da5f216cca997e2",
+    "prompt": "Use case: scientific-educational. Asset: original university robotics textbook illustration, landscape 16:9, high resolution. Title text exactly \"VLN Applications\". Five beautifully detailed miniature environments: home assistance, hotel delivery, warehouse search, facility inspection, accessible mobility. Use the same compact wheeled research chassis, contextual objects and humans at modest scale. Exactly five labels: 'Home', 'Hotel', 'Warehouse', 'Inspection', 'Assistance'. Avoid suggesting industrial safety certification. Style: refined light ivory background, crisp elegant scientific editorial 3D illustration, restrained teal and warm orange highlights, spacious composition, clear large sans-serif English labels readable on mobile. All text ENGLISH only, no Chinese, no watermark. Use dimensional spatial teaching scenes instead of generic boxes-and-arrows flowcharts. All subject content must be scientifically consistent. Illustration only, not a fabricated experiment screenshot.",
+    "english_only_visual_review": true,
+    "illustration_not_evidence": true
+  },
+  {
+    "id": "03-observe-remember-act",
+    "title": "Observe, Remember, Act",
+    "file": "../../7.1_VLN_Fundamentals/assets/images/03-observe-remember-act.jpg",
+    "tool": "built-in image_gen",
+    "version": 1,
+    "size": [
+      1672,
+      941
+    ],
+    "sha256": "f7791bc7f1fc3eb17fdedb24638204331c6086b5ba0adb0bef927b7ed2bc292e",
+    "prompt": "Use case: scientific-educational. Asset: original university robotics textbook illustration, landscape 16:9, high resolution. Title text exactly \"Observe, Remember, Act\". Three chronological illustrated views of one wheeled robot searching a room: sofa occludes refrigerator; robot observes a doorway from a new viewpoint; refrigerator becomes visible and robot can plan its next movement. A small filmstrip of prior camera frames implies memory. Exactly three short panel captions: 'Partial view', 'Visual memory', 'New observation'. Use subtle directional cues, not a boxes-and-arrows flowchart. Style: refined light ivory background, crisp elegant scientific editorial 3D illustration, restrained teal and warm orange highlights, spacious composition, clear large sans-serif English labels readable on mobile. All text ENGLISH only, no Chinese, no watermark. Use dimensional spatial teaching scenes instead of generic boxes-and-arrows flowcharts. All subject content must be scientifically consistent. Illustration only, not a fabricated experiment screenshot.",
+    "english_only_visual_review": true,
+    "illustration_not_evidence": true
+  },
+  {
+    "id": "04-inside-lightnav",
+    "title": "Inside LightNav-0",
+    "file": "../../7.2_Semantic_Grounding_and_Learned_VLN/assets/images/04-inside-lightnav.jpg",
+    "tool": "built-in image_gen",
+    "version": 3,
+    "size": [
+      1672,
+      941
+    ],
+    "sha256": "5025db8059afe63362082d1edde518dd74a148023dd4fb0209af2b9084368954",
+    "prompt": "Use case: scientific-educational. Asset: original university robotics textbook illustration, landscape 16:9, high resolution. Title text exactly \"Inside LightNav-0\". An accurate editorial scientific cutaway of multimodal token inference. Left show RGB image history and instruction, central shared vision transformer and shared Qwen3-VL language backbone as layered translucent volumes, right a compact five-token output strip and decoded geometric ten-waypoint trajectory. English labels: 'RGB history', 'Instruction', 'Vision encoder', 'Qwen3-VL', 'Shared language head', 'APOS', 'OPOS', 'RVQ L0', 'RVQ L1', 'RVQ L2', '10 SE(2) waypoints'. APOS and OPOS precede RVQ tokens; no separate action prediction head, no ground-truth map input. Style: refined light ivory background, crisp elegant scientific editorial 3D illustration, restrained teal and warm orange highlights, spacious composition, clear large sans-serif English labels readable on mobile. All text ENGLISH only, no Chinese, no watermark. Use dimensional spatial teaching scenes instead of generic boxes-and-arrows flowcharts. All subject content must be scientifically consistent. Illustration only, not a fabricated experiment screenshot.\nRevision: make the instruction text exactly 'Locate the refrigerator in the room and stop beside it.' Show the same refrigerator room in RGB history and trajectory output illustration, with a compact rectangular wheeled research chassis, no humanoids. Do not invent unrelated instruction examples. No decorative slogans/books text. Maintain scientific flow: RGB history encoded by vision encoder, multimodal language backbone and SHARED language head emits APOS, OPOS, RVQ L0 L1 L2, followed by decoded metric waypoints. Histories must not be shown as ground truth future images.\nEdit: Edit this textbook illustration. Preserve the title, exact refrigerator instruction, RGB history, shared model architecture and five output token labels. Change ONLY the lower-right trajectory panel: remove ALL individual waypoint numbers and the coordinate axes/units badge. Replace the metric annotation with plain text 'Decoded local trajectory'. Keep a simple unnumbered illustrative smooth path beside the refrigerator, with label '10 SE(2) waypoints' as the decoder output specification, not numbered coordinates. Do not introduce any equations, point indices or claims that angles are meters. All text English, same dimensions and restrained palette. It is a conceptual illustration, not a measured plot.",
+    "english_only_visual_review": true,
+    "illustration_not_evidence": true
+  },
+  {
+    "id": "05-slowfast-memory",
+    "title": "SlowFast Visual Memory",
+    "file": "../../7.2_Semantic_Grounding_and_Learned_VLN/assets/images/05-slowfast-memory.jpg",
+    "tool": "built-in image_gen",
+    "version": 2,
+    "size": [
+      1672,
+      941
+    ],
+    "sha256": "d63e09baa4117448197ddea0039240a62670d0715944cf7ec8e3c5d118f0d9db",
+    "prompt": "Use case: scientific-educational. Asset: original university robotics textbook illustration, landscape 16:9, high resolution. Title text exactly \"SlowFast Visual Memory\". An elegant perspective timeline of RGB frame cards. Newest frames on right detailed and dense, middle frames selectively sampled in adjacent pairs, oldest frames sparse with coarser feature mosaics. Keep two tiny beginning anchor frames separately visible. Show pooling AFTER a small Vision Encoder motif, never resizing away raw image history. Labels only: 'Past', 'Now', 'Anchor', 'Long', 'Mid', 'Fast', 'Current', 'Post-ViT pooling'. Do not include invented quantitative rates. Style: refined light ivory background, crisp elegant scientific editorial 3D illustration, restrained teal and warm orange highlights, spacious composition, clear large sans-serif English labels readable on mobile. All text ENGLISH only, no Chinese, no watermark. Use dimensional spatial teaching scenes instead of generic boxes-and-arrows flowcharts. All subject content must be scientifically consistent. Illustration only, not a fabricated experiment screenshot.\nRevision constraints: CRITICAL: every RGB frame depicts the SAME wheeled chassis camera looking at the SAME refrigerator room at different moments. No robot arms or humanoids. Raw RGB thumbnails stay normal photos even for old frames; only separate FEATURE mosaics shown AFTER Vision Encoder vary in resolution. Flow relationship 'Vision encoder' then 'Post-ViT pooling'. No feature pooling before encoder. Keep five tier labels and small anchor strip, no decorative invented text.",
+    "english_only_visual_review": true,
+    "illustration_not_evidence": true
+  },
+  {
+    "id": "06-goal-affordance",
+    "title": "Goal vs. Affordance",
+    "file": "../../7.2_Semantic_Grounding_and_Learned_VLN/assets/images/06-goal-affordance.jpg",
+    "tool": "built-in image_gen",
+    "version": 1,
+    "size": [
+      1672,
+      941
+    ],
+    "sha256": "767d9d3d3ab18004b11cf9034c625d9993e7e550ce6288ea292ed1472dd402a9",
+    "prompt": "Use case: scientific-educational. Asset: original university robotics textbook illustration, landscape 16:9, high resolution. Title text exactly \"Goal vs. Affordance\". A clean camera-style pedagogical view of a room with gray refrigerator against back wall and open reachable floor. Green crosshair on refrigerator labeled 'OPOS: goal'. Orange crosshair on clear floor BEFORE the refrigerator labeled 'APOS: next feasible area'. Right small matching top view has the wheeled robot, fridge, and short path across floor. Points are illustrative, not measured. Separate goal object from free-space movement; no path penetrating furniture. Style: refined light ivory background, crisp elegant scientific editorial 3D illustration, restrained teal and warm orange highlights, spacious composition, clear large sans-serif English labels readable on mobile. All text ENGLISH only, no Chinese, no watermark. Use dimensional spatial teaching scenes instead of generic boxes-and-arrows flowcharts. All subject content must be scientifically consistent. Illustration only, not a fabricated experiment screenshot.",
+    "english_only_visual_review": true,
+    "illustration_not_evidence": true
+  },
+  {
+    "id": "07-rvq",
+    "title": "Residual Vector Quantization",
+    "file": "../../7.2_Semantic_Grounding_and_Learned_VLN/assets/images/07-rvq.jpg",
+    "tool": "built-in image_gen",
+    "version": 2,
+    "size": [
+      1672,
+      941
+    ],
+    "sha256": "83889421ae75f236523450dd5e7901f2c5b2ef224eaa4714a2a225dc5564cbeb",
+    "prompt": "Use case: scientific-educational. Asset: original university robotics textbook illustration, landscape 16:9, high resolution. Title text exactly \"Residual Vector Quantization\". Scientific illustration with three clean side-by-side top-view panels showing a trajectory becoming more accurate: L0 coarse arc; L0 plus L1 small residual adjustment; L0 plus L1 plus L2 fine adjustment. Final route has exactly ten tiny marked waypoints including endpoint, not counting origin. Tiny codebook tiles suggest lookup and addition. English labels: 'L0: coarse', 'L1: residual', 'L2: refinement', '3 codes', '10 waypoints'. Residual codewords are corrections summed before SE(2) integration, not independently executed routes; avoid a simple flowchart. Style: refined light ivory background, crisp elegant scientific editorial 3D illustration, restrained teal and warm orange highlights, spacious composition, clear large sans-serif English labels readable on mobile. All text ENGLISH only, no Chinese, no watermark. Use dimensional spatial teaching scenes instead of generic boxes-and-arrows flowcharts. All subject content must be scientifically consistent. Illustration only, not a fabricated experiment screenshot.\nCorrection: Do NOT write any mathematical equations. Do NOT number individual points. ALL THREE panels represent ten-point cumulative trajectories, including coarse decode; use ten unnumbered small circle markers on each curve, not four coarse points. Labels 'L0 only', 'L0 + L1', 'L0 + L1 + L2' above the panels. Residual arrows are corrections, not extra executed motion. Bottom three codebook tiles and plain English text 'Look up codes', 'Add weighted residuals', 'Restore motion deltas', 'Compose SE(2) poses'. No equation that treats weighted codeword sums as raw metric motion, no duplicate numeric labels. Clear '3 codes' and '10 waypoints' only count text, and no decorative fine print.",
+    "english_only_visual_review": true,
+    "illustration_not_evidence": true
+  },
+  {
+    "id": "08-learning-navigate",
+    "title": "Learning to Navigate",
+    "file": "../../7.2_Semantic_Grounding_and_Learned_VLN/assets/images/08-learning-navigate.jpg",
+    "tool": "built-in image_gen",
+    "version": 2,
+    "size": [
+      1672,
+      940
+    ],
+    "sha256": "b08a9ed5ad874b99167245324b0323290b9324d83e5a4c09cb199fed0e9b87e9",
+    "prompt": "Use case: scientific-educational. Asset: original university robotics textbook illustration, landscape 16:9, high resolution. Title text exactly \"Learning to Navigate\". Three editorial learning scenes along a panoramic composition: a model studying visual spatial examples, a robot imitating annotated trajectories, multiple simulated rollouts compared by a reward chart. Labels exactly: 'Embodied reasoning', 'Supervised fine-tuning', 'Online reinforcement learning', and small 'GRPO'. The same learned multimodal backbone across stages, not three separate runtime models; show data and simulator as illustrations, no claim training occurs on Jetson. Style: refined light ivory background, crisp elegant scientific editorial 3D illustration, restrained teal and warm orange highlights, spacious composition, clear large sans-serif English labels readable on mobile. All text ENGLISH only, no Chinese, no watermark. Use dimensional spatial teaching scenes instead of generic boxes-and-arrows flowcharts. All subject content must be scientifically consistent. Illustration only, not a fabricated experiment screenshot.\nRevision constraints: CRITICAL: all robots in every panel must be compact differential-drive WHEELED research chassis, no humanoids, no legs, no arms. Keep same original three-stage content and exact titles. Avoid invented jargon or decorative small text. Just three labeled educational scenes showing spatial image tasks, imitated navigation paths, and group reward comparison.",
+    "english_only_visual_review": true,
+    "illustration_not_evidence": true
+  },
+  {
+    "id": "09-motion-waypoints",
+    "title": "From Motion Deltas to Waypoints",
+    "file": "../../7.2_Semantic_Grounding_and_Learned_VLN/assets/images/09-motion-waypoints.jpg",
+    "tool": "built-in image_gen",
+    "version": 2,
+    "size": [
+      1672,
+      941
+    ],
+    "sha256": "0af13b72a6daeee5805e4c1d88be6779178f7edf07f3ce776fa532b079279214",
+    "prompt": "Use case: scientific-educational. Asset: original university robotics textbook illustration, landscape 16:9, high resolution. Title text exactly \"From Motion Deltas to Waypoints\". A mathematically correct minimal top-down three-panel spatial illustration. Origin robot facing right (+X), +Y up. First move 0.5m right to (0.5,0), then rotate CCW 90 degrees in place at that location, then move 0.5m in local forward, reaching (0.5,0.5). Draw a clear L-shaped track and pose arrows. Labels only 'Local motion', 'Pose composition', 'Cumulative waypoints', '+X', '+Y', '0.5 m', '90 deg'. Do not draw the final move to the right or add two cumulative positions. Educational schematic, not controller timing. Style: refined light ivory background, crisp elegant scientific editorial 3D illustration, restrained teal and warm orange highlights, spacious composition, clear large sans-serif English labels readable on mobile. All text ENGLISH only, no Chinese, no watermark. Use dimensional spatial teaching scenes instead of generic boxes-and-arrows flowcharts. All subject content must be scientifically consistent. Illustration only, not a fabricated experiment screenshot.\nRevision constraints: Replace misleading rotation panel: make a single precise large top-down L-shaped path with three pose glyphs at (0,0), (0.5,0), (0.5,0.5). At the corner (0.5,0) draw ONE robot body with two co-located heading arrows, rightward before and upward after, plus a CCW90deg arc. Absolutely no robot translation during the rotation. Left leg 0.5m horizontal, upper leg 0.5m vertical. Keep labels short English. Do not add extra robots above the corner to illustrate rotation.",
+    "english_only_visual_review": true,
+    "illustration_not_evidence": true
+  },
+  {
+    "id": "10-jetson-deployment",
+    "title": "Jetson Deployment",
+    "file": "../../7.3_From_Navigation_Prediction_to_Closed_Loop_Control/assets/images/10-jetson-deployment.jpg",
+    "tool": "built-in image_gen",
+    "version": 1,
+    "size": [
+      1672,
+      941
+    ],
+    "sha256": "7d9145dfbbfc0d0f64395570b3de8dd576d371ea279937c4ad83de2dfef8f5f8",
+    "prompt": "Use case: scientific-educational. Asset: original university robotics textbook illustration, landscape 16:9, high resolution. Title text exactly \"Jetson Deployment\". A polished technical tabletop scene: silver industrial reComputer Robotics J501-style edge computer with black finned top, adjacent two translucent software environment cards. Card one 'Model environment', 'Python 3.10', 'PyTorch CUDA', 'HF / BF16 / SDPA'. Card two 'Simulation environment', 'Python 3.11', 'MuJoCo', 'RGB rendering'. An English browser console displays a wheeled chassis in an apartment. Small labels '8050: model', '8091: demo'. Not a generic bare Jetson developer board, no real CAN or motor wiring. Style: refined light ivory background, crisp elegant scientific editorial 3D illustration, restrained teal and warm orange highlights, spacious composition, clear large sans-serif English labels readable on mobile. All text ENGLISH only, no Chinese, no watermark. Use dimensional spatial teaching scenes instead of generic boxes-and-arrows flowcharts. All subject content must be scientifically consistent. Illustration only, not a fabricated experiment screenshot.",
+    "english_only_visual_review": true,
+    "illustration_not_evidence": true
+  },
+  {
+    "id": "11-cad-mujoco",
+    "title": "From CAD to MuJoCo",
+    "file": "../../7.3_From_Navigation_Prediction_to_Closed_Loop_Control/assets/images/11-cad-mujoco.jpg",
+    "tool": "built-in image_gen",
+    "version": 1,
+    "size": [
+      1672,
+      941
+    ],
+    "sha256": "2aa72ec97702783796adcbc96965488773bc3416394ee9c5faa79b004f7adf46",
+    "prompt": "Use case: scientific-educational. Asset: original university robotics textbook illustration, landscape 16:9, high resolution. Title text exactly \"From CAD to MuJoCo\". A detailed exploded educational view of a real-looking compact silver rectangular research chassis: exactly two large central black drive wheels, four clearly distinct small caster assemblies one near each corner, upper electronics box and frame. Left ghosted CAD assembly, center matched colored collision primitives, right assembled chassis in simulation on a floor. Labels only 'CAD assembly', 'Visual meshes', 'Collision geometry', 'Body frame', '2 drive wheels', '4 casters', 'Virtual camera'. Avoid invented legs, extra driven wheels, impossible disconnected body. Style: refined light ivory background, crisp elegant scientific editorial 3D illustration, restrained teal and warm orange highlights, spacious composition, clear large sans-serif English labels readable on mobile. All text ENGLISH only, no Chinese, no watermark. Use dimensional spatial teaching scenes instead of generic boxes-and-arrows flowcharts. All subject content must be scientifically consistent. Illustration only, not a fabricated experiment screenshot.",
+    "english_only_visual_review": true,
+    "illustration_not_evidence": true
+  },
+  {
+    "id": "12-async-navigation",
+    "title": "Asynchronous Navigation",
+    "file": "../../7.3_From_Navigation_Prediction_to_Closed_Loop_Control/assets/images/12-async-navigation.jpg",
+    "tool": "built-in image_gen",
+    "version": 1,
+    "size": [
+      1672,
+      941
+    ],
+    "sha256": "c5a57c35e5dbbdf9a2cc574af7811bace810064eb6af163b742dc46940de52e6",
+    "prompt": "Use case: scientific-educational. Asset: original university robotics textbook illustration, landscape 16:9, high resolution. Title text exactly \"Asynchronous Navigation\". An elegant time-based scientific editorial illustration with two horizontal activity bands: upper model shows camera capture then GPU thinking with a future trajectory preview; lower simulation shows a robot continuously moving along a previously accepted teal route. At a later matching world location, a fresh orange route replaces future reference smoothly. Short English labels 'Capture pose', 'Model inference', 'Valid previous path', 'New prediction', 'Continuous tracking', 'STOP when stale'. Clearly no visual suggestion old path is valid forever; no mandatory stop during each inference, no hidden preprogrammed goal coordinates. Style: refined light ivory background, crisp elegant scientific editorial 3D illustration, restrained teal and warm orange highlights, spacious composition, clear large sans-serif English labels readable on mobile. All text ENGLISH only, no Chinese, no watermark. Use dimensional spatial teaching scenes instead of generic boxes-and-arrows flowcharts. All subject content must be scientifically consistent. Illustration only, not a fabricated experiment screenshot.",
+    "english_only_visual_review": true,
+    "illustration_not_evidence": true
+  }
+]

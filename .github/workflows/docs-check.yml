@@ -1,0 +1,69 @@
+# 文档检查：Markdown 格式 + 链接可达性
+#
+# 触发：推送到 main、任何 PR、手动触发。
+# 目的：格式或链接写坏了，在 PR 页面直接标红，不用人逐条点。
+#
+# 两个 job：
+#   1. markdownlint  —— 格式（规则见根目录 .markdownlint-cli2.jsonc）
+#   2. links         —— 链接
+#        本地文件与文内锚点：严格，坏了就拦住
+#        外部链接：只出报告不拦（第三方站点经常限流、临时挂或拒绝机器人）
+name: Docs check
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  markdownlint:
+    name: Markdown 格式
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      # 规则与忽略范围全部来自 .markdownlint-cli2.jsonc，不在这里重复
+      - name: markdownlint-cli2
+        run: npx --yes markdownlint-cli2@0.23.3
+
+  links:
+    name: 链接检查
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      # 本地相对链接、图片、以及文内 #锚点：离线检查，不访问网络，结果稳定
+      - name: 本地链接与锚点（严格）
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >-
+            --offline --no-progress --include-fragments
+            --exclude-path code/
+            'docs/**/*.md' 'hardware/**/*.md' '*.md'
+          fail: true
+
+      # 外部链接：报告写进 job summary，不阻断合并
+      - name: 外部链接（只报告）
+        if: always()
+        uses: lycheeverse/lychee-action@v2
+        with:
+          args: >-
+            --no-progress --max-retries 2 --timeout 20 --accept 200,206,429
+            --exclude-path code/
+            'docs/**/*.md' 'hardware/**/*.md' '*.md'
+          output: lychee-external.md
+          fail: false
+
+      - name: 上传外部链接报告
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: lychee-external-report
+          path: lychee-external.md
+          if-no-files-found: ignore

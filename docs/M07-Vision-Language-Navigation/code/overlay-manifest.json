@@ -1,0 +1,210 @@
+{
+  "upstream_commit": "3015508b70fb6e30bbd66701e94c9b916dcb8df8",
+  "captured_date": "2026-10-15",
+  "files": [
+    {
+      "path": "pyproject.toml",
+      "sha256": "44a050b736a9210ef2c5169c612e027c6080197999f4c04e61a585cacf78c53b",
+      "bytes": 4380,
+      "upstream_sha256": "3cd28a56c9ed63f04ac278247c858a762452256c0e5bbb8a669a3b80cb528ed7"
+    },
+    {
+      "path": "src/lightnav/inference/model.py",
+      "sha256": "0fa0174c3cdd22237c625e8826e38c3f794515f0852ecba176be09903860c36c",
+      "bytes": 15142,
+      "upstream_sha256": "e745d3f7755eba62834168ec5e1676b611d5cf47e866a256d44f13accdbe44c1"
+    },
+    {
+      "path": "src/lightnav/tracking.py",
+      "sha256": "ea4090672f87fa27284252beccb33f660844d1c4944623e009c27961f8efb220",
+      "bytes": 15761,
+      "upstream_sha256": "59de24911956821e00f80ca82d4cfad4b15ab0de4d85e85244436694ea805b69"
+    },
+    {
+      "path": "src/lightnav/serving/ws_server.py",
+      "sha256": "01501cbf9a340e1b32a4e3ec8336f7b9fdf050144b0e0a8ad8d1b36811b0c96d",
+      "bytes": 39288,
+      "upstream_sha256": "303cdb777e911087b62f6545b8da8e391c132ee9dbc9c622cb5627dc80e60701"
+    },
+    {
+      "path": "src/lightnav/serving/tracking_service.py",
+      "sha256": "b5bd96eb8de8e9c42294254392ef8b1d89fd0eb3fd98f883f59dd893ea75da35",
+      "bytes": 9766,
+      "upstream_sha256": "88a1912ce2b3ad7dede12c28f08475bbb9115756c3e5cd9b8e6018768fe17add"
+    },
+    {
+      "path": "src/lightnav/serving/strict_decode.py",
+      "sha256": "1dfda87a44f4b89af0ad762edaab26ebb1339d603a7878bc54287f458c1398b7",
+      "bytes": 2149,
+      "upstream_sha256": null
+    },
+    {
+      "path": "mujoco_demo/vln_mujoco/simulation.py",
+      "sha256": "c4939a8bdec39eaa21628b9477be865c88e58c67ef6ad1adb3f63e636d98aaf4",
+      "bytes": 17297,
+      "upstream_sha256": "cf182a7358972bf06d9e254d2a6af03ff419031e16ffd94709d74dd8fe98e057"
+    },
+    {
+      "path": "mujoco_demo/vln_mujoco/collision.py",
+      "sha256": "0f31c8359c20e60a410e60f6014871f149b4e3f7b60e54aa1592725beb83eb4c",
+      "bytes": 2875,
+      "upstream_sha256": null
+    },
+    {
+      "path": "mujoco_demo/vln_mujoco/recording.py",
+      "sha256": "2714b238a60a0dd4b5f40d2f95f2870f068f2faf5686807121dab369f002b758",
+      "bytes": 6781,
+      "upstream_sha256": null
+    },
+    {
+      "path": "mujoco_demo/vln_mujoco/chassis_drive.py",
+      "sha256": "2eac89fa53caa8f3445b5acd96c74e0b640999ebf195573d20155c757f553189",
+      "bytes": 8403,
+      "upstream_sha256": null
+    },
+    {
+      "path": "mujoco_demo/vln_mujoco/robots/dm_h65.py",
+      "sha256": "115e4c624dc392ef388cec19df1459e24055ade84f98c34d30ede9d8d3ea4b8f",
+      "bytes": 15004,
+      "upstream_sha256": null
+    },
+    {
+      "path": "mujoco_demo/vln_mujoco/robots/turtlebot.py",
+      "sha256": "f690e29e4db7d66f1ca9604387409e3b65be61c06e010856890bcd6411fe8f10",
+      "bytes": 7813,
+      "upstream_sha256": "8a30c6b4a835edca4d3bdf1fd8ba4eee6da1fd9575b1e0fbe60f9dc95ecb21e8"
+    },
+    {
+      "path": "mujoco_demo/vln_mujoco/dm_h65_history.py",
+      "sha256": "7cbb38e560cdf705790da3531680d670ce2fa217a218af5e94ce1c0843b20719",
+      "bytes": 9765,
+      "upstream_sha256": null
+    },
+    {
+      "path": "mujoco_demo/vln_mujoco/sim_demo_core.py",
+      "sha256": "f268c297351e528772365c143c55ca76f72b6da197f79f1eac7a67951f0550b3",
+      "bytes": 8462,
+      "upstream_sha256": null
+    },
+    {
+      "path": "mujoco_demo/vln_mujoco/sim_demo_replan.py",
+      "sha256": "6bfe2dd99c398e1fa1cb6351dd8b9c09113a0f57b2a21a89bcd71650fad661ff",
+      "bytes": 6530,
+      "upstream_sha256": null
+    },
+    {
+      "path": "mujoco_demo/vln_mujoco/sim_demo_runtime.py",
+      "sha256": "bb1b70b6f73539caaeca844b607c565d4ae3e43aeb43afb383548829ef6abd1b",
+      "bytes": 52928,
+      "upstream_sha256": null
+    },
+    {
+      "path": "mujoco_demo/scripts/sim_demo_main.py",
+      "sha256": "8c33a1c92202f8ea522bf2b53251583ffaeb968254986af8ce877161db6c07ac",
+      "bytes": 1101,
+      "upstream_sha256": null
+    },
+    {
+      "path": "scripts/jetson_sim_demo.py",
+      "sha256": "a112c2684258752be47759e96565197cde7fb22f1c161dbecb36223437602832",
+      "bytes": 3719,
+      "upstream_sha256": null
+    },
+    {
+      "path": "scripts/start_lightnav_web.sh",
+      "sha256": "ced944630641c9369483bb0614a0254f4ab770e8cfb780213a7e882b190e4e4a",
+      "bytes": 3084,
+      "upstream_sha256": null
+    },
+    {
+      "path": "scripts/stop_lightnav_web.sh",
+      "sha256": "4fbe16d25b4fb7417d5b37f6ee54f15d9174c60d768c8c90f893e2812bf7c64c",
+      "bytes": 148,
+      "upstream_sha256": null
+    },
+    {
+      "path": "scripts/jetson_lightnav.py",
+      "sha256": "6e465be49e7ae4cefd6c68a3621c68bf00f3c1c4a62dbf6cc58fe4684832f9eb",
+      "bytes": 15626,
+      "upstream_sha256": null
+    },
+    {
+      "path": "scripts/jetson_lightnav.sh",
+      "sha256": "50021bef062b040d2df1f4a3f9885d3f7f41384f57072349388ad051882ba417",
+      "bytes": 147,
+      "upstream_sha256": null
+    },
+    {
+      "path": "scripts/jetson_lightnav_py310.py",
+      "sha256": "8870cbedc043e03aa9ffabcca5b76d2f64105c7e1306716e108335dac5d9daf7",
+      "bytes": 7735,
+      "upstream_sha256": null
+    },
+    {
+      "path": "scripts/jetson_lightnav_download.py",
+      "sha256": "1b32f6c74dc3190df2976931114f260fc2ec171eefbabde4811dc2b8dd88b996",
+      "bytes": 3045,
+      "upstream_sha256": null
+    },
+    {
+      "path": "scripts/jetson_lightnav_gpu_check.py",
+      "sha256": "74f3393056b3f5fce1d6eb136411117b9fcb8ce9c088a796f4eb4af00da83851",
+      "bytes": 6973,
+      "upstream_sha256": null
+    },
+    {
+      "path": "scripts/jetson_lightnav_validate.py",
+      "sha256": "41978a2d8bebd30f8ca11af9d7e0101ba269ded187f0ad3464c7e7accd81eb85",
+      "bytes": 36348,
+      "upstream_sha256": null
+    },
+    {
+      "path": "scripts/jetson_cusparselt_wheel.py",
+      "sha256": "3bf51f073e74624ef2dfa6db2b24d3c650c7fa23c05f080930eded2c69985779",
+      "bytes": 5467,
+      "upstream_sha256": null
+    },
+    {
+      "path": "mujoco_demo/vln_mujoco/sim_demo_web/style.css",
+      "sha256": "b86f5d15b238e298b9a4487053faef15f46347876b1a7be1cd18aed07c97baee",
+      "bytes": 13363,
+      "upstream_sha256": null
+    },
+    {
+      "path": "mujoco_demo/vln_mujoco/sim_demo_web/app.js",
+      "sha256": "e33010650a2c331fd09a85d48cc0dc7bfa9cca0c9722e4eecb0ca1b3afc6b82d",
+      "bytes": 32137,
+      "upstream_sha256": null
+    },
+    {
+      "path": "mujoco_demo/vln_mujoco/sim_demo_web/index.html",
+      "sha256": "4a1086d78683f127c6235101e54c0891ea83c114e087d6986bda9f48e8b29a3c",
+      "bytes": 6197,
+      "upstream_sha256": null
+    },
+    {
+      "path": "mujoco_demo/tests/test_sim_demo.py",
+      "sha256": "9c36db4458d1fc8c9082f04c2feca962b4a4789fdf26422b0d0822bbc9f04966",
+      "bytes": 3408,
+      "upstream_sha256": null
+    },
+    {
+      "path": "mujoco_demo/tests/test_sim_demo_lifecycle.py",
+      "sha256": "2a3c248c3e407d5cd56fd98e826ee37c63debdc1ccccd85b37fb5d19f62f1615",
+      "bytes": 16420,
+      "upstream_sha256": null
+    },
+    {
+      "path": "mujoco_demo/tests/test_sim_demo_replan.py",
+      "sha256": "ab6170488025ae68dbc7a0164b9247d954137fedaaa584922884fbf096b86cb0",
+      "bytes": 3249,
+      "upstream_sha256": null
+    },
+    {
+      "path": "mujoco_demo/tests/sim_demo_overlay.test.cjs",
+      "sha256": "0c6cb22488895b21904f917203f626a18b2bea43a2c8648bbe0e2f5fc097c90a",
+      "bytes": 2929,
+      "upstream_sha256": null
+    }
+  ]
+}

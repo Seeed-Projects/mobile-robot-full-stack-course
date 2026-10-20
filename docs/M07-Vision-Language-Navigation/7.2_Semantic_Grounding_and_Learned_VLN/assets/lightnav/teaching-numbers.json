@@ -1,0 +1,211 @@
+{
+  "point_grid": {
+    "w": 48,
+    "h": 27,
+    "cells": 1296,
+    "cell_px_on_demo_frame": [
+      10.0,
+      10.0
+    ]
+  },
+  "pointing_example": {
+    "opos_pixel": [
+      245,
+      105
+    ],
+    "opos_id": 505,
+    "apos_pixel": [
+      215,
+      235
+    ],
+    "apos_id": 1126,
+    "row": 10.0,
+    "col": 24.0
+  },
+  "special_ids": {
+    "apos": [
+      1297,
+      1298,
+      1299
+    ],
+    "apos_vocab": 1300,
+    "opos_vocab": 1297
+  },
+  "rvq": {
+    "codes": [
+      14,
+      42,
+      30
+    ],
+    "tokens": [
+      "<act_l0_14>",
+      "<act_l1_42>",
+      "<act_l2_30>"
+    ],
+    "levels": [
+      256,
+      256,
+      256
+    ],
+    "horizon": 10,
+    "combinations": 16777216,
+    "refinement": [
+      {
+        "levels": "l0",
+        "mean_position_gap_m": 0.1115,
+        "mean_heading_gap_rad": 0.1542
+      },
+      {
+        "levels": "l0+l1",
+        "mean_position_gap_m": 0.0356,
+        "mean_heading_gap_rad": 0.0328
+      },
+      {
+        "levels": "l0+l1+l2",
+        "mean_position_gap_m": 0.0,
+        "mean_heading_gap_rad": 0.0
+      }
+    ],
+    "level_stats": [
+      {
+        "level": 0,
+        "entries": 256,
+        "per_step_xy_mean_m": 0.0892,
+        "per_step_xy_p90_m": 0.1505,
+        "per_step_heading_mean_rad": 0.0809,
+        "chunk_net_mean_m": 0.8757,
+        "chunk_net_median_m": 0.8834,
+        "chunk_net_p90_m": 1.4384
+      },
+      {
+        "level": 1,
+        "entries": 256,
+        "per_step_xy_mean_m": 0.007,
+        "per_step_xy_p90_m": 0.0172,
+        "per_step_heading_mean_rad": 0.026,
+        "chunk_net_mean_m": 0.0537,
+        "chunk_net_median_m": 0.0262,
+        "chunk_net_p90_m": 0.1532
+      },
+      {
+        "level": 2,
+        "entries": 256,
+        "per_step_xy_mean_m": 0.0042,
+        "per_step_xy_p90_m": 0.0106,
+        "per_step_heading_mean_rad": 0.0136,
+        "chunk_net_mean_m": 0.0253,
+        "chunk_net_median_m": 0.0107,
+        "chunk_net_p90_m": 0.0654
+      }
+    ],
+    "stop": {
+      "l0": 6,
+      "codes": [
+        6,
+        122,
+        174
+      ],
+      "codeword_abs_max": 0.001052105,
+      "codeword_net_m": 0.000303514,
+      "codeword_motion_deltas": [
+        [
+          0.001052,
+          1e-06,
+          3.3e-05
+        ],
+        [
+          -0.000196,
+          1e-06,
+          0.000133
+        ],
+        [
+          -0.000333,
+          0.0,
+          -1.1e-05
+        ],
+        [
+          -0.000292,
+          -0.0,
+          -2e-06
+        ],
+        [
+          -0.000195,
+          0.0,
+          -2e-06
+        ],
+        [
+          -0.00013,
+          0.0,
+          0.0
+        ],
+        [
+          -8.7e-05,
+          0.0,
+          0.0
+        ],
+        [
+          -5.8e-05,
+          0.0,
+          0.0
+        ],
+        [
+          -3.9e-05,
+          0.0,
+          0.0
+        ],
+        [
+          -2.6e-05,
+          0.0,
+          0.0
+        ]
+      ]
+    }
+  },
+  "se2": {
+    "worked_example": [
+      [
+        0,
+        0,
+        0
+      ],
+      [
+        0.5,
+        0,
+        0
+      ],
+      [
+        0.5,
+        0,
+        1.5707963267948966
+      ],
+      [
+        0.5,
+        0.5,
+        1.5707963267948966
+      ]
+    ],
+    "straight_ten_steps": {
+      "step_m": 0.15,
+      "total_m": 1.5
+    }
+  },
+  "training": {
+    "grpo_rewards": [
+      0,
+      1,
+      2
+    ],
+    "grpo_advantages": [
+      -1.22,
+      0.0,
+      1.22
+    ],
+    "ce_example": {
+      "p_before": 0.2,
+      "p_after": 0.8,
+      "loss_before": 1.609,
+      "loss_after": 0.223
+    }
+  },
+  "teaching_only": true
+}

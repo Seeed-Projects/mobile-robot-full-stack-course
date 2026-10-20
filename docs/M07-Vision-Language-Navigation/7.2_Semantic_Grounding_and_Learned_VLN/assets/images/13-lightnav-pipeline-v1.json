@@ -1,0 +1,22 @@
+{
+  "title": "LightNav-0: From Vision and Language to a Path",
+  "tool": "built-in image_gen",
+  "teaching_only": true,
+  "generated_date": "2026-10-20",
+  "version": "v1",
+  "dimensions": [
+    1672,
+    940
+  ],
+  "source": "/Users/chenzibo/.codex/generated_images/01a11ab3-b831-7e70-8edc-5f6265a9d8a1/exec-fd480038-be25-4d11-a1fd-4c25c23483a3.png",
+  "course_asset": "7.2_Semantic_Grounding_and_Learned_VLN/assets/images/13-lightnav-pipeline-v1.png",
+  "sha256": "5f1c266a8b78868033f74ac82188fededb53ec7da0a3f8cb0ea83903d4b840e1",
+  "prompt": "Use case: scientific-educational.\nCreate one original polished educational infographic for a robotics textbook, landscape 16:9, high resolution. All text in the artwork must be ENGLISH ONLY. Off-white background, deep navy typography, restrained teal, blue and orange accents, subtle dimensional illustrations, generous white space and big easily readable labels. Clean professional editorial quality rather than a complicated engineering flowchart.\n\nTitle at the top: \"LightNav-0: From Vision and Language to a Path\"\n\nExplain ONE prediction, in a clear left-to-right four-column composition. Scientific data-flow accuracy is essential.\n\nLEFT, heading \"INPUT\": two compact illustrated items: a speech card with the exact short instruction \"Find the refrigerator.\" and below it three time-ordered thumbnails of a wheeled robot's room-camera views labelled \"Visual History\". Show a refrigerator beyond a doorway in a tasteful simple room. A small timeline arrow goes from the earlier view to the newest view.\n\nSECOND, heading \"MODEL\": one elegant central model module labelled \"LightNav-0\", with smaller label \"Vision-Language Model\". A single right-facing arrow leads from both input items into this module. No hidden map or target coordinates.\n\nTHIRD, heading \"5 OUTPUT TOKENS\": show EXACTLY FIVE distinct token chips in a single row, in this exact order: \"APOS\", \"OPOS\", \"L0\", \"L1\", \"L2\". Group the first two chips visually with orange and teal, group the last three chips with blue.\nAbove the chips, a room-camera inset titled \"Image Pointing\" illustrates APOS as an orange point on traversable doorway floor and OPOS as a teal point on the refrigerator. Use exactly two short labelled connector lines linking ONLY APOS and OPOS chips to their corresponding points. These are image pointers, not 3D coordinates.\nBelow L0 L1 L2, a bracket groups EXACTLY THESE THREE chips with caption \"3 Action Codes\". The three codes jointly represent ONE path, not three sequential paths.\n\nRIGHT, heading \"PATH DECODING\": a clear arrow from ONLY the three action chips goes to one compact \"RVQ Decoder\" block, then a rightward or downward arrow to a spacious small plot titled \"10 Local Waypoints\". Draw one smooth forward-curving path with exactly TEN distinct teal waypoint dots and small orientation ticks. A separate origin robot-arrow glyph is not counted as a waypoint. Path lies in a minimal local forward-left coordinate plane; do not label physical units or time.\nDo NOT connect APOS or OPOS directly into the RVQ decoder. Do NOT convert an OPOS image point directly into a 3D path.\nUnder the decoder, a concise caption \"Codes to motion to poses\" is allowed.\n\nFooter in small but legible type: \"Illustrative example — not a recorded model prediction\"\nNo Chinese text. No equations, code listings, tiny paragraphs, performance claims, branding logos, humanoids, biped robots or MicroDuck. Use only a small low wheeled chassis where a robot is needed.\nPrioritize instantly understandable data flow, accurate spelling, exactly two image pointers plus three action codes and ten final waypoint dots. Render a cohesive original infographic, not a screenshot.",
+  "checks": {
+    "english_labels": true,
+    "image_pointing_channels": 2,
+    "action_code_channels": 3,
+    "local_waypoint_dots": 10,
+    "not_runtime_evidence": true
+  }
+}

@@ -12,7 +12,7 @@ GMSL 与 CSI（MIPI CSI-2）并非相互替代的竞争关系，而是处于不�
 
 ![CSI 与 GMSL 对比](./images/DDeLbmDJqoh3IpxrMptcQEo4nNh.png)
 
-## 硬件清单：
+## 硬件清单
 
 - reComputer Robotics J501 / reComputer mini J501 + GMSL 扩展板
 - [SG3S-ISX031C-GMSL2F](https://www.seeedstudio.com/SG3S-ISX031C-GMSL2F-p-6245.html) / SG8S-AR0820 GMSL2 相机

@@ -1,0 +1,121 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "RVQ解码：内部增量到累计路径",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "animation": "none"
+  },
+  "lanes": [
+    {
+      "id": "row0",
+      "label": "输入表示"
+    },
+    {
+      "id": "row1",
+      "label": "特征还原"
+    },
+    {
+      "id": "row2",
+      "label": "路径输出"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "n0",
+      "lane": "row0",
+      "col": 0,
+      "type": "backend",
+      "label": "三个索引",
+      "sublabel": "187 / 39 / 97",
+      "width": 210,
+      "height": 100
+    },
+    {
+      "id": "n1",
+      "lane": "row0",
+      "col": 1,
+      "type": "backend",
+      "label": "三本码本查表",
+      "sublabel": "每层256个码字",
+      "width": 210,
+      "height": 100
+    },
+    {
+      "id": "n2",
+      "lane": "row1",
+      "col": 1,
+      "type": "backend",
+      "label": "码字相加",
+      "sublabel": "加权差分特征",
+      "width": 210,
+      "height": 100
+    },
+    {
+      "id": "n3",
+      "lane": "row1",
+      "col": 2,
+      "type": "backend",
+      "label": "权重还原",
+      "sublabel": "米与弧度尺度",
+      "width": 210,
+      "height": 100
+    },
+    {
+      "id": "n4",
+      "lane": "row2",
+      "col": 2,
+      "type": "backend",
+      "label": "SE(2)复合积分",
+      "sublabel": "上一步局部增量",
+      "width": 210,
+      "height": 100
+    },
+    {
+      "id": "n5",
+      "lane": "row2",
+      "col": 3,
+      "type": "backend",
+      "label": "十个累计位姿",
+      "sublabel": "下游不再积分",
+      "width": 210,
+      "height": 100
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "n0",
+      "to": "n1"
+    },
+    {
+      "id": "e1",
+      "from": "n1",
+      "to": "n2"
+    },
+    {
+      "id": "e2",
+      "from": "n2",
+      "to": "n3"
+    },
+    {
+      "id": "e3",
+      "from": "n3",
+      "to": "n4"
+    },
+    {
+      "id": "e4",
+      "from": "n4",
+      "to": "n5"
+    }
+  ],
+  "mainPath": [
+    "n0",
+    "n1",
+    "n2",
+    "n3",
+    "n4",
+    "n5"
+  ]
+}

@@ -1,0 +1,26 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 550" role="img"><title>采集时的局部累计路径 → 固定世界路径</title>
+<style>text{font-family:system-ui,"PingFang SC","Microsoft YaHei",sans-serif} .path{fill:none;stroke-linejoin:round;stroke-linecap:round}</style>
+<rect width="1100" height="550" rx="16" fill="#f8fafc"/>
+<text x="35" y="45" font-size="25" fill="#0f172a" text-anchor="start">采集时的局部累计路径 → 固定世界路径</text>
+<rect x="30" y="90" width="485" height="340" rx="12" fill="white" stroke="#cbd5e1"/>
+<text x="50" y="125" font-size="20" fill="#334155" text-anchor="start">局部坐标：x前向、y左向</text>
+<rect x="585" y="90" width="485" height="340" rx="12" fill="white" stroke="#cbd5e1"/>
+<text x="605" y="125" font-size="20" fill="#334155" text-anchor="start">世界坐标：使用采集时根位姿</text>
+<line x1="95" y1="300" x2="455" y2="300" stroke="#64748b" stroke-width="2" stroke-dasharray=""/>
+<line x1="95" y1="365" x2="95" y2="175" stroke="#64748b" stroke-width="2" stroke-dasharray=""/>
+<text x="450" y="330" font-size="18" fill="#334155" text-anchor="start">x / m</text>
+<text x="105" y="175" font-size="18" fill="#334155" text-anchor="start">y / m</text>
+<polyline class="path" points="95.000,300.000 131.842,300.050 168.612,300.087 205.431,300.167 242.143,300.267 278.899,300.361 315.147,300.160 351.923,299.739 388.735,298.989 425.086,298.596 417.422,298.878" stroke="#2563eb" stroke-width="3" stroke-dasharray=""/>
+<line x1="650" y1="360" x2="1025" y2="360" stroke="#64748b" stroke-width="2" stroke-dasharray=""/>
+<line x1="650" y1="360" x2="650" y2="165" stroke="#64748b" stroke-width="2" stroke-dasharray=""/>
+<text x="995" y="390" font-size="18" fill="#334155" text-anchor="start">X / m</text>
+<text x="660" y="170" font-size="18" fill="#334155" text-anchor="start">Y / m</text>
+<polyline class="path" points="1029.750,322.750 993.894,314.281 958.107,305.841 922.280,297.348 886.563,288.859 850.802,280.368 815.467,272.279 779.568,264.283 743.559,256.599 708.080,248.673 715.606,250.151" stroke="#2563eb" stroke-width="3" stroke-dasharray=""/>
+<circle cx="95" cy="300" r="6" fill="#0f172a"/>
+<circle cx="1029.75" cy="322.74999999999983" r="6" fill="#0f172a"/>
+<text x="1019.75" y="287.74999999999983" font-size="17" fill="#0f172a" text-anchor="end">根位姿</text>
+<circle cx="1008.2836499379896" cy="317.7103259018837" r="5" fill="white" stroke="#f97316" stroke-width="2"/>
+<text x="745" y="400" font-size="16" fill="#c2410c" text-anchor="start">橙圈为相机；不能替代路径原点</text>
+<text x="35" y="475" font-size="20" fill="#334155" text-anchor="start">十点已经累计；下游只做一次刚体变换，不再次逐点积分。</text>
+<text x="35" y="510" font-size="18" fill="#334155" text-anchor="start">首点世界坐标：(6.853650, 15.284567, 2.909562)</text>
+</svg>

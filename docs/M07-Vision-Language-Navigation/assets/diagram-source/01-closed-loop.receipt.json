@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/Users/chenzibo/data/project/Jetson/docs/mobile-robot-full-stack-course/docs/M07-Vision-Language-Navigation/assets/diagram-source/01-closed-loop.json",
+  "output": "/Users/chenzibo/data/project/Jetson/docs/mobile-robot-full-stack-course/docs/M07-Vision-Language-Navigation/assets/01-closed-loop.html",
+  "specification": {
+    "sha256": "438e28adbb746148ebea23caf66e7e4202f994cd33433cd6185e8a936b1ba340",
+    "bytes": 2464
+  },
+  "artifact": {
+    "sha256": "55684080814dece9cf37220514bd1ec5df466698080f412061766afaa1e97c6c",
+    "bytes": 705505
+  },
+  "validation": {
+    "checksPassed": 9,
+    "checkCount": 9,
+    "compositionProfile": "showcase",
+    "compositionStatus": "pass",
+    "errors": 0,
+    "warnings": 0
+  }
+}

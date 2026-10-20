@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/Users/chenzibo/data/project/Jetson/docs/mobile-robot-full-stack-course/docs/M07-Vision-Language-Navigation/assets/diagram-source/03-rvq.json",
+  "output": "/Users/chenzibo/data/project/Jetson/docs/mobile-robot-full-stack-course/docs/M07-Vision-Language-Navigation/assets/03-rvq.html",
+  "specification": {
+    "sha256": "57914a84e564e5a8a3f0f54187ff40330b07523cb830fca5ad30d84371c61ef6",
+    "bytes": 2115
+  },
+  "artifact": {
+    "sha256": "002b5aab443c69f6636530e950a6a0e0a7b5bd19e36238c3a9d169d6a8cafdc9",
+    "bytes": 702418
+  },
+  "validation": {
+    "checksPassed": 9,
+    "checkCount": 9,
+    "compositionProfile": "showcase",
+    "compositionStatus": "pass",
+    "errors": 0,
+    "warnings": 0
+  }
+}

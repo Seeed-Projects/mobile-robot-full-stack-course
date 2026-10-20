@@ -33,7 +33,7 @@ This section introduces what ROS 2 and DDS are and how they work together; see t
 
 ROS 2 uses DDS (Data Distribution Service) as its underlying communication middleware by default. On the Jetson platform, CycloneDDS is used by default (it performs better than the default FastDDS).
 
-![ROS 2 + DDS communication architecture diagram](images/1.4.1.2_dds_architecture.png)
+![ROS 2 + DDS communication architecture diagram](images/1.4.1_dds_architecture.png)
 
 #### (3) Communication Model Comparison
 
@@ -64,11 +64,11 @@ Key interactive choices during installation:
 3. Select `1` (desktop-full, including visualization tools such as rviz and rqt)
 4. Wait for the installation to finish (about 10-20 minutes, depending on the network)
 
-![FishROS installation - Step 1](images/1.4.2.1_fishros_install_step1.png)
+![FishROS installation - Step 1](images/1.4.2_fishros_install_step1.png)
 
-![FishROS installation - Step 2](images/1.4.2.1_fishros_install_step2.png)
+![FishROS installation - Step 2](images/1.4.2_fishros_install_step2.png)
 
-![FishROS installation - Step 3](images/1.4.2.1_fishros_install_step3.png)
+![FishROS installation - Step 3](images/1.4.2_fishros_install_step3.png)
 
 ```bash
 # [J501 local terminal] Verify the installation
@@ -76,7 +76,7 @@ source /opt/ros/humble/setup.bash
 ros2 --version 2>/dev/null || ros2 doctor --report | grep "distribution"
 ```
 
-![Installation complete and verified](images/1.4.2.1_fishros_install_done.png)
+![Installation complete and verified](images/1.4.2_fishros_install_done.png)
 
 **Actual output:**
 
@@ -136,7 +136,7 @@ echo $ROS_DISTRO
 echo $AMENT_PREFIX_PATH | tr ":" "\n" | head -3
 ```
 
-![Verifying the ROS 2 environment variables](images/1.4.2.3_verify_env.png)
+![Verifying the ROS 2 environment variables](images/1.4.2_verify_env.png)
 
 **Actual output:**
 
@@ -166,7 +166,7 @@ Cross-machine communication requires ROS 2 Humble on the Host PC as well. The in
 wget http://fishros.com/install -O fishros && . fishros
 ```
 
-![ROS 2 successfully installed on the Host PC](images/1.4.2.4_hostpc_ros2_installed.png)
+![ROS 2 successfully installed on the Host PC](images/1.4.2_hostpc_ros2_installed.png)
 
 ```bash
 # Configure the environment variables
@@ -237,7 +237,7 @@ ros2 pkg create --build-type ament_python j501_robot \
     --dependencies rclpy std_msgs
 ```
 
-![Creating a ROS 2 Python package](images/1.4.4.1_create_pkg.png)
+![Creating a ROS 2 Python package](images/1.4.4_create_pkg.png)
 
 **Actual output:**
 
@@ -713,7 +713,7 @@ ROS 2's distributed communication is based on DDS. Nodes on different hosts disc
 
 #### (1) Network Topology
 
-![ROS 2 cross-machine communication topology diagram](images/1.4.5.1_network_topology.png)
+![ROS 2 cross-machine communication topology diagram](images/1.4.5_network_topology.png)
 
 #### (2) Syncing the Code to the Host PC
 
@@ -757,7 +757,7 @@ source ~/ros2_ws/install/setup.bash
 ros2 run j501_robot console
 ```
 
-![Host PC command console started](images/1.4.5.3_hostpc_console.png)
+![Host PC command console started](images/1.4.5_hostpc_console.png)
 
 **Actual output (the Host PC automatically receives the J501 status):**
 

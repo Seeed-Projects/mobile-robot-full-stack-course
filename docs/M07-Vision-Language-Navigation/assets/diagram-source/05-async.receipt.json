@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "ok": true,
+  "command": "deliver",
+  "type": "sequence",
+  "input": "/Users/chenzibo/data/project/Jetson/docs/mobile-robot-full-stack-course/docs/M07-Vision-Language-Navigation/assets/diagram-source/05-async.json",
+  "output": "/Users/chenzibo/data/project/Jetson/docs/mobile-robot-full-stack-course/docs/M07-Vision-Language-Navigation/assets/05-async.html",
+  "specification": {
+    "sha256": "2d5e45b4faecec4a83f9a736b035f90842c371406c739aefed66a03ed79c569d",
+    "bytes": 2249
+  },
+  "artifact": {
+    "sha256": "7f078b59516a01c1d61eb8e146e5300589917f0cf4a73695e27b91f154eef40b",
+    "bytes": 706013
+  },
+  "validation": {
+    "checksPassed": 9,
+    "checkCount": 9,
+    "compositionProfile": "showcase",
+    "compositionStatus": "pass",
+    "errors": 0,
+    "warnings": 0
+  }
+}

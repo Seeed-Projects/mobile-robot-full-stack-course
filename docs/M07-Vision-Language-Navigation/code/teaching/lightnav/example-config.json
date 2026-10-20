@@ -1,0 +1,137 @@
+{
+  "upstream_commit": "3015508b70fb6e30bbd66701e94c9b916dcb8df8",
+  "model_revision": "826dc5fbfa37afa8293d2e336d329b6ffc0bfb64",
+  "local_source_commit": "86ee70c84ba447687f64f400748eb391f7601f14",
+  "reference_sha256": "c42ef699c88af2135952730965193dbbfba319ae0c579e7e3c8a25d2227c64bf",
+  "rvq_example_sha256": "f15aed948fcb5ae5d7209795b1bb6dd50cc1b731457b946b317a88267e845e54",
+  "upstream_file_sha256": {
+    "src/lightnav/vln_utils.py": "3d2e35fbe793497f6043a45d53a9d0a7b9498e07b10d4458df4832a04b5b8bec",
+    "src/lightnav/traj_vocab.py": "84c83780ba893d468e7529f5de44223f5f2aa44c099eb46fac3edb1786c14f0d",
+    "src/lightnav/prompts.py": "9968adadffeed91327edbe2c04bd355171c32d51b2abad63755e24009aa0fd41"
+  },
+  "point_grid_w": 48,
+  "point_grid_h": 27,
+  "point_cells": 1296,
+  "apos_vocab_size": 1300,
+  "opos_vocab_size": 1297,
+  "apos_sentinel_offsets": {
+    "rotl": 1,
+    "rotr": 2,
+    "stop": 3
+  },
+  "demo_frame_wh": [
+    480,
+    270
+  ],
+  "demo_pixel": [
+    245,
+    105
+  ],
+  "demo_opos_id": 505,
+  "demo_apos_pixel": [
+    215,
+    235
+  ],
+  "demo_apos_id": 1126,
+  "demo_tokens": [
+    "<apos_1126>",
+    "<opos_505>",
+    "<act_l0_14>",
+    "<act_l1_42>",
+    "<act_l2_30>"
+  ],
+  "demo_timestamps": [
+    "<0.50 seconds>",
+    "<0.25 seconds>",
+    "<0.00 seconds>"
+  ],
+  "rvq_bundle": {
+    "horizon": 10,
+    "feature_dim": 30,
+    "levels": [
+      256,
+      256,
+      256
+    ],
+    "representation": "se2_diff",
+    "feature_space": "weighted_diff",
+    "objective": "ade_v1",
+    "heading_weight": 0.3,
+    "distance_metric": "weighted_diff_euclid",
+    "stop_l0": 6,
+    "stop_codes": [
+      6,
+      122,
+      174
+    ],
+    "manifest_sha256": "00d77ae028edf59e0ce68b49122dd0a60da527f48508f5ee335a580993a12864",
+    "codebook_sha256": [
+      "daaea83b3ae4637a042d1f61b34a687870d735ef709689e02c1e43d39aab6e16",
+      "dfde603f96b333cda4c676613ac2f772cec3906a8dbbb7a7415bfeb4aa04e4bf",
+      "2a7b186159bc9375997535008028930efe09c9b239a522639aff6febfac6c51c"
+    ],
+    "jacobian_weights_sha256": "43872af8deba9986c40da98b8511f5b94b3353a053132b22f7a190b2d7cf9feb"
+  },
+  "scene_atlas_sha256": "7ab2a52184169d9cfdb687957a029712202973c15fe5a321d307df6d573d4cca",
+  "scene_crops": [
+    [
+      0,
+      0,
+      830,
+      464
+    ],
+    [
+      842,
+      0,
+      1672,
+      464
+    ],
+    [
+      0,
+      476,
+      830,
+      941
+    ],
+    [
+      842,
+      476,
+      1672,
+      941
+    ]
+  ],
+  "slowfast_example": {
+    "history_frames": 240,
+    "latest_frame": 239,
+    "selected_frames": 82,
+    "video_fps": 4
+  },
+  "grpo_rewards": [
+    0,
+    1,
+    2
+  ],
+  "grpo_advantages": [
+    -1.22,
+    0.0,
+    1.22
+  ],
+  "ce_example": {
+    "p_before": 0.2,
+    "p_after": 0.8,
+    "loss_before": 1.609,
+    "loss_after": 0.223
+  },
+  "se2_worked_example": {
+    "straight_step_m": 0.15,
+    "straight_steps": 10,
+    "turn_example": "0.5 m forward, turn left 90 deg in place, 0.5 m forward"
+  },
+  "figure_numbers": {
+    "decision_loop": "7.2-1a/1b",
+    "pointing_grid": "7.2-3a/3b",
+    "rvq_residual": "7.2-4a/4b",
+    "se2_compose": "7.2-5a/5b",
+    "training_stages": "7.2-6a/6b"
+  },
+  "teaching_only": true
+}

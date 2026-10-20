@@ -1,0 +1,13 @@
+{
+  "status": "PASS",
+  "numerical_record": "/home/seeed/workspace/LightNav-0/.jetson-lightnav/py310/evidence/gate1-numerical/result.json",
+  "profiling_record": "/home/seeed/workspace/LightNav-0/.jetson-lightnav/py310/evidence/gate1-privileged/result.json",
+  "profiling_sha256": "05732631604b765ac5e522b98c43d897e36f967c6bbd44e8b8f5bcf48960b02e",
+  "trace_sha256": "a52ed390f08fb0a868c4bc8cf01bee09dc7349a8daf363ef9382bc147af3b826",
+  "cuda_kernel_count": 33,
+  "wheel_sha256": {
+    "torch-2.7.0-cp310-cp310-linux_aarch64.whl": "6eff643c0a7acda92734cc798338f733ff35c7df1a4434576f5ff7c66fc97319",
+    "torchvision-0.22.0-cp310-cp310-linux_aarch64.whl": "daabff3a0725996886b92e4b5dd143f5750ef4b181b5c7d01371a9185e8f0402"
+  },
+  "profiling_used_temporary_root_process": true
+}

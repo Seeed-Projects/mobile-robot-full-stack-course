@@ -1,0 +1,139 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "底盘视觉语言导航闭环",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "animation": "none",
+    "viewBox": [
+      1120,
+      690
+    ]
+  },
+  "components": [
+    {
+      "id": "camera",
+      "label": "真实相机观察",
+      "sublabel": "480×270 / 4Hz历史",
+      "type": "external",
+      "pos": [
+        60,
+        100
+      ],
+      "size": [
+        230,
+        100
+      ]
+    },
+    {
+      "id": "model",
+      "label": "LightNav-0",
+      "sublabel": "指令＋历史 / HF CUDA",
+      "type": "backend",
+      "pos": [
+        420,
+        100
+      ],
+      "size": [
+        230,
+        100
+      ]
+    },
+    {
+      "id": "decode",
+      "label": "RVQ解码",
+      "sublabel": "原始token → 累计十点",
+      "type": "backend",
+      "pos": [
+        780,
+        100
+      ],
+      "size": [
+        230,
+        100
+      ]
+    },
+    {
+      "id": "check",
+      "label": "完整路径预检",
+      "sublabel": "必要时有限局部修复",
+      "type": "security",
+      "pos": [
+        780,
+        420
+      ],
+      "size": [
+        230,
+        100
+      ]
+    },
+    {
+      "id": "track",
+      "label": "几何前瞻跟踪",
+      "sublabel": "有效旧路可在推理时继续",
+      "type": "backend",
+      "pos": [
+        420,
+        420
+      ],
+      "size": [
+        230,
+        100
+      ]
+    },
+    {
+      "id": "state",
+      "label": "MuJoCo底盘状态",
+      "sublabel": "差速运动学 / 新位姿",
+      "type": "external",
+      "pos": [
+        60,
+        420
+      ],
+      "size": [
+        230,
+        100
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "camera-model",
+      "from": "camera",
+      "to": "model",
+      "label": "顺序历史"
+    },
+    {
+      "id": "model-decode",
+      "from": "model",
+      "to": "decode",
+      "label": "原始输出"
+    },
+    {
+      "id": "decode-check",
+      "from": "decode",
+      "to": "check",
+      "label": "采集位姿转换",
+      "labelDy": 80
+    },
+    {
+      "id": "check-track",
+      "from": "check",
+      "to": "track",
+      "label": "执行参考"
+    },
+    {
+      "id": "track-state",
+      "from": "track",
+      "to": "state",
+      "label": "50Hz控制"
+    },
+    {
+      "id": "state-camera",
+      "from": "state",
+      "to": "camera",
+      "label": "状态产生新观察"
+    }
+  ]
+}

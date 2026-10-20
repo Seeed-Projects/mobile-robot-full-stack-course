@@ -1,0 +1,121 @@
+{
+  "schema_version": 2,
+  "diagram_type": "workflow",
+  "meta": {
+    "title": "LightNav输入与输出",
+    "locale": "zh-CN",
+    "quality_profile": "showcase",
+    "animation": "none"
+  },
+  "lanes": [
+    {
+      "id": "row0",
+      "label": "图像与模型"
+    },
+    {
+      "id": "row1",
+      "label": "输出词元"
+    },
+    {
+      "id": "row2",
+      "label": "路径解码"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "n0",
+      "lane": "row0",
+      "col": 0,
+      "type": "backend",
+      "label": "图像历史＋指令",
+      "sublabel": "4Hz / SlowFast",
+      "width": 210,
+      "height": 100
+    },
+    {
+      "id": "n1",
+      "lane": "row0",
+      "col": 1,
+      "type": "backend",
+      "label": "视觉语言推理",
+      "sublabel": "HF / BF16 / CUDA",
+      "width": 210,
+      "height": 100
+    },
+    {
+      "id": "n2",
+      "lane": "row1",
+      "col": 1,
+      "type": "backend",
+      "label": "APOS与OPOS",
+      "sublabel": "原图上的二维指向",
+      "width": 210,
+      "height": 100
+    },
+    {
+      "id": "n3",
+      "lane": "row1",
+      "col": 2,
+      "type": "backend",
+      "label": "三层动作token",
+      "sublabel": "L0 / L1 / L2",
+      "width": 210,
+      "height": 100
+    },
+    {
+      "id": "n4",
+      "lane": "row2",
+      "col": 2,
+      "type": "backend",
+      "label": "RVQ解码",
+      "sublabel": "查表、还原与积分",
+      "width": 210,
+      "height": 100
+    },
+    {
+      "id": "n5",
+      "lane": "row2",
+      "col": 3,
+      "type": "backend",
+      "label": "累计十点路径",
+      "sublabel": "米与弧度 / 无时间基准",
+      "width": 210,
+      "height": 100
+    }
+  ],
+  "edges": [
+    {
+      "id": "e0",
+      "from": "n0",
+      "to": "n1"
+    },
+    {
+      "id": "e1",
+      "from": "n1",
+      "to": "n2"
+    },
+    {
+      "id": "e2",
+      "from": "n2",
+      "to": "n3"
+    },
+    {
+      "id": "e3",
+      "from": "n3",
+      "to": "n4"
+    },
+    {
+      "id": "e4",
+      "from": "n4",
+      "to": "n5"
+    }
+  ],
+  "mainPath": [
+    "n0",
+    "n1",
+    "n2",
+    "n3",
+    "n4",
+    "n5"
+  ]
+}

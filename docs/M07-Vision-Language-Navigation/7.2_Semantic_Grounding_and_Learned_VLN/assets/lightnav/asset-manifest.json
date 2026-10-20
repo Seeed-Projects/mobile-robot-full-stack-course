@@ -1,0 +1,103 @@
+{
+  "source_tool": "offline Pillow renderer (no model, GPU or network)",
+  "animation_source": "docs/M07-Vision-Language-Navigation/code/teaching/lightnav/build_visuals.py",
+  "scene_source": "docs/M07-Vision-Language-Navigation/7.2_Semantic_Grounding_and_Learned_VLN/assets/slowfast/scene-atlas.jpg (built-in image_gen; same crops as 7.2.3)",
+  "scene_atlas_sha256": "7ab2a52184169d9cfdb687957a029712202973c15fe5a321d307df6d573d4cca",
+  "english_only_labels": true,
+  "teaching_illustrations_not_experiment_evidence": true,
+  "rvq_numbers_source": "offline decode of the released action_tokenizer bundle; see teaching/lightnav/rvq-teaching-example.json",
+  "files": [
+    {
+      "path": "01-decision-loop.gif",
+      "bytes": 197849,
+      "sha256": "8ca69b73f317f5b7f309c11e6573826a2a004d21c85313fdc18f93ac7cdb9064"
+    },
+    {
+      "path": "01-decision-loop.png",
+      "bytes": 119680,
+      "sha256": "af162cd10b68770c778f22ff94a0aff4e0be5ced77a1fd02ba34a3394e3d9281"
+    },
+    {
+      "path": "02-pointing-grid.gif",
+      "bytes": 244945,
+      "sha256": "16666004dc6b799f3a898260c9456886a8a46e366b24387520f39f6b7a072f55"
+    },
+    {
+      "path": "02-pointing-grid.png",
+      "bytes": 218172,
+      "sha256": "228b106962e9a0bfda9d2daab227689d4bce647322198011462f1a36d6a3a15a"
+    },
+    {
+      "path": "03-rvq-residual.gif",
+      "bytes": 159109,
+      "sha256": "fdbd8a93f5067475388e15b3d09b9711efbf125cc4b8541ef2019b0c495f82ea"
+    },
+    {
+      "path": "03-rvq-residual.png",
+      "bytes": 91329,
+      "sha256": "a1eea26ab6ab12caf3d4e030b07c8a18053a0b467aed91bbea5b11857ba08222"
+    },
+    {
+      "path": "04-se2-compose.gif",
+      "bytes": 151792,
+      "sha256": "912e009d13fe3b31f60fd796b6ee562e3dc36949670aaa92fa39ae91e49c3759"
+    },
+    {
+      "path": "04-se2-compose.png",
+      "bytes": 65870,
+      "sha256": "a8585880d1b1427720044994016b5a074fe557022734c89e117233eb5297aaf7"
+    },
+    {
+      "path": "05-training-stages.gif",
+      "bytes": 284453,
+      "sha256": "d66998e767d71302e80551ad4db0ddd240bf3d3bf430cd55196b52540de9d9ae"
+    },
+    {
+      "path": "05-training-stages.png",
+      "bytes": 85616,
+      "sha256": "32532a81e5fcb2cf0d7b55677b38d63aeba3814622ef9985b6d9ba593357138b"
+    },
+    {
+      "path": "teaching-numbers.json",
+      "bytes": 3588,
+      "sha256": "e6f3da0d0ebb0e86bea75b8f4963742b427fdb1de4bc921f03f3a9e392b60a5d"
+    }
+  ],
+  "teaching_sources": [
+    {
+      "path": "teaching/lightnav/build_visuals.py",
+      "bytes": 46676,
+      "sha256": "d6a899d22ac061ec139eeedc37d791d8208b3b0ea6f9d8c49999ddec39a77545"
+    },
+    {
+      "path": "teaching/lightnav/lightnav_reference.py",
+      "bytes": 4272,
+      "sha256": "c42ef699c88af2135952730965193dbbfba319ae0c579e7e3c8a25d2227c64bf"
+    },
+    {
+      "path": "teaching/lightnav/extract_rvq_example.py",
+      "bytes": 7898,
+      "sha256": "45432623d5da8e1ba9b0ab1737044508be58b22451d2c88978fd03a606168feb"
+    },
+    {
+      "path": "teaching/lightnav/verify_examples.py",
+      "bytes": 16170,
+      "sha256": "9f0add427ab8fd714250f0bc7c9b38f547cfe06deb6499ad0110a9d2c9819dec"
+    },
+    {
+      "path": "teaching/lightnav/example-config.json",
+      "bytes": 3171,
+      "sha256": "ed81be99acc6b0d6e836bed27cf4533b2d6231695d612486a3d955702d9300c0"
+    },
+    {
+      "path": "teaching/lightnav/rvq-teaching-example.json",
+      "bytes": 9279,
+      "sha256": "f15aed948fcb5ae5d7209795b1bb6dd50cc1b731457b946b317a88267e845e54"
+    },
+    {
+      "path": "teaching/lightnav/README.md",
+      "bytes": 6441,
+      "sha256": "274087f4d8b72dfeb74794b14040ca9ff1cb192855b78fcc098cd28af863299b"
+    }
+  ]
+}

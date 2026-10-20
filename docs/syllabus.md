@@ -16,7 +16,7 @@ This course is a system-level mobile robotics curriculum built around `reCompute
 | M4 | `modules/m04-ai-vision-and-edge-acceleration/` | 5 | Detection, tracking, segmentation, pose, TensorRT, Isaac ROS |
 | M5 | `modules/m05-3d-reconstruction-and-slam/` | 5 | Visual SLAM, LiDAR SLAM, multi-sensor SLAM, 3DGS, semantic maps |
 | M6 | `modules/m06-localization-navigation-and-planning/` | 4 | Nav2, planning, dynamic avoidance, multi-robot basics |
-| M7 | `modules/m07-vision-language-navigation/` | 3 | Language-grounded navigation and semantic routing |
+| M7 | [Vision-Language Navigation](M07-Vision-Language-Navigation/README.md) · [Code](M07-Vision-Language-Navigation/code/README.md) | 6–9 | English/Chinese tutorials: VLN fundamentals, LightNav principles, Jetson chassis demo; setup and CAD preparation in the lab guide |
 | M8 | `modules/m08-ptz-and-active-vision/` | 2 | PTZ control, active tracking, coordinated sensing |
 | M9 | `modules/m09-manipulation-and-grasping/` | 4 | MoveIt 2, hand-eye calibration, grasp planning, teleoperation |
 | M10 | `modules/m10-capstone-projects/` | 4 | End-to-end project integration |
