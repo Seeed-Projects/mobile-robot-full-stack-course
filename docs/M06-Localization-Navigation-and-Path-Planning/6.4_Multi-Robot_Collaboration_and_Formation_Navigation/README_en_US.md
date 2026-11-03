@@ -51,10 +51,10 @@ URDF, AMCL, costmaps, and sensor headers must all agree. Current single-robot si
 
 ### 6.4.4 Shared Map
 
-$$
+```math
 {}^{map}T_{base_1}={}^{map}T_{odom_1}\,{}^{odom_1}T_{base_1},\qquad
 {}^{map}T_{base_2}={}^{map}T_{odom_2}\,{}^{odom_2}T_{base_2}.
-$$
+```
 
 Each robot relocalizes independently. Verify image, origin, orientation, resolution, and frame. Independent maps require an explicit inter-map transform and uncertainty; two `(0,0)` origins are not automatically the same place.
 
@@ -74,20 +74,35 @@ Only Leader-Follower target geometry is executable here.
 
 Leader pose is $(x_L,y_L,\theta_L)$ in a shared map. Desired offset $[\Delta x,\Delta y]^T$ is in the leader body frame:
 
-$$
-\begin{bmatrix}x_F^*\\y_F^*\end{bmatrix}
-=\begin{bmatrix}x_L\\y_L\end{bmatrix}
-+\begin{bmatrix}\cos\theta_L&-\sin\theta_L\\\sin\theta_L&\cos\theta_L\end{bmatrix}
-\begin{bmatrix}\Delta x\\\Delta y\end{bmatrix}.
-$$
+```math
+\begin{bmatrix}
+x_{F}^{\star} \\
+y_{F}^{\star}
+\end{bmatrix}
+=
+\begin{bmatrix}
+x_{L} \\
+y_{L}
+\end{bmatrix}
++
+\begin{bmatrix}
+\cos\theta_{L} & -\sin\theta_{L} \\
+\sin\theta_{L} & \cos\theta_{L}
+\end{bmatrix}
+\begin{bmatrix}
+\Delta x \\
+\Delta y
+\end{bmatrix}.
+```
 
 Following distance $d$ behind means $\Delta x=-d,\Delta y=0$:
 
-$$
-x_F^*=x_L-d\cos\theta_L,\qquad y_F^*=y_L-d\sin\theta_L.
-$$
+```math
+x_{F}^{\star}=x_{L}-d\cos\theta_{L},\qquad
+y_{F}^{\star}=y_{L}-d\sin\theta_{L}.
+```
 
-A simple target orientation is $\theta_F^*=\theta_L$. This computation neither controls velocity nor checks whether the target is free.
+A simple target orientation is $\theta_{F}^{\star}=\theta_{L}$. This computation neither controls velocity nor checks whether the target is free.
 
 ![Formation geometry illustration](../images/formation_geometry.png)
 
@@ -95,11 +110,11 @@ A simple target orientation is $\theta_F^*=\theta_L$. This computation neither c
 
 ### 6.4.7 Error and Delay
 
-$$
+```math
 \mathbf e=R(\theta_L)^T(\mathbf p_F-\mathbf p_L)-\Delta\mathbf p.
-$$
+```
 
-Record longitudinal and lateral errors, not only inter-robot distance. Delay $\tau$ introduces a rough position lag $\|\mathbf v_L\|\tau$, excluding turning and acceleration.
+Record longitudinal and lateral errors, not only inter-robot distance. Delay $\tau$ introduces a rough position lag $\lVert\mathbf{v}_{L}\rVert_{2}\tau$, excluding turning and acceleration.
 
 An online coordinator should update goals using displacement/angle/time thresholds, not cancel/reissue at every sensor frame. Define cancellation acknowledgment, unreachable-target handling, and hold behavior.
 

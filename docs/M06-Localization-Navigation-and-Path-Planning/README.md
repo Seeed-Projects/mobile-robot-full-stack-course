@@ -41,11 +41,27 @@ One prepared hour per lesson. Downloads, repeated tuning, full prediction evalua
 
 ROS 2 is not a physics simulator. The course uses Fortress and `ros_gz_bridge`; Classic example commands are not drop-in replacements. Real Livox CustomMsg/per-point timing/Fast-LIO require separate adaptation.
 
+## Simulation Interface and What to Observe
+
+![J501 chassis, multi-room Gazebo world, and entity tree](../../modules/m06_navigation/j501_navigation/assets/gazboo.png)
+
+*Figure M6-2: the actual Gazebo interface. The 3D viewport shows the chassis, walls, doorways, and shelves; the Entity Tree lists scene entities. This screenshot uses the navigation world. Mapping uses the same static layout without the cone added for later avoidance.*
+
+After starting the workflow below, use these views together:
+
+| View | What to observe | Experiment |
+| --- | --- | --- |
+| Gazebo, shown above | Physical chassis motion, doorways, obstacles, and contacts; check walls and shelves in the entity tree | 6.1 mapping survey, 6.2 room detours, 6.3 cone avoidance |
+| RViz2 | `/map`, scans, TF, global path, local costmap, and cluster boxes | Align sensing and planning output with the physical scene |
+| Exported algorithm figure | Initial reference path, estimated trace, and one timestamped detection frame | Save comparisons and inspect failures |
+
+Keep the Gazebo simulation running: pausing stops `/clock` and prevents mapping/navigation from progressing normally. Check that a visible object also produces the expected scan and costmap response in RViz. The 3D world itself is not the SLAM map.
+
 ## Main Workflow
 
 ![Mapping-to-navigation phases](images/mapping_workflow.png)
 
-*Figure M6-2: saving does not automatically stop SLAM or start AMCL.*
+*Figure M6-3: saving does not automatically stop SLAM or start AMCL.*
 
 Terminal A:
 
@@ -93,7 +109,7 @@ See 6.1 for checks, frames, and troubleshooting. `build/m06_maps/` is local outp
 
 ![Measured trajectory and LiDAR cluster output](../../modules/m06_navigation/j501_navigation/assets/algorithm_view.png)
 
-*Figure M6-3: estimated trace plus one timestamped detection frame, with an orthographic 3D-cluster projection.*
+*Figure M6-4: estimated trace plus one timestamped detection frame, with an orthographic 3D-cluster projection.*
 
 Programs, configurations, and independent records are in the [navigation package](../../modules/m06_navigation/j501_navigation/README.md) and [validation directory](../../modules/m06_navigation/j501_navigation/validation). Different scenarios/configuration versions must be assessed separately, not combined into a universal performance ranking.
 

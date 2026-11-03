@@ -25,9 +25,9 @@ Part B uses the fixture deliberately. It does not replace mapping/relocalization
 
 A path is usually a sequence:
 
-$$
+```math
 \mathcal P=\{(x_0,y_0,\theta_0),\ldots,(x_N,y_N,\theta_N)\}.
-$$
+```
 
 It is not automatically time-parameterized. Control seeks a finite-horizon velocity sequence and executes its first step before reobserving.
 
@@ -37,23 +37,23 @@ The course global costmap has static/inflation layers; the local costmap also re
 
 Represent traversable cells as a graph with nonnegative edge costs. Relax neighbors:
 
-$$
+```math
 g_{new}(v)=\min\{g(v),g(u)+c(u,v)\}.
-$$
+```
 
 Expanding minimum accumulated cost yields a shortest graph-cost path under the standard assumptions, but may explore irrelevant regions. Cost can combine geometry and occupancy penalties:
 
-$$
+```math
 c(u,v)=\ell(u,v)+\lambda_c C(v).
-$$
+```
 
 Changing the cost model changes the optimization problem; “shortest” need not mean minimum geometric length.
 
 ### 6.2.3 A*
 
-$$
+```math
 f(n)=g(n)+h(n),\qquad h(n)=\sqrt{(x_n-x_g)^2+(y_n-y_g)^2}.
-$$
+```
 
 An admissible heuristic with appropriate search conditions preserves optimality; consistency helps avoid unnecessary re-expansion. Heuristic units/scaling must match the edge model.
 
@@ -63,9 +63,9 @@ Nav2 Navfn uses potential propagation and path extraction. `use_astar` changes t
 
 When a successor has collision-free line of sight to the current node's parent, try:
 
-$$
+```math
 g(s')\leftarrow g(parent(s))+\|parent(s)-s'\|.
-$$
+```
 
 This reduces grid-direction restrictions and supports any-angle paths, without guaranteeing the exact continuous shortest path. Visibility must check cells along the segment and blocked corners, not just endpoints.
 
@@ -75,9 +75,9 @@ The [teaching implementation](../../../modules/m06_navigation/j501_navigation/j5
 
 Vehicles with turning-radius constraints may need state `(x,y,theta)` and kinematically feasible expansions, such as:
 
-$$
+```math
 \dot x=v\cos\theta,\quad\dot y=v\sin\theta,\quad\dot\theta=\frac{v}{L}\tan\delta.
-$$
+```
 
 Hybrid A* is a Smac extension exercise here, not one of the three validated planners. Differential and omnidirectional chassis require appropriate motion models.
 
@@ -85,18 +85,18 @@ Hybrid A* is a Smac extension exercise here, not one of the three validated plan
 
 A conceptual dynamic window around current velocity is:
 
-$$
+```math
 V_d=[v_k-a_v\Delta t,v_k+a_v\Delta t]\times
 [\omega_k-a_\omega\Delta t,\omega_k+a_\omega\Delta t].
-$$
+```
 
 Intersect it with speed and stopping constraints, simulate candidates, reject collisions, and score:
 
-$$
+```math
 x_{k+1}=x_k+v\cos\theta_k\Delta t,\quad
 y_{k+1}=y_k+v\sin\theta_k\Delta t,\quad
 \theta_{k+1}=\theta_k+\omega\Delta t,\qquad J=\sum_jw_jJ_j.
-$$
+```
 
 DWB modularizes trajectory generation and critics. Its exact reachability/braking behavior depends on configured components; not every DWB configuration guarantees the same dynamic-window properties.
 
@@ -106,10 +106,10 @@ This course uses `ObstacleFootprint` and Rotation Shim for initial heading align
 
 Perturb a control sequence, simulate each sample, compute cost, and form weighted updates:
 
-$$
+```math
 \tilde w_i=\exp[-(S_i-S_{min})/\lambda],\qquad
 u_k^{new}=u_k+\frac{\sum_i\tilde w_i\epsilon_k^{(i)}}{\sum_i\tilde w_i}.
-$$
+```
 
 This captures the core intuition; full MPPI includes sampling-distribution/control-cost details and constraints. Execute the first control and roll the horizon forward.
 
@@ -119,9 +119,9 @@ The baseline uses 80 steps at approximately 0.0667 s, about 5.33 s horizon, 1,00
 
 Pure pursuit uses a lookahead point in robot coordinates:
 
-$$
+```math
 \kappa=2y_L/L_d^2,\qquad\omega=v\kappa.
-$$
+```
 
 RPP regulates speed using curvature, obstacle cost, and collision prediction. It may stop rather than search for a lateral detour, requiring waiting or an updated global route.
 
@@ -131,10 +131,10 @@ TEB jointly optimizes path poses and time intervals under smoothness, obstacle, 
 
 An illustrative decay outside the inscribed region is:
 
-$$
+```math
 C(d)\approx252\exp[-k(d-r_{inscribed})],\quad
 r_{inscribed}<d\le r_{inflation}.
-$$
+```
 
 Lethal/inscribed/unknown cells have separate rules. `inflation_radius` sets influence range; increasing `cost_scaling_factor` makes costs decay faster, not automatically farther from obstacles.
 
@@ -251,16 +251,16 @@ Edit [source parameters](../../../modules/m06_navigation/j501_navigation/config/
 
 ### 6.2.16 Metrics
 
-$$
+```math
 L=\sum_i\|\mathbf p_i-\mathbf p_{i-1}\|,\qquad
 S=\sum_i|\operatorname{wrap}(\psi_{i+1}-\psi_i)|.
-$$
+```
 
 Compare angular smoothness after common-distance resampling. Clearance uses full footprint polygons:
 
-$$
+```math
 d_{min}=\min_{k,j}\operatorname{dist}(\mathcal F(x_k,y_k,\theta_k),\mathcal O_j).
-$$
+```
 
 Also report completion, duration, position/yaw error, recoveries, and cycle time. Zero discrete contacts are not continuous collision proof.
 

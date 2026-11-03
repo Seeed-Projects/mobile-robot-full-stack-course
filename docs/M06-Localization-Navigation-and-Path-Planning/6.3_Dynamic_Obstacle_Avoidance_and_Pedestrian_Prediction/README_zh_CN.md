@@ -37,9 +37,9 @@
 
 雷达点 $\mathbf p_L$ 应按采集时刻 $t$ 转到 `base_footprint`：
 
-$$
+```math
 \mathbf p_B(t)=R_{BL}(t)\mathbf p_L(t)+\mathbf t_{BL}(t).
-$$
+```
 
 虽然刚性安装的外参通常固定，TF 查询仍要与消息时间一致；不能为消除查找失败而随意使用错误时刻的机器人位姿。节点拿不到对应 TF 时等待后续有效输入。
 
@@ -49,15 +49,15 @@ $$
 
 体素大小为 $l$，点所属网格为：
 
-$$
+```math
 \mathbf v_i=\left\lfloor\frac{\mathbf p_i}{l}\right\rfloor.
-$$
+```
 
 对同一体素内的点使用均值代表：
 
-$$
+```math
 \overline{\mathbf p}_{v}=\frac{1}{N_v}\sum_{i\in v}\mathbf p_i.
-$$
+```
 
 当前 $l=0.06$ m。过小会保留更多细节并增加计算，过大可能合并小物体或丢失轮廓。应结合目标尺寸、点密度和处理频率选择，而不是固定追求最密点云。
 
@@ -65,23 +65,23 @@ $$
 
 平面模型为：
 
-$$
+```math
 \mathbf n^T\mathbf p+d=0,\qquad\|\mathbf n\|=1.
-$$
+```
 
 随机选取不共线的三点拟合候选平面，统计距离小于阈值 $\tau$ 的内点：
 
-$$
+```math
 \left|\mathbf n^T\mathbf p_i+d\right|<\tau.
-$$
+```
 
 本实现还要求平面接近底盘标定地面，且法向量与竖直方向夹角不超过 15°，以减少把桌面或墙面当成地面的风险；当前内点阈值为 0.04 m。
 
 理想独立采样条件下，为获得至少一次全内点三点样本，可用下式估算迭代次数：
 
-$$
+```math
 N\ge\frac{\log(1-p)}{\log(1-w^3)}.
-$$
+```
 
 $p$ 是期望成功概率，$w$ 是内点比例。这是理论估算，当前程序固定最多 45 次候选采样并约束候选点区域，没有动态保证上述成功概率。
 
@@ -91,16 +91,16 @@ $p$ 是期望成功概率，$w$ 是内点比例。这是理论估算，当前程
 
 非地面点之间如果欧氏距离小于 $r_c$，则建立邻接关系：
 
-$$
+```math
 \|\mathbf p_i-\mathbf p_j\|_2\le r_c.
-$$
+```
 
 通过 KD-tree 查询半径邻居，并连通扩张得到点簇。当前 $r_c=0.18$ m，至少 5 点才输出一个检测框。轴对齐包围框由各坐标的最小值和最大值计算：
 
-$$
+```math
 \mathbf c=\frac{\mathbf p_{max}+\mathbf p_{min}}{2},\qquad
 \mathbf s=\mathbf p_{max}-\mathbf p_{min}.
-$$
+```
 
 这里的“轴对齐”相对于检测坐标系 `base_footprint`。显示到 `map` 中后，框可以随机器人航向旋转，不应误认为地图坐标轴固定框。
 
@@ -241,9 +241,9 @@ ros2 run j501_navigation obstacle --name crossing_box --remove
 
 应按观测时刻变换到连续 `odom` 坐标系：
 
-$$
+```math
 \mathbf p_{O,k}=R_{OB}(t_k)\mathbf p_{B,k}+\mathbf t_{OB}(t_k).
-$$
+```
 
 再进行数据关联与速度估计。AMCL 的 `map` 修正可能发生跳变，跟踪时通常优先使用局部连续坐标，再按需要变换预测结果。
 
@@ -251,25 +251,25 @@ $$
 
 二维目标状态可定义为：
 
-$$
+```math
 \mathbf x=[p_x,p_y,v_x,v_y]^T,\qquad
 F=\begin{bmatrix}
 1&0&\Delta t&0\\0&1&0&\Delta t\\0&0&1&0\\0&0&0&1
 \end{bmatrix},\quad
 H=\begin{bmatrix}1&0&0&0\\0&1&0&0\end{bmatrix}.
-$$
+```
 
 预测与更新：
 
-$$
+```math
 \hat{\mathbf x}_k^-=F\hat{\mathbf x}_{k-1},\quad
 P_k^-=FP_{k-1}F^T+Q,
-$$
+```
 
-$$
+```math
 K_k=P_k^-H^T(HP_k^-H^T+R)^{-1},\quad
 \hat{\mathbf x}_k=\hat{\mathbf x}_k^-+K_k(\mathbf z_k-H\hat{\mathbf x}_k^-).
-$$
+```
 
 在滤波前还必须解决“这一帧的哪个簇对应上一帧哪个目标”。可用距离或 Mahalanobis 门限过滤，再做一对一匹配；还需设计新目标确认、漏检存活和删除时间。否则簇编号变化会产生虚假的高速运动。
 
@@ -277,15 +277,15 @@ $$
 
 常速度预测为：
 
-$$
+```math
 \hat{\mathbf p}(t+\tau)=\hat{\mathbf p}(t)+\hat{\mathbf v}(t)\tau,\qquad \tau=2\ s.
-$$
+```
 
 协方差也需要向未来传播，而非只画一个确定点：
 
-$$
+```math
 P(t+\tau)=F(\tau)P(t)F(\tau)^T+Q(\tau).
-$$
+```
 
 对转弯、加减速和遮挡，常速度模型会失配；应扩大不确定性或使预测过期。预测可视化和预测真正参与规划必须分别验收，标准 Nav2 障碍层不会因为发布一个未来位置话题就自动使用它。
 
@@ -303,11 +303,17 @@ flowchart LR
 
 ### 6.3.15 VO 与 ORCA 的作用边界
 
-设障碍与机器人相对位置为 $\mathbf p$、合并半径为 $R$，候选相对速度为 $\mathbf v_r-\mathbf v_o$。在时域 $T$ 内可能发生碰撞的速度集合可写为：
+设障碍相对机器人的位置为 $\mathbf p=\mathbf p_o-\mathbf p_r$、合并半径为 $R$。机器人候选速度 $\mathbf v_r$ 与障碍速度 $\mathbf v_o$ 使用同一坐标系；在时域 $T>0$ 内可能发生碰撞的速度集合可写为：
 
-$$
-VO_T=\{\mathbf v_r:\exists t\in(0,T],\ \|\mathbf p-(\mathbf v_r-\mathbf v_o)t\|<R\}.
-$$
+```math
+\operatorname{VO}_{T}=
+\left\{
+\mathbf{v}_{r}\in\mathbb{R}^{2}
+\;\middle|\;
+\exists t\in(0,T],\quad
+\left\lVert\mathbf{p}-(\mathbf{v}_{r}-\mathbf{v}_{o})t\right\rVert_{2}<R
+\right\}.
+```
 
 VO 在速度空间排除碰撞候选；ORCA 在双方合作的假设下分担避让修正，构造允许速度半平面。行人未必遵守互惠假设，差速底盘也不能瞬间执行任意平面速度，因此还需考虑跟踪误差、加速度和运动学约束。
 

@@ -33,35 +33,35 @@ A cluster can be part of a wall, person, shelf, or cone. One box does not establ
 
 Transform sensor points at acquisition time:
 
-$$
+```math
 \mathbf p_B(t)=R_{BL}(t)\mathbf p_L(t)+\mathbf t_{BL}(t).
-$$
+```
 
 Wait for valid TF rather than using an incorrect timestamp. Remove NaN/Inf, near-self returns, and points outside the ROI: approximately 0.35–10 m planar range and −0.15–1.5 m height. Processing bounds are not the sensor's physical limits.
 
 ### 6.3.3 Voxel Reduction
 
-$$
+```math
 \mathbf v_i=\lfloor\mathbf p_i/l\rfloor,\qquad
 \overline{\mathbf p}_{v}=\frac{1}{N_v}\sum_{i\in v}\mathbf p_i.
-$$
+```
 
 The baseline uses 0.06 m voxels. Smaller preserves detail with more work; larger may merge or erase small objects. Choose against target size and return density.
 
 ### 6.3.4 Constrained Ground RANSAC
 
-$$
+```math
 \mathbf n^T\mathbf p+d=0,\quad\|\mathbf n\|=1,\qquad
 |\mathbf n^T\mathbf p_i+d|<\tau.
-$$
+```
 
 Sample three noncollinear points, fit candidates, and count inliers. The course constrains normals within 15° of vertical and ground height near the calibrated base plane, using 0.04 m inlier tolerance. Low candidate points reduce tabletop selection.
 
 For independent sampling with inlier ratio $w$, an ideal iteration estimate is:
 
-$$
+```math
 N\ge\frac{\log(1-p)}{\log(1-w^3)}.
-$$
+```
 
 The implementation uses at most 45 constrained candidates; it does not dynamically guarantee this success probability. Sparse ground returns explicitly report `ground_fitted=false` and use a calibrated horizontal fallback. The level-ground assumption does not cover slopes, stairs, or pits.
 
@@ -69,16 +69,16 @@ The implementation uses at most 45 constrained candidates; it does not dynamical
 
 Connect points within radius:
 
-$$
+```math
 \|\mathbf p_i-\mathbf p_j\|_2\le r_c.
-$$
+```
 
 KD-tree radius queries and connected expansion produce clusters. Baseline tolerance is 0.18 m, with five points required for a detection box. Compute:
 
-$$
+```math
 \mathbf c=(\mathbf p_{max}+\mathbf p_{min})/2,\qquad
 \mathbf s=\mathbf p_{max}-\mathbf p_{min}.
-$$
+```
 
 Boxes align with `base_footprint` axes, so they may be rotated when displayed in `map`. Connected walls may merge; occlusion/sparse rays may split objects. The minimum cluster size affects boxes only: all accepted non-ground points still participate in obstacle marking.
 
@@ -215,40 +215,40 @@ Inspect detection, clearing, and remnants before simultaneous robot-motion tests
 
 Stationary walls move in robot coordinates during turns. Transform observations at acquisition time into continuous odometry before associating or estimating speed:
 
-$$
+```math
 \mathbf p_{O,k}=R_{OB}(t_k)\mathbf p_{B,k}+\mathbf t_{OB}(t_k).
-$$
+```
 
 AMCL map corrections can jump; continuous local tracking and later map conversion avoid mistaking corrections for object motion.
 
 ### 6.3.13 Constant-Velocity Kalman Model
 
-$$
+```math
 \mathbf x=[p_x,p_y,v_x,v_y]^T,\quad
 F=\begin{bmatrix}1&0&\Delta t&0\\0&1&0&\Delta t\\0&0&1&0\\0&0&0&1\end{bmatrix},\quad
 H=\begin{bmatrix}1&0&0&0\\0&1&0&0\end{bmatrix}.
-$$
+```
 
-$$
+```math
 \hat{\mathbf x}_k^-=F\hat{\mathbf x}_{k-1},\quad P_k^-=FP_{k-1}F^T+Q,
-$$
+```
 
-$$
+```math
 K_k=P_k^-H^T(HP_k^-H^T+R)^{-1},\quad
 \hat{\mathbf x}_k=\hat{\mathbf x}_k^-+K_k(\mathbf z_k-H\hat{\mathbf x}_k^-).
-$$
+```
 
 Association comes first: distance/Mahalanobis gating and one-to-one assignment, plus track confirmation, missed-detection lifetime, and deletion. Frame-local cluster numbers are insufficient.
 
 ### 6.3.14 Two-Second Prediction
 
-$$
+```math
 \hat{\mathbf p}(t+\tau)=\hat{\mathbf p}(t)+\hat{\mathbf v}(t)\tau,\quad\tau=2\ s,
-$$
+```
 
-$$
+```math
 P(t+\tau)=F(\tau)P(t)F(\tau)^T+Q(\tau).
-$$
+```
 
 Turns, acceleration, and occlusion invalidate constant velocity; expand uncertainty or expire predictions. Visualization and planning integration require separate acceptance. Standard obstacle layers do not automatically use a future-point topic.
 
@@ -264,11 +264,17 @@ flowchart LR
 
 ### 6.3.15 VO and ORCA
 
-For relative position $\mathbf p$, combined radius $R$, and obstacle velocity $\mathbf v_o$:
+Let $\mathbf p=\mathbf p_o-\mathbf p_r$ be the obstacle position relative to the robot, with combined radius $R$. Express candidate robot velocity $\mathbf v_r$ and obstacle velocity $\mathbf v_o$ in the same frame. For horizon $T>0$:
 
-$$
-VO_T=\{\mathbf v_r:\exists t\in(0,T],\ \|\mathbf p-(\mathbf v_r-\mathbf v_o)t\|<R\}.
-$$
+```math
+\operatorname{VO}_{T}=
+\left\{
+\mathbf{v}_{r}\in\mathbb{R}^{2}
+\;\middle|\;
+\exists t\in(0,T],\quad
+\left\lVert\mathbf{p}-(\mathbf{v}_{r}-\mathbf{v}_{o})t\right\rVert_{2}<R
+\right\}.
+```
 
 VO excludes candidate collision velocities. ORCA shares avoidance correction under reciprocal-cooperation assumptions and constructs allowed velocity half-planes. Pedestrians need not cooperate; differential-drive robots cannot instantly execute arbitrary planar velocity. Acceleration, tracking, and kinematics still matter.
 

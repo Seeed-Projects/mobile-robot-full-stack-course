@@ -57,17 +57,17 @@ map ── SLAM / AMCL ──> odom ── EKF ──> base_footprint ── URD
 
 记 ${}^{A}T_B$ 为从坐标系 $B$ 到 $A$ 的齐次变换，则：
 
-$$
+```math
 {}^{map}T_{base}={}^{map}T_{odom}\,{}^{odom}T_{base}
-$$
+```
 
 `odom` 强调短时连续，即使存在累积漂移，也适合局部控制；`map` 强调与全局地图一致，定位更新和回环可以修正位姿。SLAM 或 AMCL 通过调整 `map → odom` 修正全局误差，同时保留局部里程计的连续性。
 
 传感器点进入底盘坐标系需要：
 
-$$
+```math
 {}^{base}\mathbf p={}^{base}R_{laser}\,{}^{laser}\mathbf p+{}^{base}\mathbf t_{laser}
-$$
+```
 
 外参错误会让所有观测带着相同偏差；时间错误会在运动时让扫描和位姿错开。遇到墙体倾斜或重影，应先核对时间和 TF，再调 SLAM 参数。
 
@@ -75,13 +75,13 @@ $$
 
 差速底盘的平面模型为：
 
-$$
+```math
 \begin{aligned}
 x_{k+1}&=x_k+v_k\cos\theta_k\Delta t,\\
 y_{k+1}&=y_k+v_k\sin\theta_k\Delta t,\\
 \theta_{k+1}&=\theta_k+\omega_k\Delta t.
 \end{aligned}
-$$
+```
 
 纯轮速推算中的航向误差会随路程转化为位置误差。仿真的脚轮转向和轮胎滑移也会造成这种现象，不能认为仿真编码器天然等于真实位姿。
 
@@ -89,10 +89,10 @@ $$
 
 EKF 的预测协方差和观测更新沿用 M3.4：
 
-$$
+```math
 P_k^-=F_kP_{k-1}F_k^T+Q_k,\qquad
 K_k=P_k^-H_k^T(H_kP_k^-H_k^T+R_k)^{-1}.
-$$
+```
 
 默认 `odometry_source:=ekf` 时，EKF 是 `odom → base_footprint` 的唯一发布者；轮速原始 TF 留在未桥接的 `/wheel/tf`。`odometry_source:=wheel` 仅保留为对照实验。
 
@@ -100,10 +100,10 @@ $$
 
 AMCL 使用粒子集合近似机器人位姿的概率分布。运动更新依据里程计传播粒子，观测更新依据激光与地图的匹配程度调整权重：
 
-$$
+```math
 \overline{x}_k^{(i)}\sim p(x_k\mid x_{k-1}^{(i)},u_k),\qquad
 w_k^{(i)}\propto p(z_k\mid\overline{x}_k^{(i)},m)w_{k-1}^{(i)}.
-$$
+```
 
 这里 $u_k$ 是运动增量，$z_k$ 是扫描，$m$ 是地图。归一化并重采样后，粒子逐步集中到较可能的位置。RViz 的 **2D Pose Estimate** 提供近似初值，不等于直接宣布定位成功；之后仍需扫描与运动观测使估计收敛。
 
@@ -149,6 +149,8 @@ $$
 ![J501 底盘与多房间 Gazebo 场景](../../../modules/m06_navigation/j501_navigation/assets/gazboo.png)
 
 *图 6.1-2：课程实际 Gazebo 场景。墙、门洞和货架让起点到终点的直线不可通行，需要后续全局规划绕行。*
+
+实操时保留这个 Gazebo 界面观察底盘的物理运动，并在 RViz2 中对照扫描、地图与路径。右侧实体树可以核对墙体和货架；建图阶段看地图是否随底盘经过门洞而扩展，导航阶段看底盘是否沿规划通道绕行。暂停 Gazebo 会停止仿真时间，执行建图与导航时应保持运行。
 
 这里没有加载完整 Livox MID-360 仿真插件。用户提供的 [livox_laser_simulation](https://github.com/Livox-SDK/livox_laser_simulation/tree/main) 主分支要求 ROS Melodic / Gazebo 9，不能直接加载到 Fortress。本课程近似其视场，但没有实现 Livox 非重复扫描、逐点时刻、去畸变或真实噪声。话题 `/livox/lidar` 使用 `PointCloud2`，不等于驱动的 `CustomMsg`。
 
@@ -279,9 +281,9 @@ ros2 run j501_navigation navigate --planner astar --controller MPPI \
 
 首帧 SLAM 地图中的目标约为 `(9,5.7)`；预制地图中的同一场景位置约为 `(4.5,2.7)`。地图坐标关系为：
 
-$$
+```math
 \mathbf p_{world}=R(\theta_0)\mathbf p_{map}+\mathbf t_0.
-$$
+```
 
 本场景建图起点的世界平移约为 $(-4.5,-3)$，因此两组坐标相差约 $(4.5,3)$。实际建图首帧或朝向改变后，应在 RViz 重新选点，不能机械套用目标数字。
 

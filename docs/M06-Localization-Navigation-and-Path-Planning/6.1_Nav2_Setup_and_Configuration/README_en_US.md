@@ -53,17 +53,17 @@ map -- SLAM/AMCL --> odom -- EKF --> base_footprint -- URDF --> base_link --> la
 
 With ${}^{A}T_B$ denoting a transform from B into A:
 
-$$
+```math
 {}^{map}T_{base}={}^{map}T_{odom}\,{}^{odom}T_{base}.
-$$
+```
 
 Odometry remains locally continuous; map localization may correct accumulated drift. SLAM/AMCL adjusts `map → odom` without redefining the short-term odometry frame.
 
 Sensor points require calibrated extrinsics:
 
-$$
+```math
 {}^{base}\mathbf p={}^{base}R_{laser}\,{}^{laser}\mathbf p+{}^{base}\mathbf t_{laser}.
-$$
+```
 
 An incorrect transform biases every observation. A timestamp mismatch misaligns scans while moving. Check both before tuning SLAM around distorted walls.
 
@@ -71,20 +71,20 @@ An incorrect transform biases every observation. A timestamp mismatch misaligns 
 
 For differential drive:
 
-$$
+```math
 x_{k+1}=x_k+v_k\cos\theta_k\Delta t,\quad
 y_{k+1}=y_k+v_k\sin\theta_k\Delta t,\quad
 \theta_{k+1}=\theta_k+\omega_k\Delta t.
-$$
+```
 
 Heading error accumulates into position error. Simulated casters and wheel slip can corrupt encoder-only heading too.
 
 The [EKF configuration](../../../modules/m06_navigation/j501_navigation/config/ekf.yaml) fuses forward wheel velocity, zero lateral velocity, and IMU Z angular velocity. It excludes wheel-integrated position/yaw and absolute IMU orientation, avoiding duplicated source information and simulator-world heading initialization.
 
-$$
+```math
 P_k^-=F_kP_{k-1}F_k^T+Q_k,\qquad
 K_k=P_k^-H_k^T(H_kP_k^-H_k^T+R_k)^{-1}.
-$$
+```
 
 Default `odometry_source:=ekf` makes EKF the sole `odom → base_footprint` publisher. Raw wheel TF stays on unbridged `/wheel/tf`. `odometry_source:=wheel` is an explicit comparison mode.
 
@@ -92,10 +92,10 @@ Default `odometry_source:=ekf` makes EKF the sole `odom → base_footprint` publ
 
 AMCL approximates pose probability using particles. Odometry propagates samples; scan/map agreement changes their weights:
 
-$$
+```math
 \overline{x}_k^{(i)}\sim p(x_k\mid x_{k-1}^{(i)},u_k),\qquad
 w_k^{(i)}\propto p(z_k\mid\overline{x}_k^{(i)},m)w_{k-1}^{(i)}.
-$$
+```
 
 Normalize and resample. **2D Pose Estimate** supplies an approximate seed, not proof of localization success.
 
@@ -128,6 +128,8 @@ Lifecycle states include `unconfigured`, `inactive`, and `active`. Mapping start
 ![Actual Gazebo course world](../../../modules/m06_navigation/j501_navigation/assets/gazboo.png)
 
 *Figure 6.1-2: walls, doorways, and shelves require a detour between start and goal.*
+
+Keep this Gazebo interface open to observe physical chassis motion, alongside scans, maps, and paths in RViz2. Use the entity tree to identify walls and shelves. During mapping, watch the map expand as the chassis passes through doorways; during navigation, check that it follows the planned passages. Keep the simulation running because pausing Gazebo stops simulation time.
 
 This is not the full MID-360 simulator. The supplied [Livox plugin](https://github.com/Livox-SDK/livox_laser_simulation/tree/main) targets ROS Melodic / Gazebo 9 and cannot directly load in Fortress. The course approximates its field of view, without native non-repetitive scanning, per-point timing, deskewing, or realistic noise. `/livox/lidar` is `PointCloud2`, not `CustomMsg`.
 
@@ -241,9 +243,9 @@ ros2 run j501_navigation navigate --planner astar --controller MPPI \
 
 The first-scan map goal is approximately `(9,5.7)`, versus `(4.5,2.7)` in the fixture. Their relationship is:
 
-$$
+```math
 \mathbf p_{world}=R(\theta_0)\mathbf p_{map}+\mathbf t_0.
-$$
+```
 
 The survey starts near world translation `(-4.5,-3)`. Changed first-scan pose or orientation requires selecting goals again in RViz.
 

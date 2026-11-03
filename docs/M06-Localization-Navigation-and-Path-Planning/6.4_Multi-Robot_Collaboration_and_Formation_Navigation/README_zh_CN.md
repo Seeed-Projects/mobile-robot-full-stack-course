@@ -61,10 +61,10 @@ ROS 2 通常通过 DDS 发现参与者，再根据话题类型和 QoS 建立数�
 
 两台机器人可以使用相同地图文件，但仍需各自建立定位：
 
-$$
+```math
 {}^{map}T_{base_1}={}^{map}T_{odom_1}\,{}^{odom_1}T_{base_1},\qquad
 {}^{map}T_{base_2}={}^{map}T_{odom_2}\,{}^{odom_2}T_{base_2}.
-$$
+```
 
 相同的分辨率不代表地图相同，还要核对图像、原点、方向和 frame。若地图来自独立建图，必须明确地图间变换和不确定性，不能把两套 `(0,0)` 默认当成同一地点。
 
@@ -84,24 +84,35 @@ $$
 
 主机在共同地图中的位姿为 $(x_L,y_L,\theta_L)$，从机期望在主机体坐标系中保持偏移 $\Delta\mathbf p=[\Delta x,\Delta y]^T$：
 
-$$
-\begin{bmatrix}x_F^*\\y_F^*\end{bmatrix}
+```math
+\begin{bmatrix}
+x_{F}^{\star} \\
+y_{F}^{\star}
+\end{bmatrix}
 =
-\begin{bmatrix}x_L\\y_L\end{bmatrix}
+\begin{bmatrix}
+x_{L} \\
+y_{L}
+\end{bmatrix}
 +
-\begin{bmatrix}\cos\theta_L&-\sin\theta_L\\
-\sin\theta_L&\cos\theta_L\end{bmatrix}
-\begin{bmatrix}\Delta x\\\Delta y\end{bmatrix}.
-$$
+\begin{bmatrix}
+\cos\theta_{L} & -\sin\theta_{L} \\
+\sin\theta_{L} & \cos\theta_{L}
+\end{bmatrix}
+\begin{bmatrix}
+\Delta x \\
+\Delta y
+\end{bmatrix}.
+```
 
 在主机后方距离 $d$ 处跟随时，取 $\Delta x=-d,\Delta y=0$，因此：
 
-$$
-x_F^*=x_L-d\cos\theta_L,\qquad
-y_F^*=y_L-d\sin\theta_L.
-$$
+```math
+x_{F}^{\star}=x_{L}-d\cos\theta_{L},\qquad
+y_{F}^{\star}=y_{L}-d\sin\theta_{L}.
+```
 
-简单设计令 $\theta_F^*=\theta_L$。这只是目标位姿计算，不是速度控制器，也没有检查目标是否位于障碍物中。
+简单设计令 $\theta_{F}^{\star}=\theta_{L}$。这只是目标位姿计算，不是速度控制器，也没有检查目标是否位于障碍物中。
 
 ![Leader-Follower 目标几何](../images/formation_geometry.png)
 
@@ -111,11 +122,11 @@ $$
 
 在主机体坐标系中的编队误差可定义为：
 
-$$
+```math
 \mathbf e=R(\theta_L)^T(\mathbf p_F-\mathbf p_L)-\Delta\mathbf p.
-$$
+```
 
-记录纵向误差和横向误差，而不是只看两车距离。通信延迟 $\tau$ 下，主机运动会使旧目标产生约 $\|\mathbf v_L\|\tau$ 的位置差；这个估算没有包含转向与加速度，应结合时间戳处理。
+记录纵向误差和横向误差，而不是只看两车距离。通信延迟 $\tau$ 下，主机运动会使旧目标产生约 $\lVert\mathbf{v}_{L}\rVert_{2}\tau$ 的位置差；这个估算没有包含转向与加速度，应结合时间戳处理。
 
 在线协调器可按位移、角度或时间阈值更新目标，避免每个传感器周期都取消并重发 `NavigateToPose`。实现前要定义：旧目标是否取消、取消何时确认、目标不可达如何处理、主机停止后从机如何保持间距。
 

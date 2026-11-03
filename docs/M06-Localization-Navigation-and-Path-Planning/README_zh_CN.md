@@ -41,11 +41,27 @@ M3 提供雷达、IMU 与连续里程计，M5 建立环境地图，M6 则利用�
 
 ROS 2 不内置物理仿真器。当前源码使用 Fortress 与 `ros_gz_bridge`，不要将官方 Humble 示例中的 Gazebo Classic 命令直接套入本课程。真实 Livox `CustomMsg`、逐点时间和 Fast-LIO 适配仍需单独验证。
 
+## 仿真界面与观察方法
+
+![Gazebo 中的 J501 底盘、多房间场景与实体树](../../modules/m06_navigation/j501_navigation/assets/gazboo.png)
+
+*图 M6-2：实际 Gazebo 界面。三维视窗显示底盘、墙体、门洞与货架，右侧 Entity Tree 列出场景实体。本图来自导航世界；建图世界使用相同静态布局，但不放置后续用于避障的锥桶。*
+
+按下一节启动后，将三个视图配合使用：
+
+| 视图 | 应观察什么 | 对应实验 |
+| --- | --- | --- |
+| Gazebo（上图） | 底盘实际运动、门洞、障碍物和接触情况；右侧实体树可核对墙体与货架 | 6.1 巡航建图、6.2 绕过房间、6.3 锥桶绕行 |
+| RViz2 | `/map`、扫描、TF、全局路径、局部代价地图和聚类检测框 | 将感知与规划结果对齐到物理场景 |
+| 导出的算法效果图 | 初始参考路径、定位轨迹与注明时刻的单帧检测 | 保存对照结果与分析失败原因 |
+
+保持 Gazebo 的仿真处于运行状态；暂停时 `/clock` 不推进，建图和导航也无法正常继续。Gazebo 中能看到物体，还需在 RViz 中确认雷达观测与代价地图是否响应；三维场景本身不是 SLAM 生成的地图。
+
 ## 主线操作顺序
 
 ![建图到导航的阶段切换](images/mapping_workflow.png)
 
-*图 M6-2：每一步依赖前一步的实际结果。保存地图不会自动停止 SLAM 或启动 AMCL。*
+*图 M6-3：每一步依赖前一步的实际结果。保存地图不会自动停止 SLAM 或启动 AMCL。*
 
 终端 A：
 
@@ -93,7 +109,7 @@ ros2 service call /algorithm_view/save std_srvs/srv/Trigger '{}'
 
 ![轨迹、激光点与聚类检测框](../../modules/m06_navigation/j501_navigation/assets/algorithm_view.png)
 
-*图 M6-3：真实仿真记录生成的算法效果图。蓝线是定位估计，检测点和框来自注明时间的单帧；右图是三维点簇正交投影。*
+*图 M6-4：真实仿真记录生成的算法效果图。蓝线是定位估计，检测点和框来自注明时间的单帧；右图是三维点簇正交投影。*
 
 已有建图、重定位、规划、局部绕行、检测及失败案例可从 [导航实验包](../../modules/m06_navigation/j501_navigation/README_zh_CN.md) 和 [验证目录](../../modules/m06_navigation/j501_navigation/validation) 查看。它们使用不同场景和参数版本，应按记录分别解释，不能拼成统一性能排名。
 
