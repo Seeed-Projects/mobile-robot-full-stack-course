@@ -95,6 +95,7 @@ What most often goes wrong in this pipeline is not the math but **alignment**: w
 ---
 
 ## 5. Hands-on: From Perception to a Semantic Map
+
 Coming...
 
 
