@@ -1,0 +1,37 @@
+{
+  "passed": true,
+  "checks": {
+    "forward_ground_truth_over_0_1m": true,
+    "positive_ground_truth_turn_over_0_2rad": true,
+    "body_tilt_under_0_1rad": true,
+    "ground_pose_height_under_0_02m": true,
+    "stopped_linear_speed_under_0_02m_s": true,
+    "stopped_angular_speed_under_0_02rad_s": true,
+    "scan_has_obstacle_hits": true,
+    "scan_frame_is_laser_link": true,
+    "odometry_frames": true,
+    "drive_joints_present": true
+  },
+  "forward_distance_m": 0.3001994962556867,
+  "turn_rad": 0.41520780228295323,
+  "encoder_odom_turn_rad": 0.8999999992435025,
+  "commands": {
+    "forward_m_s": 0.1,
+    "forward_duration_s": 3.0,
+    "turn_rad_s": 0.3,
+    "turn_duration_s": 3.0
+  },
+  "final_tilt_rad": 0.0,
+  "final_model_z_m": -2.43948390142923e-09,
+  "finite_scan_hits": 28,
+  "scan_frame": "laser_link",
+  "scan_beams": 360,
+  "topic_counts": {
+    "/clock": 9020,
+    "/joint_states": 9018,
+    "/scan": 91,
+    "/odom": 451,
+    "/simulation/ground_truth": 451
+  },
+  "simulation_time_s": 9.021
+}

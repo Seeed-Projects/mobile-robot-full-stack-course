@@ -1,0 +1,13 @@
+{
+  "ros": "Humble",
+  "gazebo": "Fortress 6.16.0",
+  "comparison": "User encoder-only map versus a fresh EKF survey; separate runs, not a repeated-trial ranking.",
+  "ekf_inputs": "wheel forward velocity and zero lateral velocity; IMU angular velocity z. No truth or absolute IMU yaw.",
+  "files": {
+    "config/ekf.yaml": "9b42fc18760e480e085ce584b9e05b36e3d628e83dfdd46eafb5600f0e3843f2",
+    "config/slam.yaml": "1feefd95d1b9563a9ec36f827ed47bd6a2a43cb73b392722862403b9d4c399cf",
+    "j501_navigation/lidar_algorithms.py": "29b51c50677e2feb6719f0dadaf24d7810dadd3de08bbd4e4298c647fe391ee1"
+  },
+  "pose_evaluation_scope": "Recorded after the first outbound waypoints; includes later stationary samples. Not full-route pose coverage.",
+  "mapping_metric": "One-way distance of occupied cells to scene-box surfaces; no completeness guarantee."
+}

@@ -1,0 +1,18 @@
+{
+  "platform": "Ubuntu 22.04 amd64",
+  "ros": "Humble",
+  "nav2": "1.1.20",
+  "gazebo_fortress": "6.16.0",
+  "localization": "AMCL using scan + wheel odometry; ground truth evaluation only",
+  "files": {
+    "scenes/office.yaml": "cc89619cf2b7eb78d0e62ac3cbe815cf3746f0950644d9405ea1ba381dff1a03",
+    "maps/office.pgm": "b3af4bb3e90286c3d508bd5de0f610262990cd240198e8c2a3c5e845100a3559",
+    "config/nav2_params.yaml": "b0015ca9498d0366f6c2b4b2ae2e1af28f1c8eca2c935bfdf2befad8c123c413"
+  },
+  "limitations": [
+    "Different controller trials use different scenarios; no speed ranking.",
+    "DWB cross-room run included recovery retries.",
+    "Ground-truth footprint clearance is evaluated at discrete trajectory samples.",
+    "Mass, friction, and suspension are simulation estimates; no hardware acceptance."
+  ]
+}

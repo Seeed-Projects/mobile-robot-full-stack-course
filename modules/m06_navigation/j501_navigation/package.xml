@@ -1,0 +1,27 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>j501_navigation</name><version>0.2.0</version>
+  <description>Multi-room navigation and executable planning labs for the J501 chassis.</description>
+  <maintainer email="noreply@example.com">Course maintainers</maintainer>
+  <license>LicenseRef-Pending</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
+  <exec_depend>j501_chassis_description</exec_depend>
+  <exec_depend>nav2_bringup</exec_depend><exec_depend>nav2_msgs</exec_depend>
+  <exec_depend>nav2_navfn_planner</exec_depend><exec_depend>nav2_theta_star_planner</exec_depend>
+  <exec_depend>nav2_dwb_controller</exec_depend><exec_depend>nav2_mppi_controller</exec_depend>
+  <exec_depend>nav2_rotation_shim_controller</exec_depend>
+  <exec_depend>nav2_regulated_pure_pursuit_controller</exec_depend>
+  <exec_depend>rclpy</exec_depend><exec_depend>tf2_ros_py</exec_depend>
+  <exec_depend>slam_toolbox</exec_depend><exec_depend>sensor_msgs_py</exec_depend>
+  <exec_depend>robot_localization</exec_depend>
+  <exec_depend>visualization_msgs</exec_depend>
+  <exec_depend>std_srvs</exec_depend><exec_depend>std_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend><exec_depend>nav_msgs</exec_depend>
+  <exec_depend>geometry_msgs</exec_depend>
+  <exec_depend>python3-yaml</exec_depend><exec_depend>python3-numpy</exec_depend>
+  <exec_depend>python3-scipy</exec_depend>
+  <exec_depend>python3-matplotlib</exec_depend>
+  <test_depend>ament_cmake_pytest</test_depend><test_depend>python3-pytest</test_depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>

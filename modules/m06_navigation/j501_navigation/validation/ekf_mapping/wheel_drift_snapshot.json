@@ -1,0 +1,42 @@
+{
+  "grid_info": {
+    "width": 260,
+    "height": 220,
+    "origin": [
+      -1.5838455478077877,
+      -2.647661025320012
+    ],
+    "resolution": 0.05000000074505806
+  },
+  "scan": {
+    "stamp": 644.2,
+    "frame": "base_footprint",
+    "valid": 717,
+    "range_min": 0.3499999940395355
+  },
+  "odom": [
+    10.031234599499227,
+    -1.2944234503662237,
+    -0.8571680217831699
+  ],
+  "truth": [
+    -4.45721,
+    -2.9208,
+    -2.34598
+  ],
+  "slam_pose": [
+    0.06622504972566667,
+    0.0710290677690395,
+    -2.3212230217831693
+  ],
+  "nodes": [
+    "m6_drift_snapshot",
+    "robot_state_publisher",
+    "ros_gz_bridge",
+    "rviz",
+    "transform_listener_impl_5c9dde8f0c10",
+    "lidar_perception",
+    "slam_toolbox",
+    "transform_listener_impl_5946029311d0"
+  ]
+}

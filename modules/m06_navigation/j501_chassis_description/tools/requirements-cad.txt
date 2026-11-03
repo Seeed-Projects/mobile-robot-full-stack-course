@@ -1,0 +1,6 @@
+cadquery-ocp==7.8.1.1
+fast-simplification==0.2.0
+numpy==2.2.6
+trimesh==5.1.1
+PyYAML==6.0.3
+xacro==2.1.1

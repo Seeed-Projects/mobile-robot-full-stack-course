@@ -1,0 +1,174 @@
+<?xml version="1.0"?>
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro" name="j501_chassis">
+  <xacro:property name="geom" value="${xacro.load_yaml('../config/geometry.yaml')}"/>
+  <xacro:property name="dyn" value="${xacro.load_yaml('../config/dynamics.yaml')}"/>
+  <xacro:arg name="mesh_prefix" default="package://j501_chassis_description/meshes/"/>
+  <xacro:arg name="simulation" default="true"/>
+  <xacro:arg name="add_lidar" default="true"/>
+  <xacro:arg name="lidar_mode" default="2d"/>
+  <xacro:arg name="odometry_source" default="wheel"/>
+  <xacro:arg name="suspension_compression" default="${geom['suspension_compression_m']}"/>
+  <xacro:property name="compression" value="${float('$(arg suspension_compression)')}"/>
+  <xacro:property name="radius" value="${geom['wheel_radius_m']}"/>
+  <material name="aluminium"><color rgba="0.65 0.68 0.72 1"/></material>
+  <material name="electronics"><color rgba="0.18 0.22 0.25 1"/></material>
+  <material name="rubber"><color rgba="0.08 0.08 0.09 1"/></material>
+  <material name="lidar"><color rgba="0.15 0.4 0.65 1"/></material>
+
+  <xacro:macro name="box_inertia" params="mass size xyz:='0 0 0'">
+    <inertial>
+      <origin xyz="${xyz}"/>
+      <mass value="${mass}"/>
+      <inertia ixx="${mass*(size[1]**2+size[2]**2)/12}" ixy="0" ixz="0"
+               iyy="${mass*(size[0]**2+size[2]**2)/12}" iyz="0"
+               izz="${mass*(size[0]**2+size[1]**2)/12}"/>
+    </inertial>
+  </xacro:macro>
+  <xacro:macro name="wheel_inertia" params="mass radius width">
+    <inertial>
+      <mass value="${mass}"/>
+      <inertia ixx="${mass*(3*radius**2+width**2)/12}" ixy="0" ixz="0"
+               iyy="${mass*radius**2/2}" iyz="0" izz="${mass*(3*radius**2+width**2)/12}"/>
+    </inertial>
+  </xacro:macro>
+  <xacro:macro name="mesh_visual" params="name material">
+    <visual><geometry><mesh filename="$(arg mesh_prefix)${name}.stl"/></geometry><material name="${material}"/></visual>
+  </xacro:macro>
+  <link name="base_footprint"/>
+  <joint name="base_footprint_joint" type="fixed">
+    <parent link="base_footprint"/><child link="base_link"/>
+    <origin xyz="0 0 ${radius-compression}"/>
+  </joint>
+  <link name="base_link">
+    <xacro:mesh_visual name="frame" material="aluminium"/>
+    <xacro:mesh_visual name="electronics" material="electronics"/>
+    <xacro:box_inertia mass="${dyn['body_mass']}" size="${geom['body_size_m']}"
+      xyz="${' '.join(str(v) for v in dyn['body_com'])}"/>
+    <!-- Conservative envelope: openings in the aluminium frame are filled. -->
+    <collision>
+      <origin xyz="${' '.join(str(v) for v in geom['body_collision_center_m'])}"/>
+      <geometry><box size="${' '.join(str(v) for v in geom['body_size_m'])}"/></geometry>
+    </collision>
+  </link>
+
+  <xacro:macro name="drive_wheel" params="side">
+    <xacro:property name="wheel" value="${geom['wheels'][side]}"/>
+    <!-- The suspension is locked at a configurable pose, not simulated as a spring. -->
+    <joint name="${side}_suspension_joint" type="fixed">
+      <parent link="base_link"/><child link="${side}_carrier_link"/>
+      <origin xyz="${wheel['center_m'][0]} ${wheel['center_m'][1]} ${compression}"/>
+    </joint>
+    <link name="${side}_carrier_link">
+      <xacro:mesh_visual name="${side}_carrier" material="aluminium"/>
+      <xacro:box_inertia mass="${dyn['carrier_mass']}" size="${[0.12, 0.03, 0.085]}" xyz="0 0 0.025"/>
+    </link>
+    <joint name="${side}_wheel_joint" type="continuous">
+      <parent link="${side}_carrier_link"/><child link="${side}_wheel_link"/>
+      <axis xyz="0 1 0"/>
+      <limit effort="3" velocity="8"/>
+      <dynamics damping="${dyn['wheel_joint_damping']}" friction="0"/>
+    </joint>
+    <link name="${side}_wheel_link">
+      <xacro:mesh_visual name="${side}_wheel" material="rubber"/>
+      <xacro:wheel_inertia mass="${dyn['wheel_mass']}" radius="${radius}" width="${wheel['width_m']}"/>
+      <collision><origin rpy="${pi/2} 0 0"/><geometry><cylinder radius="${radius}" length="${wheel['width_m']}"/></geometry></collision>
+    </link>
+    <gazebo reference="${side}_wheel_link"><mu1>0.9</mu1><mu2>0.9</mu2></gazebo>
+  </xacro:macro>
+  <xacro:drive_wheel side="left"/>
+  <xacro:drive_wheel side="right"/>
+
+  <xacro:macro name="caster" params="index">
+    <xacro:property name="c" value="${geom['casters'][index]}"/>
+    <xacro:property name="name" value="caster_${c['name']}"/>
+    <joint name="${name}_swivel_joint" type="continuous">
+      <parent link="base_link"/><child link="${name}_fork_link"/>
+      <origin xyz="${' '.join(str(v) for v in c['pivot_m'])}"/>
+      <axis xyz="0 0 1"/><limit effort="1" velocity="30"/>
+      <dynamics damping="${dyn['caster_swivel_damping']}" friction="0"/>
+    </joint>
+    <link name="${name}_fork_link">
+      <!-- The STEP caster is a compound solid; its complete visual follows swivel. -->
+      <xacro:mesh_visual name="${name}" material="aluminium"/>
+      <xacro:box_inertia mass="${dyn['caster_fork_mass']}" size="${[0.05, 0.025, 0.02]}" xyz="0.01 0 -0.01"/>
+      <collision><origin xyz="0.01 0 -0.009"/><geometry><box size="0.05 0.025 0.018"/></geometry></collision>
+    </link>
+    <joint name="${name}_roll_joint" type="continuous">
+      <parent link="${name}_fork_link"/><child link="${name}_wheel_link"/>
+      <origin xyz="${' '.join(str(v) for v in c['axle_offset_m'])}"/>
+      <axis xyz="0 1 0"/><limit effort="1" velocity="60"/>
+      <dynamics damping="${dyn['caster_roll_damping']}" friction="0"/>
+    </joint>
+    <link name="${name}_wheel_link">
+      <xacro:wheel_inertia mass="${dyn['caster_wheel_mass']}" radius="${c['radius_m']}" width="${c['width_m']}"/>
+      <collision><origin rpy="${pi/2} 0 0"/><geometry><cylinder radius="${c['radius_m']}" length="${c['width_m']}"/></geometry></collision>
+    </link>
+    <gazebo reference="${name}_wheel_link"><mu1>0.8</mu1><mu2>0.8</mu2></gazebo>
+  </xacro:macro>
+  <xacro:caster index="${0}"/><xacro:caster index="${1}"/>
+  <xacro:caster index="${2}"/><xacro:caster index="${3}"/>
+
+  <xacro:if value="$(arg add_lidar)">
+    <joint name="laser_joint" type="fixed">
+      <parent link="base_link"/><child link="laser_link"/><origin xyz="0 0 0.18"/>
+    </joint>
+    <link name="laser_link">
+      <visual><geometry><cylinder radius="0.025" length="0.02"/></geometry><material name="lidar"/></visual>
+      <xacro:box_inertia mass="${0.05}" size="${[0.05, 0.05, 0.02]}"/>
+    </link>
+    <xacro:if value="$(arg simulation)">
+      <gazebo reference="laser_link">
+        <sensor name="lidar" type="gpu_lidar">
+          <xacro:if value="${'$(arg lidar_mode)' == '2d'}"><topic>/scan</topic></xacro:if>
+          <xacro:if value="${'$(arg lidar_mode)' == '3d'}"><topic>/lidar3d</topic></xacro:if>
+          <update_rate>10</update_rate>
+          <always_on>true</always_on><visualize>false</visualize>
+          <ignition_frame_id>laser_link</ignition_frame_id>
+          <lidar><scan><horizontal><samples>${720 if '$(arg lidar_mode)' == '3d' else 360}</samples><resolution>1</resolution>
+            <min_angle>${-pi}</min_angle><max_angle>${pi}</max_angle>
+          </horizontal>
+            <!-- MID-360 field-of-view approximation; regular rays, not Livox's scan pattern. -->
+            <xacro:if value="${'$(arg lidar_mode)' == '3d'}"><vertical><samples>32</samples><resolution>1</resolution>
+              <min_angle>${-7*pi/180}</min_angle><max_angle>${52*pi/180}</max_angle>
+            </vertical></xacro:if>
+          </scan><range><min>0.1</min><max>12</max><resolution>0.01</resolution></range></lidar>
+        </sensor>
+      </gazebo>
+    </xacro:if>
+  </xacro:if>
+
+  <xacro:if value="$(arg simulation)">
+    <gazebo reference="base_link">
+      <sensor name="imu" type="imu">
+        <topic>/imu/data</topic><update_rate>100</update_rate><always_on>true</always_on>
+        <ignition_frame_id>base_link</ignition_frame_id>
+        <imu><angular_velocity><z><noise type="gaussian"><mean>0</mean><stddev>0.002</stddev></noise></z></angular_velocity></imu>
+      </sensor>
+    </gazebo>
+    <gazebo>
+      <plugin filename="ignition-gazebo-diff-drive-system" name="ignition::gazebo::systems::DiffDrive">
+        <left_joint>left_wheel_joint</left_joint><right_joint>right_wheel_joint</right_joint>
+        <wheel_separation>${geom['track_width_m']}</wheel_separation><wheel_radius>${radius}</wheel_radius>
+        <topic>/cmd_vel</topic>
+        <xacro:if value="${'$(arg odometry_source)' == 'wheel'}"><odom_topic>/odom</odom_topic><tf_topic>/tf</tf_topic></xacro:if>
+        <xacro:if value="${'$(arg odometry_source)' == 'ekf'}"><odom_topic>/wheel/odometry</odom_topic><tf_topic>/wheel/tf</tf_topic></xacro:if>
+        <frame_id>odom</frame_id><child_frame_id>base_footprint</child_frame_id>
+        <odom_publish_frequency>50</odom_publish_frequency>
+        <max_linear_velocity>0.3</max_linear_velocity><min_linear_velocity>-0.3</min_linear_velocity>
+        <max_angular_velocity>0.6</max_angular_velocity><min_angular_velocity>-0.6</min_angular_velocity>
+        <max_linear_acceleration>0.5</max_linear_acceleration><min_linear_acceleration>-0.5</min_linear_acceleration>
+        <max_angular_acceleration>1</max_angular_acceleration><min_angular_acceleration>-1</min_angular_acceleration>
+      </plugin>
+      <plugin filename="ignition-gazebo-joint-state-publisher-system" name="ignition::gazebo::systems::JointStatePublisher">
+        <topic>/joint_states</topic>
+      </plugin>
+      <plugin filename="ignition-gazebo-pose-publisher-system" name="ignition::gazebo::systems::PosePublisher">
+        <publish_link_pose>false</publish_link_pose><publish_sensor_pose>false</publish_sensor_pose>
+        <publish_collision_pose>false</publish_collision_pose><publish_visual_pose>false</publish_visual_pose>
+        <!-- Fortress also gates the root model pose on publish_nested_model_pose. -->
+        <publish_model_pose>true</publish_model_pose><publish_nested_model_pose>true</publish_nested_model_pose>
+        <use_pose_vector_msg>true</use_pose_vector_msg><update_frequency>50</update_frequency>
+      </plugin>
+    </gazebo>
+  </xacro:if>
+</robot>

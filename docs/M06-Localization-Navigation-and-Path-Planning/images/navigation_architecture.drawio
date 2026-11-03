@@ -1,0 +1,96 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="drawio" version="26.0.0">
+  <diagram name="M6 | From sensors to navigation">
+    <mxGraphModel pageWidth="1240" pageHeight="590">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="e0" value="" source="s" target="p" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" value="" source="p" target="l" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="" source="p" target="c" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="TF" source="w" target="l" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="265" y="365" />
+              <mxPoint x="265" y="255" />
+              <mxPoint x="700" y="255" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e4" value="" source="c" target="g" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" value="live costs" source="c" target="v" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="450" y="465" />
+              <mxPoint x="875" y="465" />
+              <mxPoint x="875" y="400" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e6" value="path" source="g" target="v" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e7" value="goal" source="b" target="g" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1040" y="275" />
+              <mxPoint x="700" y="275" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e8" value="" source="b" target="v" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e9" value="cmd_vel / feedback" source="v" target="w" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1050" y="490" />
+              <mxPoint x="135" y="490" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="s" value="3D LiDAR&#10;PointCloud2" parent="1" vertex="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e7effa;strokeColor=#4674a5;fontSize=16;fontColor=#203247;">
+          <mxGeometry x="35" y="140" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="p" value="LiDAR processing&#10;scan + obstacle points" parent="1" vertex="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e4f3ef;strokeColor=#25856c;fontSize=16;fontColor=#203247;">
+          <mxGeometry x="300" y="140" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="l" value="SLAM / AMCL&#10;map -&gt; odom" parent="1" vertex="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e7effa;strokeColor=#4674a5;fontSize=16;fontColor=#203247;">
+          <mxGeometry x="590" y="140" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="b" value="BT Navigator&#10;goal / recovery" parent="1" vertex="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2d9;strokeColor=#bb8430;fontSize=16;fontColor=#203247;">
+          <mxGeometry x="915" y="140" width="270" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="w" value="Wheel + IMU&#10;EKF -&gt; odom" parent="1" vertex="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e7effa;strokeColor=#4674a5;fontSize=16;fontColor=#203247;">
+          <mxGeometry x="35" y="340" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c" value="Costmaps&#10;static / live / inflation" parent="1" vertex="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e4f3ef;strokeColor=#25856c;fontSize=16;fontColor=#203247;">
+          <mxGeometry x="300" y="340" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="g" value="Planner Server&#10;A* / Dijkstra / Theta*" parent="1" vertex="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2d9;strokeColor=#bb8430;fontSize=16;fontColor=#203247;">
+          <mxGeometry x="590" y="340" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="v" value="Controller Server&#10;DWB / MPPI / RPP" parent="1" vertex="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2d9;strokeColor=#bb8430;fontSize=16;fontColor=#203247;">
+          <mxGeometry x="915" y="340" width="270" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="text-24" value="M6 | From sensors to navigation" parent="1" vertex="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;strokeColor=none;fillColor=none;fontSize=18;">
+          <mxGeometry x="34" y="24" width="1170" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="text-65" value="M3 sensing / state estimation + M5 mapping -&gt; M6 decisions" parent="1" vertex="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;strokeColor=none;fillColor=none;fontSize=18;">
+          <mxGeometry x="34" y="65" width="1170" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="text-554" value="SLAM and AMCL run in separate phases. Simulator ground truth is evaluation-only." parent="1" vertex="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;strokeColor=none;fillColor=none;fontSize=18;">
+          <mxGeometry x="34" y="554" width="1170" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,65 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="drawio" version="26.0.0">
+  <diagram name="6.1 | Map -&gt; save -&gt; relocalize -&gt; navigate">
+    <mxGraphModel pageWidth="1240" pageHeight="590">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="e0" value="" source="a" target="b" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" value="" source="b" target="c" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="" source="c" target="d" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="" source="d" target="e" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="" source="e" target="f" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" value="" source="f" target="g" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" value="pass" source="g" target="h" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="a" value="Start mapping&#10;run_mapping.sh" parent="1" vertex="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e7effa;strokeColor=#4674a5;fontSize=16;fontColor=#203247;">
+          <mxGeometry x="35" y="145" width="230" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="b" value="Survey / loop closure&#10;live scan + EKF" parent="1" vertex="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e4f3ef;strokeColor=#25856c;fontSize=16;fontColor=#203247;">
+          <mxGeometry x="340" y="145" width="230" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c" value="Save observed map&#10;pgm + yaml + pose graph" parent="1" vertex="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e7effa;strokeColor=#4674a5;fontSize=16;fontColor=#203247;">
+          <mxGeometry x="650" y="145" width="240" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="d" value="Stop mapping&#10;Ctrl+C terminal A" parent="1" vertex="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#eef1f5;strokeColor=#647487;fontSize=16;fontColor=#203247;">
+          <mxGeometry x="965" y="145" width="235" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="h" value="Navigate&#10;Nav2 active" parent="1" vertex="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2d9;strokeColor=#bb8430;fontSize=16;fontColor=#203247;">
+          <mxGeometry x="35" y="355" width="230" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="g" value="Check localization&#10;5 AMCL updates + scan fit" parent="1" vertex="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e4f3ef;strokeColor=#25856c;fontSize=16;fontColor=#203247;">
+          <mxGeometry x="340" y="355" width="250" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="f" value="Seed / rotate&#10;relocalize --pose ..." parent="1" vertex="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e7effa;strokeColor=#4674a5;fontSize=16;fontColor=#203247;">
+          <mxGeometry x="650" y="355" width="240" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="e" value="Reload saved map&#10;run_navigation.sh" parent="1" vertex="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e7effa;strokeColor=#4674a5;fontSize=16;fontColor=#203247;">
+          <mxGeometry x="965" y="355" width="235" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="text-24" value="6.1 | Map -&gt; save -&gt; relocalize -&gt; navigate" parent="1" vertex="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;strokeColor=none;fillColor=none;fontSize=18;">
+          <mxGeometry x="34" y="24" width="1170" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="text-65" value="Keep mapping and localization mutually exclusive" parent="1" vertex="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;strokeColor=none;fillColor=none;fontSize=18;">
+          <mxGeometry x="34" y="65" width="1170" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="text-554" value="If localization fails: inspect map / TF / scan / seed; keep navigation inactive." parent="1" vertex="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;strokeColor=none;fillColor=none;fontSize=18;">
+          <mxGeometry x="34" y="554" width="1170" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

@@ -1,0 +1,17 @@
+{
+  "ros": "Humble",
+  "nav2": "1.1.20",
+  "gazebo_fortress": "6.16.0",
+  "map_source": "SLAM Toolbox from live 3D cloud height projection; not scene rasterization",
+  "sensor": "Fortress GPU LiDAR, regular 720x32 rays, 360deg x [-7,52]deg; not native Livox scanning",
+  "planner_before_relocalization": "unconfigured (state 1), verified via lifecycle GetState",
+  "navigation_input": "AMCL / scan / wheel odometry / ground-separated obstacle PointCloud2",
+  "evaluation_only": "Simulator ground truth, scene geometry, and world/map placement are used only by independent evaluators.",
+  "files": {
+    "config/slam.yaml": "1feefd95d1b9563a9ec36f827ed47bd6a2a43cb73b392722862403b9d4c399cf",
+    "config/lidar_perception.yaml": "d7bd448e1b32f012759c2a3263b4fcae89af37424ff7b76395b47c53db7b9f54",
+    "validation/lidar_workflow/office.pgm": "3c69c9e7019494fb690cb498f623484fabb965679676a6c5429e8ab088b702d7",
+    "validation/lidar_workflow/office.yaml": "1885ecbf3f2b5dcb8d01428ac9d9c73f6c6108dc2f9f7d8c466d0cbf4f00e09d",
+    "j501_navigation/lidar_algorithms.py": "2c39fc178d9796066fd0dd277172e2bbb650bdc7d88cda2543292f7d91aaaf8c"
+  }
+}

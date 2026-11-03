@@ -63,4 +63,6 @@ node_modules/
 
 # Keep course assets when explicitly added
 !assets/images/
-
+# Runtime meshes required by the course simulation packages.
+!modules/m06_navigation/j501_chassis_description/meshes/*.stl
+!modules/m06_navigation/j501_navigation/models/*/meshes/*.stl

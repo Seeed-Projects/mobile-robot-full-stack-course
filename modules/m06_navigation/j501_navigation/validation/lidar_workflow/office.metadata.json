@@ -1,0 +1,10 @@
+{
+  "world_from_map": [
+    -4.5,
+    -3.0,
+    0.0
+  ],
+  "evaluation_only": true,
+  "source": "SLAM Toolbox /map and serialize_map; world placement only for evaluation",
+  "note": "Valid for a fresh simulation survey starting at its configured spawn."
+}

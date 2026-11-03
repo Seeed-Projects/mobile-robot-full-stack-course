@@ -1,0 +1,20 @@
+<?xml version="1.0"?>
+<package format="3">
+  <name>j501_chassis_description</name>
+  <version>0.1.0</version>
+  <description>STEP-derived J501 differential-drive chassis for ROS 2 and Gazebo Fortress.</description>
+  <maintainer email="noreply@example.com">Course maintainers</maintainer>
+  <license>LicenseRef-Pending</license>
+  <buildtool_depend>ament_cmake</buildtool_depend>
+  <exec_depend>ament_index_python</exec_depend>
+  <exec_depend>launch</exec_depend>
+  <exec_depend>launch_ros</exec_depend>
+  <exec_depend>robot_state_publisher</exec_depend>
+  <exec_depend>joint_state_publisher_gui</exec_depend>
+  <exec_depend>rviz2</exec_depend>
+  <exec_depend>xacro</exec_depend>
+  <exec_depend>python3-yaml</exec_depend>
+  <exec_depend>ros_gz_sim</exec_depend>
+  <exec_depend>ros_gz_bridge</exec_depend>
+  <export><build_type>ament_cmake</build_type></export>
+</package>

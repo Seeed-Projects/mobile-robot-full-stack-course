@@ -1,0 +1,75 @@
+{
+  "ros": "Humble",
+  "gazebo": "Fortress",
+  "planner": "AStar",
+  "controller": "MPPI",
+  "map_source": "Previously saved wheel/IMU EKF + SLAM Toolbox observed map; reload then AMCL relocalization",
+  "trajectory_source": "AMCL + wheel/IMU EKF map -> base_footprint TF; estimated, not ground truth",
+  "detection_source": "Live LiDAR ground separation and Euclidean clusters; no scene geometry",
+  "trajectory_points": 288,
+  "snapshot_stamp_sec": 65.0,
+  "selected_cluster": {
+    "id": 15,
+    "center": [
+      8.430315630279468,
+      4.556067690786021,
+      0.47993627536500905
+    ],
+    "corners": [
+      [
+        8.428334349207613,
+        4.312881963342543,
+        0.14806100947862277
+      ],
+      [
+        8.428334349207613,
+        4.312881963342543,
+        0.8118115412513953
+      ],
+      [
+        8.215815144178812,
+        4.67066596725422,
+        0.14806100947862277
+      ],
+      [
+        8.215815144178812,
+        4.67066596725422,
+        0.8118115412513953
+      ],
+      [
+        8.644816116380124,
+        4.441469414317822,
+        0.14806100947862277
+      ],
+      [
+        8.644816116380124,
+        4.441469414317822,
+        0.8118115412513953
+      ],
+      [
+        8.432296911351322,
+        4.799253418229499,
+        0.14806100947862277
+      ],
+      [
+        8.432296911351322,
+        4.799253418229499,
+        0.8118115412513953
+      ]
+    ],
+    "size": [
+      0.25179175535837817,
+      0.4161415696144104,
+      0.6637505317727725
+    ],
+    "points": 83,
+    "compact": true
+  },
+  "point_count": 1985,
+  "files": {
+    "j501_navigation/algorithm_view.py": "33568ccb782bc87df1f5da8892e7350f2ff1c645286b4cae2dda69fa41a4c2db",
+    "j501_navigation/plot_algorithm_view.py": "25f8153c86010d564d03c15672adc5e88731c870a758ddc1e29efb6427dd9d14",
+    "rviz/navigation.rviz": "8e36525ba62708177843dc34978c6145c88ed9baa15b11f51ae33e2118f420a4"
+  },
+  "note": "Trajectory covers the recorded run; points and boxes are one timestamped detection frame. Cluster IDs are frame-local, not tracked objects."
+}

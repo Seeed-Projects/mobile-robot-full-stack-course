@@ -1,0 +1,25 @@
+{
+  "passed": true,
+  "cad_part_instances": 359,
+  "visual_meshes": 10,
+  "visual_triangles": 214978,
+  "links": 15,
+  "joints": 14,
+  "continuous_joints": 10,
+  "estimated_total_mass_kg": 15.27,
+  "wheel_contact_z_m": {
+    "left_wheel_link": 0.0,
+    "right_wheel_link": 0.0,
+    "caster_rear_left_wheel_link": 0.0,
+    "caster_rear_right_wheel_link": 9.992007221626409e-16,
+    "caster_front_left_wheel_link": 0.0,
+    "caster_front_right_wheel_link": 1.0269562977782698e-15
+  },
+  "checks": [
+    "mesh checksums",
+    "complete CAD instance mapping",
+    "connected URDF tree",
+    "positive physical inertia tensors",
+    "six nominal ground contacts"
+  ]
+}

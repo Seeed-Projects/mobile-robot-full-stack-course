@@ -1,0 +1,10 @@
+# Simulation estimates, NOT CAD material properties or measured hardware ratings.
+body_mass: 12.0
+wheel_mass: 1.0
+carrier_mass: 0.25
+caster_fork_mass: 0.08
+caster_wheel_mass: 0.10
+body_com: [0.0, 0.0, 0.065]
+wheel_joint_damping: 0.02
+caster_swivel_damping: 0.001
+caster_roll_damping: 0.0001

@@ -1,0 +1,35 @@
+name: navigation
+resolution: 0.05
+origin: [-6.2, -5.2]
+size: [12.4, 10.4]
+initial_pose: [-4.5, -3.0, 0.0]
+goals:
+  cross_rooms: [4.5, 2.7, 0.0]
+  local_test: [-2.0, -3.0, 0.0]
+  south_room: [4.4, -3.0, 1.5707963267948966]
+# Present in Gazebo and laser observations, deliberately absent from the static map.
+# The square base also supplies conservative footprint-clearance evaluation geometry.
+unmapped_cones:
+  - name: arrival_cone
+    center: [3.85, 1.5]
+    size: [0.6, 0.6]
+    radius: 0.27
+    height: 0.85
+    base_height: 0.04
+# Only these static objects are rasterized into the global map.
+boxes:
+  - {name: west_wall, center: [-6.0, 0.0], size: [0.2, 10.2]}
+  - {name: east_wall, center: [6.0, 0.0], size: [0.2, 10.2]}
+  - {name: south_wall, center: [0.0, -5.0], size: [12.0, 0.2]}
+  - {name: north_wall, center: [0.0, 5.0], size: [12.0, 0.2]}
+  - {name: partition_south, center: [-1.0, -2.3], size: [0.2, 5.2]}
+  - {name: partition_north, center: [-1.0, 3.6], size: [0.2, 2.6]}
+  - {name: office_wall_west, center: [1.5, -0.7], size: [1.0, 0.2]}
+  - {name: office_wall_east, center: [4.75, -0.7], size: [2.5, 0.2]}
+  - {name: shelf_a, center: [1.0, 3.6], size: [0.6, 1.6]}
+  - {name: shelf_b, center: [3.0, 2.4], size: [0.6, 2.4]}
+  - {name: west_desk, center: [-4.2, 2.8], size: [1.6, 0.8]}
+  - {name: west_cabinet, center: [-2.5, 1.6], size: [0.6, 1.8]}
+  - {name: south_shelf_a, center: [1.0, -3.2], size: [0.7, 1.8]}
+  - {name: south_shelf_b, center: [3.0, -3.2], size: [0.7, 1.8]}
+  - {name: south_pillar, center: [4.7, -1.8], size: [0.45, 0.45]}

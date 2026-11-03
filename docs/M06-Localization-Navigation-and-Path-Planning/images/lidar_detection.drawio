@@ -1,0 +1,67 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="drawio" version="26.0.0">
+  <diagram name="6.3 | LiDAR obstacle detection pipeline">
+    <mxGraphModel pageWidth="1240" pageHeight="590">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="e0" value="" source="a" target="b" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e1" value="" source="b" target="c" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e2" value="" source="c" target="e" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="clusters" source="e" target="f" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="projection" source="b" target="d" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e5" value="clear" source="d" target="k" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e6" value="mark" source="e" target="k" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="985" y="275" />
+              <mxPoint x="700" y="275" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a" value="Timestamped cloud&#10;sensor frame -&gt; base" parent="1" vertex="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e7effa;strokeColor=#4674a5;fontSize=16;fontColor=#203247;">
+          <mxGeometry x="35" y="140" width="200" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="b" value="ROI + voxel grid&#10;invalid / self / range" parent="1" vertex="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e4f3ef;strokeColor=#25856c;fontSize=16;fontColor=#203247;">
+          <mxGeometry x="300" y="140" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="c" value="Ground RANSAC&#10;near-horizontal plane" parent="1" vertex="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e4f3ef;strokeColor=#25856c;fontSize=16;fontColor=#203247;">
+          <mxGeometry x="590" y="140" width="220" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="e" value="Obstacle cloud&#10;non-ground points" parent="1" vertex="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e4f3ef;strokeColor=#25856c;fontSize=16;fontColor=#203247;">
+          <mxGeometry x="915" y="140" width="270" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="d" value="Height-slice scan&#10;SLAM / AMCL / clearing" parent="1" vertex="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e7effa;strokeColor=#4674a5;fontSize=16;fontColor=#203247;">
+          <mxGeometry x="300" y="350" width="220" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="k" value="Local costmap&#10;mark + clear + inflate" parent="1" vertex="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2d9;strokeColor=#bb8430;fontSize=16;fontColor=#203247;">
+          <mxGeometry x="590" y="350" width="220" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="f" value="3D cluster boxes&#10;Euclidean KD-tree" parent="1" vertex="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2d9;strokeColor=#bb8430;fontSize=16;fontColor=#203247;">
+          <mxGeometry x="915" y="350" width="270" height="85" as="geometry" />
+        </mxCell>
+        <mxCell id="text-24" value="6.3 | LiDAR obstacle detection pipeline" parent="1" vertex="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;strokeColor=none;fillColor=none;fontSize=18;">
+          <mxGeometry x="34" y="24" width="1170" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="text-65" value="Geometric detection is implemented; persistent tracking / prediction are extensions" parent="1" vertex="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;strokeColor=none;fillColor=none;fontSize=18;">
+          <mxGeometry x="34" y="65" width="1170" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="text-554" value="All non-ground points mark the local costmap; cluster-size thresholds affect boxes only." parent="1" vertex="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;strokeColor=none;fillColor=none;fontSize=18;">
+          <mxGeometry x="34" y="554" width="1170" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

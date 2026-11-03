@@ -1,0 +1,28 @@
+{
+  "resolution_m": 0.05,
+  "size_cells": [
+    248,
+    208
+  ],
+  "static_boxes": 15,
+  "occupied_cells": 7428,
+  "free_cells": 42348,
+  "unknown_cells": 1808,
+  "source": "scenes/office.yaml",
+  "unmapped_cones": [
+    {
+      "name": "arrival_cone",
+      "center": [
+        3.85,
+        1.5
+      ],
+      "size": [
+        0.6,
+        0.6
+      ],
+      "radius": 0.27,
+      "height": 0.85,
+      "base_height": 0.04
+    }
+  ]
+}

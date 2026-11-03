@@ -1,0 +1,123 @@
+Panels:
+  - Class: rviz_common/Displays
+    Name: Displays
+Visualization Manager:
+  Class: ""
+  Global Options:
+    Background Color: 45; 48; 52
+    Fixed Frame: map
+    Frame Rate: 20
+  Displays:
+    - Class: rviz_default_plugins/Map
+      Name: Static map
+      Enabled: true
+      Topic:
+        Value: /map
+        Durability Policy: Transient Local
+      Color Scheme: map
+    - Class: rviz_default_plugins/Map
+      Name: Global costmap
+      Enabled: true
+      Alpha: 0.18
+      Topic:
+        Value: /global_costmap/costmap
+        Durability Policy: Transient Local
+      Color Scheme: costmap
+    - Class: rviz_default_plugins/Map
+      Name: Local costmap
+      Enabled: true
+      Alpha: 0.35
+      Topic:
+        Value: /local_costmap/costmap
+        Durability Policy: Transient Local
+      Color Scheme: costmap
+    - Class: rviz_default_plugins/RobotModel
+      Name: J501 chassis
+      Enabled: true
+      Description Source: Topic
+      Description Topic:
+        Value: /robot_description
+        Durability Policy: Transient Local
+    - Class: rviz_default_plugins/Path
+      Name: Global path
+      Enabled: true
+      Topic:
+        Value: /plan
+      Color: 80; 230; 100
+      Line Style: Lines
+      Line Width: 0.04
+    - Class: rviz_default_plugins/Path
+      Name: Local prediction
+      Enabled: true
+      Topic:
+        Value: /local_plan
+      Color: 255; 140; 50
+      Line Width: 0.03
+    - Class: rviz_default_plugins/Path
+      Name: Initial global reference (green)
+      Enabled: true
+      Topic:
+        Value: /lab/reference_path
+        Durability Policy: Transient Local
+      Color: 80; 230; 100
+      Line Style: Billboards
+      Line Width: 0.04
+    - Class: rviz_default_plugins/Path
+      Name: Localized trajectory (blue)
+      Enabled: true
+      Topic:
+        Value: /lab/estimated_path
+        Durability Policy: Transient Local
+      Color: 65; 145; 255
+      Line Style: Billboards
+      Line Width: 0.05
+    - Class: rviz_default_plugins/Path
+      Name: Recorded actual trajectory
+      Enabled: false
+      Topic:
+        Value: /lab/actual_path
+      Color: 100; 150; 255
+      Line Width: 0.03
+    - Class: rviz_default_plugins/LaserScan
+      Name: Live laser
+      Enabled: true
+      Topic:
+        Value: /scan
+        Reliability Policy: Best Effort
+      Size (m): 0.03
+    - Class: rviz_default_plugins/PointCloud2
+      Name: LiDAR obstacle points
+      Enabled: true
+      Topic:
+        Value: /perception/obstacles
+        Reliability Policy: Best Effort
+      Size (m): 0.025
+      Color Transformer: FlatColor
+      Color: 255; 100; 30
+    - Class: rviz_default_plugins/MarkerArray
+      Name: LiDAR detected boxes
+      Enabled: false
+      Topic:
+        Value: /perception/boxes
+    - Class: rviz_default_plugins/MarkerArray
+      Name: Compact cluster boxes + labels
+      Enabled: true
+      Topic:
+        Value: /lab/algorithm_markers
+  Tools:
+    - Class: rviz_default_plugins/Interact
+    - Class: rviz_default_plugins/MoveCamera
+    - Class: rviz_default_plugins/SetInitialPose
+      Topic: /initialpose
+    - Class: nav2_rviz_plugins/GoalTool
+  Views:
+    Current:
+      Class: rviz_default_plugins/TopDownOrtho
+      Scale: 50
+      X: 4.5
+      Y: 3.0
+Window Geometry:
+  Width: 1280
+  Height: 900
+  X: 0
+  Y: 0

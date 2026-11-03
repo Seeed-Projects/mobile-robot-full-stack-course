@@ -1,0 +1,60 @@
+<?xml version='1.0' encoding='utf-8'?>
+<mxfile host="drawio" version="26.0.0">
+  <diagram name="6.4 | Multi-robot communication and coordination">
+    <mxGraphModel pageWidth="1240" pageHeight="590">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+        <mxCell id="e0" value="map" source="a" target="b" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="190" y="170" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e1" value="map" source="a" target="d" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1010" y="170" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="e2" value="leader pose" source="b" target="c" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e3" value="NavigateToPose" source="c" target="d" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+        <mxCell id="e4" value="status / watchdog" source="d" target="c" parent="1" edge="1" style="edgeStyle=orthogonalEdgeStyle;rounded=0;html=1;endArrow=block;strokeColor=#65758a;fontSize=12;labelBackgroundColor=#ffffff;">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="1010" y="475" />
+              <mxPoint x="600" y="475" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+        <mxCell id="a" value="Shared map / mission&#10;consistent origin + frames" parent="1" vertex="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e7effa;strokeColor=#4674a5;fontSize=16;fontColor=#203247;">
+          <mxGeometry x="435" y="130" width="330" height="80" as="geometry" />
+        </mxCell>
+        <mxCell id="b" value="Leader: robot1&#10;localization + Nav2" parent="1" vertex="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e4f3ef;strokeColor=#25856c;fontSize=16;fontColor=#203247;">
+          <mxGeometry x="40" y="315" width="300" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="c" value="Coordinator&#10;relative offset -&gt; goal" parent="1" vertex="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#fff2d9;strokeColor=#bb8430;fontSize=16;fontColor=#203247;">
+          <mxGeometry x="435" y="315" width="330" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="d" value="Follower: robot2&#10;localization + Nav2" parent="1" vertex="1" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#e4f3ef;strokeColor=#25856c;fontSize=16;fontColor=#203247;">
+          <mxGeometry x="860" y="315" width="300" height="100" as="geometry" />
+        </mxCell>
+        <mxCell id="text-24" value="6.4 | Multi-robot communication and coordination" parent="1" vertex="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;strokeColor=none;fillColor=none;fontSize=18;">
+          <mxGeometry x="34" y="24" width="1170" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="text-65" value="Design exercise: no completed dual-J501 formation experiment is claimed" parent="1" vertex="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;strokeColor=none;fillColor=none;fontSize=18;">
+          <mxGeometry x="34" y="65" width="1170" height="30" as="geometry" />
+        </mxCell>
+        <mxCell id="text-554" value="Discovery Server discovers peers; data still needs network reachability. Each robot owns its stop logic." parent="1" vertex="1" style="text;html=1;align=left;verticalAlign=middle;whiteSpace=wrap;strokeColor=none;fillColor=none;fontSize=18;">
+          <mxGeometry x="34" y="554" width="1170" height="30" as="geometry" />
+        </mxCell>
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>

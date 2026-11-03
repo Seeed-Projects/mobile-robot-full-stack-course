@@ -1,0 +1,17 @@
+lidar_perception:
+  ros__parameters:
+    use_sim_time: true
+    input_topic: /livox/lidar
+    base_frame: base_footprint
+    max_range: 10.0
+    voxel_size: 0.06
+    ground_threshold: 0.04
+    ground_max_tilt_deg: 15.0
+    ground_iterations: 45
+    obstacle_min_height: 0.07
+    obstacle_max_height: 1.5
+    cluster_tolerance: 0.18
+    cluster_min_points: 5
+    scan_min_height: 0.12
+    scan_max_height: 0.42
+    scan_bins: 720

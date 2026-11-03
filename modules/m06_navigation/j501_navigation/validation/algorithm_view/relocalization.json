@@ -1,0 +1,15 @@
+{
+  "succeeded": true,
+  "seed": [
+    0.0,
+    0.0,
+    0.0
+  ],
+  "wall_time_s": 6.777614146005362,
+  "position_std_m": 0.0986120272904932,
+  "yaw_std_rad": 0.05714174449674731,
+  "scan_map_agreement": 1.0,
+  "stable_amcl_updates": 5,
+  "ready": true,
+  "amcl_stamp_sec": 3.6
+}

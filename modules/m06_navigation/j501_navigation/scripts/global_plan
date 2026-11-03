@@ -1,0 +1,3 @@
+#!/usr/bin/python3
+from j501_navigation.clients import global_main
+global_main()

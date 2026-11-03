@@ -86,7 +86,7 @@ flowchart LR
 | M3 | [雷达与多传感器融合](docs/M03-LiDAR-and-Multi-Sensor-Fusion/README.md) | LiDAR、IMU、GNSS、CAN-FD、PTP、EKF | ✅ Completed |
 | M4 | AI 视觉与边缘加速 | YOLO、跟踪、分割、6D 位姿、Isaac ROS | ✅ Completed |
 | M5 | 三维重建与 SLAM | ORB-SLAM3、Fast-LIO、R3LIVE、3DGS、语义地图 | ✅ Completed |
-| M6 | 定位导航与路径规划 | Nav2、规划、动态避障、多机协同 | ⏳ 计划中 |
+| M6 | [决策层：定位导航与路径规划（4 课时）](docs/M06-Localization-Navigation-and-Path-Planning/README_zh_CN.md) | 激光建图、保存地图、AMCL 重定位、全局 / 局部规划、点云障碍检测 | 🚧 四节正文、公式图解与仿真教程已编写；预测、多机闭环与实车待验证 |
 | M7 | [视觉语言导航：Jetson与底盘仿真](docs/M07-Vision-Language-Navigation/README_zh_CN.md) · [代码](docs/M07-Vision-Language-Navigation/code/README_zh_CN.md) | VLN基础、LightNav原理、Jetson底盘仿真与冰箱导航Demo | ✅ Completed |
 | M8 | 云台与主动视觉 | 云台控制、目标跟踪、底盘协同 | ⏳ 计划中 |
 | M9 | 机械臂与操作 | MoveIt 2、Pinocchio、手眼标定、GraspNet | ⏳ 计划中 |

@@ -1,0 +1,9 @@
+{
+  "map": "build/m06_maps/before_ekf/office.yaml",
+  "occupied_cells": 3452,
+  "resolution_m": 0.05,
+  "median_wall_error_m": 0.09499999999999992,
+  "p95_wall_error_m": 0.3994999999999983,
+  "cells_over_15cm_ratio": 0.2670915411355736,
+  "note": "Simulation evaluation only. Occupied cells to nearest scene-box surface; does not measure completeness or continuous pose accuracy."
+}
