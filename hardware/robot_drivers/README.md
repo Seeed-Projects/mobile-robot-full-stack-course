@@ -1,241 +1,107 @@
-# DM-H65 Two-Wheel Mobile Chassis Python SDK
+# Simple AMR
 
-A Python SDK for controlling DM-H65 hub motors over Linux SocketCAN on NVIDIA Jetson. It includes single-motor control, differential-drive chassis control, command-line diagnostics, Jetson deployment services, and a remote debugging WebUI.
+[简体中文](README.md) | [English](README_EN.md)
 
-The SDK is integrated at `robot_drivers/` in the course repository root. It is a Python-only project and does not include or depend on the C++ implementation.
+Simple AMR 是基于 Jetson、SocketCAN 和 DM-H65 轮毂电机的两轮差速底盘软件，包含 Python SDK、浏览器控制台，以及 ROS 2 Humble `/cmd_vel` 桥接。WebUI 后端是唯一打开 CAN 的进程；网页与 ROS 2 速度控制互斥。
 
-From the course repository root:
+## 已验证的实机配置
+
+| 项目 | 配置 |
+| --- | --- |
+| CAN | `can1`，Classic CAN，1 Mbps |
+| 左轮 / 右轮 | ID `0x01` / `0x02`，安装方向 `-1` / `+1` |
+| 轮半径 / 轮距 | `0.0825 m` / `0.42 m` |
+| Jetson 项目目录 | `/home/seeed/seeed_amr_sdk` |
+| WebUI | `http://<Jetson-IP>:8765/` |
+
+这些参数来自当前底盘；在其他机器人上使用前必须重新核对。不要同时运行第二个访问 `can1` 的电机控制进程。
+
+## 在已配置的 Jetson 上启动
+
+重启后从项目目录运行。**不带参数默认网页控制**，启动过程没有交互菜单：
 
 ```bash
-cd robot_drivers
+cd /home/seeed/seeed_amr_sdk
+python3 scripts/start_simple_amr.py         # 默认：网页控制
+python3 scripts/start_simple_amr.py webui   # 显式：网页控制
+python3 scripts/start_simple_amr.py ros2    # ROS 2 /cmd_vel 控制
 ```
 
-The following configuration has been verified on a reComputer Robotics J501:
+脚本会启动手动 CAN1 服务，复用或启动 WebUI，并切换控制方式。选择 `ros2` 时还会启动 ROS 2 桥接并等待零速度待命；选择 `webui` 时停止桥接。两种模式下均可访问 WebUI 查看状态。首次使用前需安装下述 CAN1 与 ROS 2 服务；旧版 CAN0/J501 服务模板不适用于这台 CAN1 设备。
 
-- CAN interface: `can0`, Classic CAN at `1 Mbps`
-- Left wheel: motor ID `0x01`, installation direction `-1`
-- Right wheel: motor ID `0x02`, installation direction `+1`
-- Wheel radius: `0.0825 m`
-- Track width: `0.42 m`
-- Python: 3.10 or later
+确认状态：
 
-## Project Structure
-
-```text
-robot_drivers/
-├── src/dm_h65/          # Installable Python package, CLI, and WebUI backend
-├── examples/            # Single-motor, dual-motor, and bounded motion tests
-├── tests/               # Unit tests that do not require CAN hardware
-├── webui/frontend/      # React WebUI source
-├── scripts/             # CAN, WebUI, test, and Jetson installation scripts
-├── deploy/systemd/      # systemd service templates
-├── docs/                # API, WebUI, deployment, and troubleshooting guides
-└── pyproject.toml       # Python package configuration
+```bash
+ip -details -statistics link show can1
+curl http://127.0.0.1:8765/api/state
 ```
 
-The `robot_drivers/` directory is the only installation root for this SDK.
+CAN 应为 `UP`、`ERROR-ACTIVE`、`bitrate 1000000`。浏览器打开 `http://<Jetson-IP>:8765/`，确认页面显示 `can1 · 实机模式`、两轮在线且没有急停锁定。
 
-## Quick Installation
+## 网页控制
 
-On the Jetson:
+在页面选择“网页控制”，用摇杆、W/A/S/D、方向键或原地旋转按钮操作；松开输入后发送零速度。无需取得控制权或按住启用。急停会失能电机；确认现场安全后才能复位。页面上的目标转速是下发目标值，**不是**电机实测速度。
+
+## ROS 2 控制
+
+运行 `python3 scripts/start_simple_amr.py ros2`，或在桥接在线时于 WebUI 选择“ROS 2 控制”。桥接订阅 `geometry_msgs/msg/Twist` 的 `/cmd_vel`：`linear.x` 正值为前进，`angular.z` 正值为左转，其余四个分量必须为零。网页摇杆在 ROS 2 模式下暂停。
+
+```bash
+source /opt/ros/humble/setup.bash
+ros2 topic info /cmd_vel
+sudo apt install ros-humble-teleop-twist-keyboard  # 仅首次安装
+ros2 run teleop_twist_keyboard teleop_twist_keyboard --ros-args -p speed:=0.1 -p turn:=0.4
+```
+
+`ros2 topic info` 应看到 1 个订阅者。在运行键盘节点的终端按 `i` 前进、`,` 后退、`j` 左转、`l` 右转、`k` 停车，`Ctrl+C` 退出。终端必须获得键盘焦点。速度消息中断超过 750 ms 会自动停车，单次按键可能只产生短暂运动。详细安全约束见 [ROS 2 控制指南](docs/ROS2.md)。
+
+## 首次安装或开发环境
+
+在 Jetson 上准备 Python 环境；仓库内已包含构建好的 WebUI 静态文件，运行时无需 Node.js：
 
 ```bash
 sudo apt update
-sudo apt install -y can-utils python3-venv
-
-cd /path/to/mobile-robotics-fullstack-course/robot_drivers
+sudo apt install -y can-utils gpiod python3-venv
+cd /home/seeed/seeed_amr_sdk
 python3 -m venv .venv
-source .venv/bin/activate
-python -m pip install --upgrade pip
-python -m pip install -e .
+.venv/bin/python -m pip install -e .
+.venv/bin/dm-h65-webui --help
 ```
 
-Verify the installed version, import location, and command-line entry points:
+新设备必须先按载板手册核对终端电阻、GPIO 映射和 CAN 接线。当前 J401/CAN1 实机的手动服务模板位于 `deploy/systemd/dm-h65-can1-manual.service`，其中使用 `gpiochip2` line 4；**不要在其他载板上直接套用**。核对硬件后安装服务（不设开机自启）：
 
 ```bash
-python -c "import dm_h65; print(dm_h65.__version__); print(dm_h65.__file__)"
-dm-h65 --help
-dm-h65-webui --help
+sudo cp deploy/systemd/dm-h65-can1-manual.service deploy/systemd/dm-h65-ros2-bridge.service /etc/systemd/system/
+sudo systemctl daemon-reload
 ```
 
-Other Python applications can use the SDK after activating the same virtual environment:
+**不要直接运行旧版 `install_jetson.sh`**：它是早期 CAN0/J501 配置。`sudo bash scripts/setup_can.sh can1 1000000` 只能临时配置 CAN1，不会安装 systemd 服务。ROS 2 桥接说明见 [ROS 2 控制指南](docs/ROS2.md)。
 
-```python
-from dm_h65 import DMH65Motor, DifferentialDrive, PythonCanTransport
-```
-
-## Configure CAN0
-
-The DM-H65 uses 1 Mbps by default. To configure `can0` temporarily:
+只读电机诊断也应在 WebUI 底盘服务停止后执行，避免多个进程争用 CAN 响应帧：
 
 ```bash
-sudo bash scripts/setup_can.sh can0 1000000
-ip -details -statistics link show can0
+.venv/bin/dm-h65 --interface can1 scan --first 0 --last 15
+.venv/bin/dm-h65 --interface can1 status 0x01
+.venv/bin/dm-h65 --interface can1 status 0x02
 ```
 
-A healthy interface should report values similar to:
-
-```text
-state ERROR-ACTIVE
-bitrate 1000000
-berr-counter tx 0 rx 0
-```
-
-Scan the bus and read both motors:
+本地测试与前端构建：
 
 ```bash
-dm-h65 --interface can0 scan --first 0 --last 15
-dm-h65 --interface can0 status 0x01
-dm-h65 --interface can0 status 0x02
-python examples/dual_motor_status.py
-```
-
-## Python API Examples
-
-Read a motor without commanding motion:
-
-```python
-from dm_h65 import DMH65Motor, PythonCanTransport
-
-with PythonCanTransport("can0") as can_bus:
-    left = DMH65Motor(can_bus, 0x01, direction=-1)
-    print(left.read_identity())
-    print(left.read_telemetry())
-```
-
-Control the two-wheel differential-drive chassis:
-
-```python
-from dm_h65 import DMH65Motor, DifferentialDrive, PythonCanTransport
-
-with PythonCanTransport("can0") as can_bus:
-    left = DMH65Motor(can_bus, 0x01, direction=-1, max_speed_rad_s=8.0)
-    right = DMH65Motor(can_bus, 0x02, direction=1, max_speed_rad_s=8.0)
-    chassis = DifferentialDrive(
-        left,
-        right,
-        wheel_radius_m=0.0825,
-        track_width_m=0.42,
-        max_wheel_speed_rad_s=8.0,
-    )
-
-    try:
-        chassis.enable()
-        chassis.hold_twist(
-            linear_m_s=0.05,
-            angular_rad_s=0.0,
-            duration_s=1.0,
-            command_hz=50.0,
-        )
-    finally:
-        chassis.disable(restore_modes=True)
-```
-
-Before any motion test, lift and secure the wheels, clear the operating area, and prepare a physical power-cut emergency stop. The following examples enforce bounded speed and duration:
-
-```bash
-python examples/verified_rotation_test.py \
-  --interface can0 --motor-id 0x01 \
-  --velocity 0.5 --duration 1.0 --confirm-motion
-
-python examples/differential_drive_test.py \
-  --interface can0 --wheel-radius 0.0825 --track-width 0.42 \
-  --linear 0.05 --duration 1.0 --confirm-motion
-```
-
-See the [Python API guide](docs/PYTHON_API.md) for class, method, and exception details.
-
-## Start the WebUI
-
-The built frontend is included in the Python package, so Node.js is not required at runtime:
-
-```bash
-source .venv/bin/activate
-dm-h65-webui --host 0.0.0.0 --port 8765 --interface can0
-```
-
-Alternatively, start it from the source tree:
-
-```bash
-bash scripts/start_webui.sh
-```
-
-Open the following URL from a computer on the same network:
-
-```text
-http://<Jetson-IP>:8765/
-```
-
-For remote access through an SSH tunnel:
-
-```bash
-ssh -N -L 127.0.0.1:8765:127.0.0.1:8765 \
-  -p 8084 seeed@18.136.89.187
-```
-
-Then open `http://127.0.0.1:8765/`. Confirm that the footer identifies `can0` and real-hardware mode; a server started with `--simulate` never sends CAN commands to the motors.
-
-WebUI workflow:
-
-1. Acquire control ownership.
-2. Confirm that motors `0x01` and `0x02` are online.
-3. Press and hold while dragging the joystick.
-4. Release the joystick to stop and disable both motors.
-5. Release control ownership when debugging is complete.
-
-Control ownership remains valid until explicitly released, an emergency stop is triggered, or the service restarts. The independent 750 ms command watchdog stops and disables the motors if command updates are interrupted.
-
-See the [WebUI guide](docs/WEBUI.md) for detailed operation and API information.
-
-## Start Automatically on Jetson
-
-The verified J501 setup uses `gpiochip2` line 9 to control the onboard CAN0 termination resistor. Install the Python environment and systemd services with:
-
-```bash
-sudo bash scripts/install_jetson.sh
-```
-
-Manage the WebUI service:
-
-```bash
-sudo systemctl start dm-h65-webui.service
-sudo systemctl restart dm-h65-webui.service
-sudo systemctl stop dm-h65-webui.service
-systemctl status dm-h65-webui.service
-journalctl -u dm-h65-webui.service -f
-```
-
-If the robot uses an external termination resistor or a different carrier board, read the [Jetson deployment guide](docs/DEPLOYMENT.md) and verify the GPIO mapping before installing the termination service.
-
-## Development and Testing
-
-```bash
-python -m pip install -e ".[dev]"
-bash scripts/test.sh
-python -m build
-```
-
-For WebUI frontend development:
-
-```bash
+PYTHONPATH=src python3 -m unittest discover -s tests -v
 cd webui/frontend
 npm install
 npm run build
+npm run test:sites
 cd ../..
-python scripts/sync_webui_assets.py
-python -m build
+python3 scripts/sync_webui_assets.py
 ```
 
-The published Python package serves the built assets from `src/dm_h65/webui_static/`. Always synchronize the frontend build before creating a new wheel.
+`sync_webui_assets.py` 会用新构建资源**替换** `src/dm_h65/webui_static/`，仅在需要更新前端时运行。Python SDK 位于 `src/dm_h65/`，ROS 2 桥接位于 `scripts/ros2_cmd_vel_bridge.py`，前端位于 `webui/frontend/`，测试位于 `tests/`。
 
-## Safety Constraints
+## 安全说明
 
-- The SDK changes the control mode in RAM only. It does not send a parameter-save command or write the controller Flash.
-- The WebUI limits linear speed to `0.6 m/s` and angular speed to `2.0 rad/s`.
-- Both motors must be online before the chassis can be enabled.
-- Emergency stop immediately commands zero speed, disables both motors, and releases control ownership.
-- Resetting emergency stop does not re-enable the motors.
-- A software emergency stop is not a substitute for an independent hardware power-cut emergency stop.
-- Do not run multiple applications that consume response frames from the same CAN interface at the same time.
-
-For startup timeouts, CAN bus-off, control ownership issues, or a WebUI that shows commands while the wheels do not move, see the [troubleshooting guide](docs/TROUBLESHOOTING.md).
+- 服务端限制线速度绝对值不超过 `0.6 m/s`、角速度绝对值不超过 `2.0 rad/s`；两轮必须在线才允许运动。
+- 切换控制方式时先停车；ROS 2 桥接中断会停车。急停会失能电机并切回网页模式。
+- 软件急停和超时停车**不能代替独立的硬件断电急停**。首次运动测试前，架空并固定车轮，清空周围人员和障碍物。
+- WebUI 没有公网身份认证。不要把 8765 端口直接暴露到互联网；远程访问请使用可信局域网、VPN 或 SSH 隧道。

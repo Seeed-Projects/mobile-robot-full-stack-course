@@ -1,0 +1,13 @@
+[Unit]
+Description=Simple AMR ROS 2 cmd_vel bridge (manual start)
+After=network.target
+ConditionPathExists=/opt/ros/humble/setup.bash
+
+[Service]
+Type=simple
+User=seeed
+WorkingDirectory=/home/seeed/seeed_amr_sdk
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/bin/bash -lc 'source /opt/ros/humble/setup.bash && exec /usr/bin/python3 /home/seeed/seeed_amr_sdk/scripts/ros2_cmd_vel_bridge.py'
+Restart=on-failure
+RestartSec=2
