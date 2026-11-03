@@ -72,7 +72,7 @@
 随机选取不共线的三点拟合候选平面，统计距离小于阈值 $\tau$ 的内点：
 
 ```math
-\left|\mathbf n^T\mathbf p_i+d\right|<\tau.
+\left|\mathbf n^T\mathbf p_i+d\right|\lt \tau.
 ```
 
 本实现还要求平面接近底盘标定地面，且法向量与竖直方向夹角不超过 15°，以减少把桌面或墙面当成地面的风险；当前内点阈值为 0.04 m。
@@ -306,12 +306,12 @@ flowchart LR
 设障碍相对机器人的位置为 $\mathbf p=\mathbf p_o-\mathbf p_r$、合并半径为 $R$。机器人候选速度 $\mathbf v_r$ 与障碍速度 $\mathbf v_o$ 使用同一坐标系；在时域 $T>0$ 内可能发生碰撞的速度集合可写为：
 
 ```math
-\operatorname{VO}_{T}=
+\mathrm{VO}_{T}=
 \left\{
 \mathbf{v}_{r}\in\mathbb{R}^{2}
 \;\middle|\;
 \exists t\in(0,T],\quad
-\left\lVert\mathbf{p}-(\mathbf{v}_{r}-\mathbf{v}_{o})t\right\rVert_{2}<R
+\left\lVert\mathbf{p}-(\mathbf{v}_{r}-\mathbf{v}_{o})t\right\rVert_{2}\lt R
 \right\}.
 ```
 

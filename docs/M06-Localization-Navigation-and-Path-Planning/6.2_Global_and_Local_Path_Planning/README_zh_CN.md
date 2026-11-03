@@ -159,7 +159,7 @@ TEB 将路径位姿与相邻时间间隔一起优化，在平滑、时间、障�
 
 ```math
 C(d)\approx252\exp[-k(d-r_{inscribed})],\qquad
-r_{inscribed}<d\le r_{inflation}.
+r_{inscribed}\lt d\le r_{inflation}.
 ```
 
 致命格、内切区域和未知格有独立规则，上式只描述衰减区。`inflation_radius` 决定影响范围，`cost_scaling_factor` 对应衰减强度：越大衰减越快，并非越大就离障碍越远。
@@ -288,13 +288,13 @@ L=\sum_{i=1}^{N}\|\mathbf p_i-\mathbf p_{i-1}\|.
 在统一重采样后可用累计方向变化作为平滑度指标：
 
 ```math
-S=\sum_i\left|\operatorname{wrap}(\psi_{i+1}-\psi_i)\right|.
+S=\sum_i\left|\mathrm{wrap}(\psi_{i+1}-\psi_i)\right|.
 ```
 
 足迹净空应考虑完整机器人多边形 $\mathcal F$，不能只计算中心点距离：
 
 ```math
-d_{min}=\min_{k,j}\operatorname{dist}\bigl(\mathcal F(x_k,y_k,\theta_k),\mathcal O_j\bigr).
+d_{min}=\min_{k,j}\mathrm{dist}\bigl(\mathcal F(x_k,y_k,\theta_k),\mathcal O_j\bigr).
 ```
 
 同时记录完成状态、到达时间、终点位置与朝向误差、恢复次数，以及控制周期耗时。碰撞样本为零只说明离散样本没有接触，不能代替连续验证。
