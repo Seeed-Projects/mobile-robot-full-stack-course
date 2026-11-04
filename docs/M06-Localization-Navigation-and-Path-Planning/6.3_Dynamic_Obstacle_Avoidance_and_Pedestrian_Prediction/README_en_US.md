@@ -52,7 +52,7 @@ The baseline uses 0.06 m voxels. Smaller preserves detail with more work; larger
 
 ```math
 \mathbf n^T\mathbf p+d=0,\quad\|\mathbf n\|=1,\qquad
-|\mathbf n^T\mathbf p_i+d|<\tau.
+|\mathbf n^T\mathbf p_i+d|\lt \tau.
 ```
 
 Sample three noncollinear points, fit candidates, and count inliers. The course constrains normals within 15° of vertical and ground height near the calibrated base plane, using 0.04 m inlier tolerance. Low candidate points reduce tabletop selection.
@@ -267,12 +267,12 @@ flowchart LR
 Let $\mathbf p=\mathbf p_o-\mathbf p_r$ be the obstacle position relative to the robot, with combined radius $R$. Express candidate robot velocity $\mathbf v_r$ and obstacle velocity $\mathbf v_o$ in the same frame. For horizon $T>0$:
 
 ```math
-\operatorname{VO}_{T}=
+\mathrm{VO}_{T}=
 \left\{
 \mathbf{v}_{r}\in\mathbb{R}^{2}
 \;\middle|\;
 \exists t\in(0,T],\quad
-\left\lVert\mathbf{p}-(\mathbf{v}_{r}-\mathbf{v}_{o})t\right\rVert_{2}<R
+\left\lVert\mathbf{p}-(\mathbf{v}_{r}-\mathbf{v}_{o})t\right\rVert_{2}\lt R
 \right\}.
 ```
 

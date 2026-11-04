@@ -133,7 +133,7 @@ An illustrative decay outside the inscribed region is:
 
 ```math
 C(d)\approx252\exp[-k(d-r_{inscribed})],\quad
-r_{inscribed}<d\le r_{inflation}.
+r_{inscribed}\lt d\le r_{inflation}.
 ```
 
 Lethal/inscribed/unknown cells have separate rules. `inflation_radius` sets influence range; increasing `cost_scaling_factor` makes costs decay faster, not automatically farther from obstacles.
@@ -253,13 +253,13 @@ Edit [source parameters](../../../modules/m06_navigation/j501_navigation/config/
 
 ```math
 L=\sum_i\|\mathbf p_i-\mathbf p_{i-1}\|,\qquad
-S=\sum_i|\operatorname{wrap}(\psi_{i+1}-\psi_i)|.
+S=\sum_i|\mathrm{wrap}(\psi_{i+1}-\psi_i)|.
 ```
 
 Compare angular smoothness after common-distance resampling. Clearance uses full footprint polygons:
 
 ```math
-d_{min}=\min_{k,j}\operatorname{dist}(\mathcal F(x_k,y_k,\theta_k),\mathcal O_j).
+d_{min}=\min_{k,j}\mathrm{dist}(\mathcal F(x_k,y_k,\theta_k),\mathcal O_j).
 ```
 
 Also report completion, duration, position/yaw error, recoveries, and cycle time. Zero discrete contacts are not continuous collision proof.

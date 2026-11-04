@@ -72,7 +72,7 @@
 随机选取不共线的三点拟合候选平面，统计距离小于阈值 $\tau$ 的内点：
 
 ```math
-\left|\mathbf n^T\mathbf p_i+d\right|<\tau.
+\left|\mathbf n^T\mathbf p_i+d\right|\lt \tau.
 ```
 
 本实现还要求平面接近底盘标定地面，且法向量与竖直方向夹角不超过 15°，以减少把桌面或墙面当成地面的风险；当前内点阈值为 0.04 m。
@@ -83,7 +83,7 @@
 N\ge\frac{\log(1-p)}{\log(1-w^3)}.
 ```
 
-$p$ 是期望成功概率，$w$ 是内点比例。这是理论估算，当前程序固定最多 45 次候选采样并约束候选点区域，没有动态保证上述成功概率。
+$p$ 是期望成功概率，$`w`$ 是内点比例。这是理论估算，当前程序固定最多 45 次候选采样并约束候选点区域，没有动态保证上述成功概率。
 
 地面回波太少时，程序输出 `ground_fitted=false`，退回标定水平地面。回退必须可见，不能写成 RANSAC 检测成功。近平地假设不适用于大坡道、台阶和坑洞。
 
@@ -306,12 +306,12 @@ flowchart LR
 设障碍相对机器人的位置为 $\mathbf p=\mathbf p_o-\mathbf p_r$、合并半径为 $R$。机器人候选速度 $\mathbf v_r$ 与障碍速度 $\mathbf v_o$ 使用同一坐标系；在时域 $T>0$ 内可能发生碰撞的速度集合可写为：
 
 ```math
-\operatorname{VO}_{T}=
+\mathrm{VO}_{T}=
 \left\{
 \mathbf{v}_{r}\in\mathbb{R}^{2}
 \;\middle|\;
 \exists t\in(0,T],\quad
-\left\lVert\mathbf{p}-(\mathbf{v}_{r}-\mathbf{v}_{o})t\right\rVert_{2}<R
+\left\lVert\mathbf{p}-(\mathbf{v}_{r}-\mathbf{v}_{o})t\right\rVert_{2}\lt R
 \right\}.
 ```
 

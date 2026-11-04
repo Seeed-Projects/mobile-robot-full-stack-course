@@ -114,7 +114,7 @@ A simple target orientation is $\theta_{F}^{\star}=\theta_{L}$. This computation
 \mathbf e=R(\theta_L)^T(\mathbf p_F-\mathbf p_L)-\Delta\mathbf p.
 ```
 
-Record longitudinal and lateral errors, not only inter-robot distance. Delay $\tau$ introduces a rough position lag $\lVert\mathbf{v}_{L}\rVert_{2}\tau$, excluding turning and acceleration.
+Record longitudinal and lateral errors, not only inter-robot distance. Delay $\tau$ introduces a rough position lag $`\lVert\mathbf{v}_{L}\rVert_{2}\tau`$, excluding turning and acceleration.
 
 An online coordinator should update goals using displacement/angle/time thresholds, not cancel/reissue at every sensor frame. Define cancellation acknowledgment, unreachable-target handling, and hold behavior.
 
