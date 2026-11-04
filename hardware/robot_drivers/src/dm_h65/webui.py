@@ -19,16 +19,25 @@ class ServiceError(RuntimeError):
 
 class ChassisService:
     """Serializes all CAN access and enforces input mode, watchdog and e-stop."""
-    def __init__(self, interface="can1", simulate=False, wheel_radius_m=0.0825, track_width_m=0.42):
+    RAMP_MIN_S = 0.3
+    RAMP_MAX_S = 1.5
+    RAMP_DEFAULT_S = 0.8
+
+    def __init__(self, interface="can1", simulate=False, wheel_radius_m=0.0825, track_width_m=0.42,
+                 settings_path=None):
         self.interface, self.simulate = interface, simulate
         self.wheel_radius_m, self.track_width_m = wheel_radius_m, track_width_m
         self._lock = threading.RLock(); self._control_lock = threading.RLock(); self._events = deque(maxlen=100)
         self._token = self._owner = None
         self._enabled = self._emergency = False; self._linear = self._angular = 0.0; self._last_command = 0.0
+        self._target_linear = self._target_angular = 0.0
+        self._settings_path = Path(settings_path) if settings_path else Path.home() / ".config/simple-amr/drive.json"
+        self._ramp_time_s = self._load_ramp_time()
         self._control_mode = "webui"; self._ros2_last_heartbeat = 0.0; self._ros2_armed = False
         self._transport = self._drive = None; self._closed = threading.Event()
         self._motors = {"left": self._blank_motor(1), "right": self._blank_motor(2)}
         self._connect()
+        threading.Thread(target=self._motion_loop, name="chassis-motion", daemon=True).start()
         threading.Thread(target=self._watchdog_loop, name="chassis-watchdog", daemon=True).start()
         threading.Thread(target=self._telemetry_loop, name="chassis-telemetry", daemon=True).start()
 
@@ -38,6 +47,71 @@ class ChassisService:
 
     def _event(self, message, level="info"):
         self._events.appendleft({"time": datetime.now().strftime("%H:%M:%S"), "message": message, "level": level})
+
+    @classmethod
+    def _valid_ramp_time(cls, seconds):
+        if isinstance(seconds, bool) or not isinstance(seconds, (int, float)):
+            return False
+        return math.isfinite(seconds) and cls.RAMP_MIN_S <= seconds <= cls.RAMP_MAX_S
+
+    def _load_ramp_time(self):
+        try:
+            seconds = json.loads(self._settings_path.read_text(encoding="utf-8"))["ramp_time_s"]
+            if self._valid_ramp_time(seconds):
+                return float(seconds)
+        except (OSError, ValueError, KeyError, TypeError):
+            pass
+        return self.RAMP_DEFAULT_S
+
+    def set_ramp_time(self, seconds):
+        if not self._valid_ramp_time(seconds):
+            raise ServiceError(f"加减速时间必须在 {self.RAMP_MIN_S:.1f}～{self.RAMP_MAX_S:.1f} 秒之间")
+        with self._lock:
+            if any(abs(v) > 1e-6 for v in (self._linear, self._angular,
+                                          self._target_linear, self._target_angular)):
+                raise ServiceError("请先停车，再调整加减速时间", HTTPStatus.CONFLICT)
+            try:
+                self._settings_path.parent.mkdir(parents=True, exist_ok=True)
+                temporary = self._settings_path.with_suffix(".tmp")
+                temporary.write_text(json.dumps({"ramp_time_s": float(seconds)}) + "\n", encoding="utf-8")
+                temporary.replace(self._settings_path)
+            except OSError as exc:
+                raise ServiceError(f"无法保存加减速设置：{exc}", HTTPStatus.INTERNAL_SERVER_ERROR) from exc
+            self._ramp_time_s = float(seconds)
+            self._event(f"加减速时间已设为 {self._ramp_time_s:.1f} 秒")
+            return self._ramp_time_s
+
+    @staticmethod
+    def _approach(current, target, maximum_delta):
+        return current + max(-maximum_delta, min(maximum_delta, target - current))
+
+    def _motion_step(self, duration_s):
+        with self._lock:
+            if not self._enabled or self._control_mode != "webui":
+                return
+            duration_s = max(0.0, min(duration_s, 0.1))
+            linear = self._approach(self._linear, self._target_linear,
+                                    .6 * duration_s / self._ramp_time_s)
+            angular = self._approach(self._angular, self._target_angular,
+                                     2.0 * duration_s / self._ramp_time_s)
+            if linear == self._linear and angular == self._angular:
+                return
+            speeds = self._drive.set_twist(-linear, angular) if self._drive else None
+            self._linear, self._angular = linear, angular
+            if speeds:
+                self._motors["left"]["velocity_rad_s"] = speeds.left_rad_s
+                self._motors["right"]["velocity_rad_s"] = speeds.right_rad_s
+
+    def _motion_loop(self):
+        last = time.monotonic()
+        while not self._closed.wait(.05):
+            now = time.monotonic()
+            try:
+                self._motion_step(now - last)
+            except Exception as exc:
+                with self._lock:
+                    self._safe_disable(f"速度斜坡下发失败：{exc}", "error")
+            last = now
 
     def _connect(self):
         if self.simulate:
@@ -116,20 +190,30 @@ class ChassisService:
                 self._last_command = time.monotonic()
                 return {"linear_m_s": 0.0, "angular_rad_s": 0.0, "left_rad_s": 0.0, "right_rad_s": 0.0}
             if not self._enabled: self.enable(token)
+            self._last_command = time.monotonic()
+            if source == "webui":
+                self._target_linear, self._target_angular = linear, angular
+                return {"linear_m_s": linear, "angular_rad_s": angular,
+                        "left_rad_s": self._motors["left"]["velocity_rad_s"],
+                        "right_rad_s": self._motors["right"]["velocity_rad_s"]}
             # This installation moves backward for positive motor-frame linear speed.
             # Keep the API in robot coordinates: +linear forward, +angular left.
             speeds = self._drive.set_twist(-linear, angular) if self._drive else None
-            self._linear, self._angular, self._last_command = linear, angular, time.monotonic()
+            self._linear, self._angular = linear, angular
             if speeds:
                 self._motors["left"]["velocity_rad_s"] = speeds.left_rad_s
                 self._motors["right"]["velocity_rad_s"] = speeds.right_rad_s
             return {"linear_m_s": linear, "angular_rad_s": angular,
                     "left_rad_s": speeds.left_rad_s if speeds else 0.0,
                     "right_rad_s": speeds.right_rad_s if speeds else 0.0}
-    def stop(self, token=None, require_token=True, source=None):
+    def stop(self, token=None, require_token=True, source=None, graceful=False):
         with self._lock:
             if require_token: self._require_token(token)
             if source is not None and source != self._control_mode: return False
+            self._target_linear = self._target_angular = 0.0
+            if graceful and self._control_mode == "webui":
+                self._last_command = time.monotonic()
+                return True
             if self._drive: self._drive.stop()
             self._linear = self._angular = 0.0
             self._motors["left"]["velocity_rad_s"] = self._motors["right"]["velocity_rad_s"] = 0.0
@@ -150,13 +234,18 @@ class ChassisService:
             try: self._drive.disable(restore_modes=False)
             except Exception as exc: self._event(f"停止电机时发生错误：{exc}", "error")
         self._enabled = False; self._linear = self._angular = 0.0
+        self._target_linear = self._target_angular = 0.0
         self._motors["left"]["velocity_rad_s"] = self._motors["right"]["velocity_rad_s"] = 0.0
         self._event(event, level)
     def _watchdog_loop(self):
         while not self._closed.wait(.05):
             with self._lock:
                 now = time.monotonic()
-                if self._enabled and (self._linear or self._angular) and now - self._last_command > .75:
+                moving_without_fresh_input = (
+                    (self._control_mode == "webui" and (self._target_linear or self._target_angular))
+                    or (self._control_mode == "ros2" and (self._linear or self._angular))
+                )
+                if self._enabled and moving_without_fresh_input and now - self._last_command > .75:
                     self.stop(require_token=False)
                     self._event("速度指令超时，看门狗已停车", "warning")
                 if self._control_mode == "ros2" and self._ros2_armed and now - self._ros2_last_heartbeat > 3.0:
@@ -187,7 +276,7 @@ class ChassisService:
             active = self._control_active(); owner = self._owner if active else None
             owned = active and bool(presented_token) and secrets.compare_digest(presented_token or "", self._token or "")
         with self._lock:
-            return {"service_online": True, "simulation": self.simulate, "can_interface": self.interface, "can_state": "up" if (self.simulate or self._drive) else "down", "control": {"owned": owned, "owner": owner, "expires_in_s": None}, "control_mode": self._control_mode, "ros2": {"online": time.monotonic() - self._ros2_last_heartbeat <= 3.0, "armed": self._ros2_armed}, "drive": {"enabled": self._enabled, "emergency_stop": self._emergency, "linear_m_s": self._linear, "angular_rad_s": self._angular}, "motors": {k: dict(v) for k,v in self._motors.items()}, "updated_at": datetime.now().strftime("%H:%M:%S")}
+            return {"service_online": True, "simulation": self.simulate, "can_interface": self.interface, "can_state": "up" if (self.simulate or self._drive) else "down", "control": {"owned": owned, "owner": owner, "expires_in_s": None}, "control_mode": self._control_mode, "ros2": {"online": time.monotonic() - self._ros2_last_heartbeat <= 3.0, "armed": self._ros2_armed}, "drive": {"enabled": self._enabled, "emergency_stop": self._emergency, "linear_m_s": self._linear, "angular_rad_s": self._angular, "target_linear_m_s": self._target_linear, "target_angular_rad_s": self._target_angular, "ramp_time_s": self._ramp_time_s}, "motors": {k: dict(v) for k,v in self._motors.items()}, "updated_at": datetime.now().strftime("%H:%M:%S")}
     def events(self):
         with self._lock: return list(self._events)
     def close(self):
@@ -224,7 +313,8 @@ def make_handler(service, static_dir):
             try:
                 path, body = urlparse(self.path).path, self._body(); token = str(body.get("token", ""))
                 if path == "/api/drive/command": result={"ok":True, **service.command(token,float(body.get("linear",0)),float(body.get("angular",0)),source="webui")}
-                elif path == "/api/drive/stop": result={"ok":True,"stopped":service.stop(token,source="webui")}
+                elif path == "/api/drive/stop": result={"ok":True,"stopped":service.stop(token,source="webui",graceful=True)}
+                elif path == "/api/drive/ramp-time": result={"ok":True,"ramp_time_s":service.set_ramp_time(body.get("seconds"))}
                 elif path == "/api/control-mode": result={"ok":True,"mode":service.set_control_mode(str(body.get("mode", "")))}
                 elif path == "/api/ros2/heartbeat": self._local_only(); result={"ok":True,**service.ros2_heartbeat()}
                 elif path == "/api/ros2/command":

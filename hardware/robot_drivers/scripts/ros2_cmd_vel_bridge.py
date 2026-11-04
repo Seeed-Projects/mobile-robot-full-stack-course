@@ -45,6 +45,7 @@ def main():
 
     import rclpy
     from geometry_msgs.msg import Twist
+    from rclpy.executors import ExternalShutdownException
     from rclpy.node import Node
 
     class CmdVelBridge(Node):
@@ -87,13 +88,16 @@ def main():
     node = CmdVelBridge()
     try:
         rclpy.spin(node)
+    except (KeyboardInterrupt, ExternalShutdownException):
+        pass
     finally:
         try:
             client.post("/api/ros2/stop")
         except Exception:
             pass
         node.destroy_node()
-        rclpy.shutdown()
+        # SIGTERM may already have shut down the context via rclpy's signal handler.
+        rclpy.try_shutdown()
 
 
 if __name__ == "__main__":

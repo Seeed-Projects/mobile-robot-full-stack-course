@@ -137,5 +137,12 @@ header{position:sticky;top:0;z-index:20;height:auto;min-height:96px;padding:10px
 .bridge-status{margin-left:auto;display:flex;align-items:center;gap:7px;font-size:12px;white-space:nowrap;color:#aab8af}
 .bridge-status i{width:8px;height:8px;border-radius:50%;background:#a6aeb0}
 .bridge-status.online i{background:#74c043;box-shadow:0 0 8px #74c043}
+.ramp-setting{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:12px 20px;border-top:1px solid #304437;color:#dce7de}
+.ramp-setting>div{display:flex;flex-direction:column;gap:4px;min-width:0}
+.ramp-setting label{font-weight:700;font-size:14px}
+.ramp-setting small{color:#9cb2a5;font-size:12px;line-height:1.4}
+.ramp-setting select{flex:none;min-width:105px;padding:9px 12px;border:1px solid #506257;border-radius:7px;background:#17231f;color:#eaffdb;font:inherit;cursor:pointer}
+.ramp-setting select:disabled{opacity:.5;cursor:not-allowed}
 @media(max-width:900px){.mode-bar{margin-inline:12px}}
+@media(max-width:600px){.ramp-setting{padding:12px;gap:10px}.ramp-setting label{font-size:13px}.ramp-setting small{font-size:11px}.ramp-setting select{min-width:92px;padding:8px;font-size:12px}}
 @media(max-width:600px){.mode-bar{margin:8px 8px 0;padding:12px;gap:10px}.mode-bar>div:first-child{min-width:0;width:100%}.mode-actions{width:100%}.mode-actions button{flex:1;min-width:0;padding:9px 6px}.bridge-status{margin-left:0}}

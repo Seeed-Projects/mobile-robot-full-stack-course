@@ -16,18 +16,30 @@ Simple AMR is a two-wheel differential-drive stack for a Jetson, SocketCAN, and 
 
 These values describe the current robot. Verify them before using the software on another chassis. Do not run a second motor-control process against `can1`.
 
-## Start on the configured Jetson
+## Manage the SDK on the configured Jetson
 
 After a reboot, run the following from the project directory. **No argument defaults to WebUI control**; there is no interactive menu:
 
 ```bash
 cd /home/seeed/seeed_amr_sdk
-python3 scripts/start_simple_amr.py         # default: WebUI
-python3 scripts/start_simple_amr.py webui   # explicit: WebUI
-python3 scripts/start_simple_amr.py ros2    # ROS 2 /cmd_vel
+python3 scripts/start_simple_amr.py start         # default: WebUI
+python3 scripts/start_simple_amr.py start ros2    # ROS 2 /cmd_vel
+python3 scripts/start_simple_amr.py status        # inspect the stack
+python3 scripts/start_simple_amr.py stop          # safely stop the whole SDK
 ```
 
-The script starts the manual CAN1 service, reuses or starts the WebUI, and selects the requested control mode. In `ros2` mode it also starts the bridge and waits for a zero-velocity ready state; in `webui` mode it stops the bridge. The WebUI remains available for status in either mode. Install the CAN1 and ROS 2 units below before first use; older CAN0/J501 service templates are not suitable for this CAN1 device.
+The old no-argument, `webui`, and `ros2` forms still work. The script starts the manual CAN1 service, reuses or starts the WebUI, and selects the requested control mode. In `ros2` mode it also starts the bridge and waits for a zero-velocity ready state; in `webui` mode it stops the bridge. The WebUI remains available for status in either mode. `stop` first triggers emergency stop and verifies that motor output is disabled, then stops the bridge, gracefully exits the WebUI, and finally shuts down CAN1. If safe stopping cannot be confirmed, it reports an error and leaves CAN1 up. Install the CAN1 and ROS 2 units below before first use; older CAN0/J501 service templates are not suitable for this CAN1 device.
+
+On this Jetson, you can optionally install a short command once (without enabling boot autostart):
+
+```bash
+chmod +x scripts/start_simple_amr.py
+sudo ln -s /home/seeed/seeed_amr_sdk/scripts/start_simple_amr.py /usr/local/bin/simple-amr
+simple-amr start
+simple-amr start ros2
+simple-amr status
+simple-amr stop
+```
 
 Check the system:
 
@@ -40,7 +52,9 @@ CAN should report `UP`, `ERROR-ACTIVE`, and `bitrate 1000000`. Open `http://<Jet
 
 ## Browser control
 
-Select “网页控制” (WebUI control). Drive with the joystick, W/A/S/D, arrow keys, or the in-place rotation buttons. Releasing an input sends zero velocity. There is no control-ownership or hold-to-enable step. Emergency stop disables the motors; reset it only after checking the physical area. Displayed target wheel speeds are **commanded values**, not measured motor speeds.
+Select “网页控制” (WebUI control). Drive with the joystick, W/A/S/D, arrow keys, or the in-place rotation buttons. Releasing an input ramps down to zero velocity. There is no control-ownership or hold-to-enable step. Emergency stop disables the motors; reset it only after checking the physical area. Displayed target wheel speeds are **commanded values**, not measured motor speeds.
+
+The dashboard's acceleration/deceleration time can be set while stopped from `0.3` to `1.5` seconds (default `0.8` seconds) and is saved on the Jetson in `~/.config/simple-amr/drive.json`. WebUI acceleration and release-to-stop use this ramp. A longer time feels gentler but increases stopping distance. This setting does not change ROS 2 command response or delay emergency stop, control-mode changes, or the communication watchdog.
 
 ## ROS 2 control
 
